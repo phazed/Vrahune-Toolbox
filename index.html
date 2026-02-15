@@ -228,6 +228,7 @@
 
     .sidebar-bottom-tools {
       margin-top: 6px;
+      padding: 0 4px;
     }
 
     .nav-folder-heading {
@@ -535,8 +536,9 @@
       background: #05070c;
       padding: 6px;
       margin-top: 4px;
-      max-height: 260px;
+      max-height: 220px;
       overflow-y: auto;
+      max-width: 720px;
     }
 
     #advEditSection .row {
@@ -545,6 +547,11 @@
 
     #advEditSection textarea {
       min-height: 60px;
+      font-size: 0.78rem;
+    }
+
+    #advEditSection .muted {
+      font-size: 0.75rem;
     }
 
     /* Advanced token search + chips */
@@ -742,7 +749,7 @@
     </header>
 
     <div class="layout-main">
-      <!-- LEFT: Generators / Folders + Text Cleaner -->
+      <!-- LEFT: Generators / Folders + Tools -->
       <aside class="sidebar">
         <div class="sidebar-header">
           <div class="sidebar-header-row">
@@ -764,8 +771,9 @@
 
         <div id="generatorNav" class="nav-scroll"></div>
 
-        <!-- Text Cleaner toolbox now in sidebar bottom -->
+        <!-- Tools section (Text Cleaner, etc.) -->
         <div class="sidebar-bottom-tools">
+          <div class="sidebar-title">Tools</div>
           <div class="toolbox">
             <div class="toolbox-header">
               <div class="toolbox-title">
@@ -1035,7 +1043,6 @@
       if (!raw) return "";
 
       let replaced = raw.replace(/\r\n/g, "\n");
-
       replaced = replaced.replace(/(^|\s)(\d+)(?=[\.\)]?\s*[A-Za-z])/g, "\n$2");
 
       const lines = replaced.split(/\n+/);
@@ -1168,7 +1175,8 @@
               EndSoft: elfEndSoftId,
               EndSharp: elfEndSharpId
             },
-            multiTokenMap: {}
+            multiTokenMap: {},
+            advancedMode: "simple"
           }
         },
         {
@@ -1188,7 +1196,8 @@
               Noun: bookNounId,
               Place: bookPlaceId
             },
-            multiTokenMap: {}
+            multiTokenMap: {},
+            advancedMode: "simple"
           }
         },
         {
@@ -1221,6 +1230,7 @@
             items.patterns = Array.isArray(items.patterns) ? items.patterns : [];
             items.tokenMap = items.tokenMap && typeof items.tokenMap === "object" ? items.tokenMap : {};
             items.multiTokenMap = items.multiTokenMap && typeof items.multiTokenMap === "object" ? items.multiTokenMap : {};
+            if (!items.advancedMode) items.advancedMode = "simple";
           }
           return { ...g, type, items };
         });
@@ -1731,6 +1741,7 @@
         const multiTokenMap = items.multiTokenMap && typeof items.multiTokenMap === "object" ? items.multiTokenMap : {};
         const patternsText = patterns.join("\n");
         const allTokens = extractTokensFromPatterns(patterns);
+        const savedMode = items.advancedMode === "advanced" ? "advanced" : "simple";
 
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -1749,6 +1760,10 @@
             <div class="col">
               <label>&nbsp;</label>
               <button id="advGenerateBtn" class="btn-primary">Generate</button>
+            </div>
+            <div class="col">
+              <label>&nbsp;</label>
+              <button id="advEditMetaBtn" class="btn-secondary btn-small">Edit name & folder</button>
             </div>
           </div>
 
@@ -1783,7 +1798,7 @@
             </div>
 
             <div class="adv-tab-bar">
-              <button type="button" class="adv-tab active" data-mode="simple">Simple</button>
+              <button type="button" class="adv-tab" data-mode="simple">Simple</button>
               <button type="button" class="adv-tab" data-mode="advanced">Advanced</button>
             </div>
 
@@ -1815,8 +1830,9 @@
         const advSaveBtn = panel.querySelector("#advSaveBtn");
         const advDeleteBtn = panel.querySelector("#advDeleteBtn");
         const advTabs = panel.querySelectorAll(".adv-tab");
+        const advEditMetaBtn = panel.querySelector("#advEditMetaBtn");
 
-        let advMode = "simple";
+        let advMode = savedMode;
 
         function setAdvMode(mode) {
           advMode = mode === "advanced" ? "advanced" : "simple";
@@ -2036,7 +2052,7 @@
 
         renderTokenMappingsSimple(allTokens, simpleTokenMap);
         renderTokenMappingsAdvanced(allTokens, multiTokenMap);
-        setAdvMode("simple");
+        setAdvMode(savedMode);
 
         advEditToggleBtn.addEventListener("click", () => {
           const isHidden = advEditSection.style.display === "none";
@@ -2089,6 +2105,7 @@
           gensCurrent[idx].items.patterns = rawPatterns;
           gensCurrent[idx].items.tokenMap = simpleMapNew;
           gensCurrent[idx].items.multiTokenMap = multiMapNew;
+          gensCurrent[idx].items.advancedMode = advMode;
 
           saveGenerators(gensCurrent);
 
@@ -2096,7 +2113,7 @@
           renderTokenMappingsAdvanced(newTokens, multiMapNew);
 
           const msg = document.getElementById("copyMessage");
-          msg.textContent = `Saved ${rawPatterns.length} pattern(s), ${Object.keys(simpleMapNew).length} simple mapping(s), ${Object.keys(multiMapNew).length} advanced mapping(s).`;
+          msg.textContent = `Saved ${rawPatterns.length} pattern(s), ${Object.keys(simpleMapNew).length} simple mapping(s), ${Object.keys(multiMapNew).length} advanced mapping(s), mode: ${advMode}.`;
           setTimeout(() => {
             msg.textContent = "Click any generated item or lexicon entry to copy.";
           }, 2500);
@@ -2123,6 +2140,7 @@
           const patternsNow = Array.isArray(advItems.patterns) ? advItems.patterns : [];
           const simpleMapNow = advItems.tokenMap && typeof advItems.tokenMap === "object" ? advItems.tokenMap : {};
           const multiMapNow = advItems.multiTokenMap && typeof advItems.multiTokenMap === "object" ? advItems.multiTokenMap : {};
+          const modeNow = advItems.advancedMode === "advanced" ? "advanced" : "simple";
 
           advResults.innerHTML = "";
 
@@ -2144,7 +2162,7 @@
 
             tokensInPattern.forEach(tok => {
               let chosenGenId = null;
-              if (advMode === "advanced") {
+              if (modeNow === "advanced") {
                 const listIds = multiMapNow[tok];
                 if (Array.isArray(listIds) && listIds.length) {
                   chosenGenId = rand(listIds);
@@ -2173,6 +2191,12 @@
           advResults.appendChild(frag);
           advResults.addEventListener("click", handleCopyClick);
         });
+
+        if (advEditMetaBtn) {
+          advEditMetaBtn.addEventListener("click", () => {
+            openEditGeneratorBox(gen.id);
+          });
+        }
 
         return;
       }
@@ -2360,7 +2384,7 @@
             folder,
             name,
             type: "advanced",
-            items: { patterns: [], tokenMap: {}, multiTokenMap: {} }
+            items: { patterns: [], tokenMap: {}, multiTokenMap: {}, advancedMode: "simple" }
           });
           saveGenerators(gens);
           msg.classList.remove("danger");
