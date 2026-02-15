@@ -491,6 +491,40 @@
       border-radius: var(--radius-sm);
     }
 
+    .adv-edit-toggle {
+      margin-left: auto;
+    }
+
+    .adv-tab-bar {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid #2d3440;
+      overflow: hidden;
+      margin-bottom: 6px;
+      background: #05070c;
+    }
+
+    .adv-tab {
+      font-size: 0.76rem;
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .adv-tab.active {
+      background: #181f2b;
+      color: var(--accent-strong);
+    }
+
+    .adv-tab:hover {
+      background: #10141d;
+    }
+
     /* Toolbox (text cleaner) */
     .toolbox {
       border-radius: var(--radius-md);
@@ -921,16 +955,12 @@
       return Array.from(tokenSet);
     }
 
-    // Improved text cleaner: handles inline numbers like "4 Arrogant 54 Logical" and "60Morbid"
+    // Improved text cleaner.
     function cleanTextForGenerator(raw) {
       if (!raw) return "";
 
-      // Normalize newlines
       let replaced = raw.replace(/\r\n/g, "\n");
 
-      // Insert newlines before numbers that start words:
-      // 4 Arrogant 54 Logical  -> \n4 Arrogant \n54 Logical
-      // 10 Chatterbox 60Morbid -> \n10 Chatterbox \n60Morbid
       replaced = replaced.replace(/(^|\s)(\d+)(?=[\.\)]?\s*[A-Za-z])/g, "\n$2");
 
       const lines = replaced.split(/\n+/);
@@ -940,16 +970,9 @@
         let t = line.trim();
         if (!t) continue;
 
-        // Strip leading bullets like "-", "*", "•"
         t = t.replace(/^[\-\*\u2022]+\s*/, "");
-
-        // Strip leading numbering like "4", "4.", "4)"
         t = t.replace(/^\d+[\.\)]?\s*/, "");
-
-        // Collapse multiple spaces into one
         t = t.replace(/\s{2,}/g, " ");
-
-        // Remove trailing commas / extra spaces
         t = t.trim().replace(/[,\s]+$/, "").trim();
 
         if (t) cleaned.push(t);
@@ -1076,7 +1099,7 @@
               EndSoft: elfEndSoftId,
               EndSharp: elfEndSharpId
             },
-            profiles: []
+            multiTokenMap: {}
           }
         },
         {
@@ -1096,7 +1119,7 @@
               Noun: bookNounId,
               Place: bookPlaceId
             },
-            profiles: []
+            multiTokenMap: {}
           }
         },
         {
@@ -1128,7 +1151,7 @@
             }
             items.patterns = Array.isArray(items.patterns) ? items.patterns : [];
             items.tokenMap = items.tokenMap && typeof items.tokenMap === "object" ? items.tokenMap : {};
-            items.profiles = Array.isArray(items.profiles) ? items.profiles : [];
+            items.multiTokenMap = items.multiTokenMap && typeof items.multiTokenMap === "object" ? items.multiTokenMap : {};
           }
           return { ...g, type, items };
         });
@@ -1515,7 +1538,6 @@
         lexResult.addEventListener("click", handleCopyClick);
         lexAllEntries.addEventListener("click", handleCopyClick);
 
-        // Append from text
         lexAppendBtn.addEventListener("click", () => {
           const raw = lexAddInput.value || "";
           if (!raw.trim()) {
@@ -1543,7 +1565,6 @@
           renderAllEntriesList(merged);
         });
 
-        // Import
         lexImportBtn.addEventListener("click", () => {
           lexFileInput.value = "";
           lexFileInput.click();
@@ -1609,7 +1630,6 @@
           reader.readAsText(file);
         });
 
-        // Download JSON
         lexDownloadBtn.addEventListener("click", () => {
           const gensCurrent = loadGenerators();
           const g = gensCurrent.find(x => x.id === gen.id);
@@ -1626,12 +1646,10 @@
           URL.revokeObjectURL(url);
         });
 
-        // Open raw edit (left box)
         lexOpenEditBtn.addEventListener("click", () => {
           openEditGeneratorBox(gen.id);
         });
 
-        // Delete
         lexDeleteBtn.addEventListener("click", () => {
           const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
           if (!ok) return;
@@ -1648,25 +1666,25 @@
         return;
       }
 
-      // ADVANCED GENERATOR (simple + optional profiles)
+      // ADVANCED GENERATOR
       if (gen.type === "advanced") {
-        const items = gen.items || { patterns: [], tokenMap: {}, profiles: [] };
-        const simplePatterns = Array.isArray(items.patterns) ? items.patterns : [];
-        const tokenMap = items.tokenMap && typeof items.tokenMap === "object" ? items.tokenMap : {};
-        const profiles = Array.isArray(items.profiles) ? items.profiles : [];
-        const patternsText = simplePatterns.join("\n");
-        const allTokens = extractTokensFromPatterns(simplePatterns);
-        const profilesText = profiles.length ? JSON.stringify(profiles, null, 2) : "";
+        const items = gen.items || {};
+        const patterns = Array.isArray(items.patterns) ? items.patterns : [];
+        const simpleTokenMap = items.tokenMap && typeof items.tokenMap === "object" ? items.tokenMap : {};
+        const multiTokenMap = items.multiTokenMap && typeof items.multiTokenMap === "object" ? items.multiTokenMap : {};
+        const patternsText = patterns.join("\n");
+        const allTokens = extractTokensFromPatterns(patterns);
 
         panel.innerHTML = `
           <div class="generator-title-main">
             ${gen.name}
           </div>
           <div class="muted" style="margin-bottom:8px;">
-            Advanced generator that stitches together outputs from your other generators using simple patterns.
+            Advanced generator that stitches together outputs from your other generators using <code>{Tokens}</code>.
+            Use <b>Simple</b> for one generator per token, or <b>Advanced</b> to let a token pull from multiple generators.
           </div>
 
-          <!-- TOP: Generate controls + results -->
+          <!-- Generate controls + results -->
           <div class="row">
             <div class="col">
               <label for="advCountInput">Count</label>
@@ -1682,117 +1700,87 @@
 
           <hr>
 
-          <!-- SIMPLE TEMPLATE SETTINGS -->
+          <!-- Hidden edit section (toggle) -->
           <div class="section-title">
-            <span>Simple template (fallback)</span>
+            <span>Template & mappings</span>
+            <button id="advEditToggleBtn" class="btn-secondary btn-small adv-edit-toggle" type="button">
+              Edit template & mappings
+            </button>
           </div>
-          <div class="muted" style="font-size:0.8rem; line-height:1.4; margin-bottom:6px;">
-            Tips:
-            <ul style="margin:4px 0 0 18px; padding:0; list-style:disc;">
-              <li>Write patterns using placeholders in braces, e.g. <code>{Name}</code>, <code>{Race}</code>, <code>{Place}</code>.</li>
-              <li>Each placeholder (token) pulls from one of your existing <b>list</b> generators.</li>
-              <li>If you do <b>not</b> use profiles, this simple template drives all results.</li>
-            </ul>
+          <div class="muted" style="font-size:0.78rem; margin-bottom:4px;">
+            Keep this closed if you just want to generate with the existing setup. Open it when you want to tweak patterns or which generators each <code>{Token}</code> pulls from.
           </div>
 
-          <div class="row">
-            <div class="col">
-              <label for="advPatternsInput">Patterns (one per line)</label>
-              <textarea id="advPatternsInput" placeholder="{Name} is a {Race} from {Hometown}, known for {Trait}.">${patternsText}</textarea>
+          <div id="advEditSection" style="display:none; margin-top:6px;">
+            <div class="row">
+              <div class="col">
+                <label for="advPatternsInput">Patterns (one per line)</label>
+                <textarea id="advPatternsInput" placeholder="{Name} is a {Race} from {Hometown}, known for {Trait}.">${patternsText}</textarea>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:6px;">
+              <span>Token mappings</span>
+            </div>
+            <div class="muted" style="font-size:0.78rem; margin-bottom:4px;">
+              Choose how each <code>{Token}</code> pulls from your list generators.
+            </div>
+
+            <div class="adv-tab-bar">
+              <button type="button" class="adv-tab active" data-mode="simple">Simple</button>
+              <button type="button" class="adv-tab" data-mode="advanced">Advanced</button>
+            </div>
+
+            <div id="advTokensSimpleContainer"></div>
+            <div id="advTokensAdvancedContainer" style="display:none; margin-top:6px;"></div>
+
+            <div class="muted" style="font-size:0.78rem; margin-top:4px;">
+              <b>Simple tab:</b> each token uses exactly one generator.<br>
+              <b>Advanced tab:</b> each token can use multiple generators; one is chosen at random each time.
+            </div>
+
+            <div class="row" style="margin-top:8px;">
+              <button id="advSaveBtn" class="btn-primary btn-small">Save template & mappings</button>
+              <button id="advDeleteBtn" class="btn-secondary btn-small">Delete generator</button>
             </div>
           </div>
-
-          <div class="section-title" style="margin-top:4px;">
-            <span>Token mappings</span>
-            <span class="muted" style="font-size:0.75rem;">Tokens are auto-detected from the patterns above</span>
-          </div>
-
-          <div id="advTokensContainer"></div>
-
-          <div class="row" style="margin-top:8px;">
-            <button id="advSaveBtn" class="btn-primary btn-small">Save simple template</button>
-            <button id="advDeleteBtn" class="btn-secondary btn-small">Delete generator</button>
-          </div>
-
-          <hr>
-
-          <!-- PROFILES (OPTIONAL) -->
-          <div class="section-title">
-            <span>Profiles (optional)</span>
-          </div>
-          <div class="muted" style="font-size:0.8rem; line-height:1.4; margin-bottom:6px;">
-            Profiles let you mix multiple “cases” inside one generator — for example:
-            <ul style="margin:4px 0 0 18px; padding:0; list-style:disc;">
-              <li><b>Elf NPC</b> profile that uses Elf name + Elf hometown generators.</li>
-              <li><b>Human NPC</b> profile that uses Human name + Human hometown generators.</li>
-            </ul>
-            <b>How it works:</b> if one or more profiles are defined, each generated result will:
-            <ol style="margin:4px 0 0 18px; padding:0; list-style:decimal;">
-              <li>Pick a profile at random (using its <code>weight</code>).</li>
-              <li>Pick a pattern from that profile’s <code>patterns</code>.</li>
-              <li>Fill tokens using that profile’s <code>tokenMap</code>, falling back to the simple mapping above.</li>
-            </ol>
-            You define profiles below as JSON. This keeps the UI simple but powerful.
-          </div>
-
-          <label for="advProfilesInput">Profiles JSON</label>
-          <textarea id="advProfilesInput" style="min-height:160px;" placeholder="Leave empty to ignore profiles and just use the simple template.">${profilesText}</textarea>
-
-          <div class="muted" style="font-size:0.78rem; margin-top:4px;">
-            Tip: <b>tokenMap values are generator IDs</b> (e.g. "gen-elf-names"). If you want “fixed text” like <code>Elf</code>,
-            create a list generator with only that word and map the token to that generator.
-          </div>
-
-          <button id="advProfilesSaveBtn" class="btn-secondary btn-small" style="margin-top:6px;">
-            Save profiles
-          </button>
-
-          <details style="margin-top:8px;">
-            <summary class="muted" style="font-size:0.78rem; cursor:pointer;">See example profiles JSON</summary>
-            <pre style="background:#050505; border:1px solid #333; border-radius:8px; padding:8px; font-size:0.75rem; white-space:pre-wrap; margin-top:6px;">
-[
-  {
-    "name": "Elf NPC",
-    "weight": 2,
-    "patterns": [
-      "{Name} is an Elf from {Hometown}, known for {Trait}."
-    ],
-    "tokenMap": {
-      "Name": "gen-elf-names",
-      "Hometown": "gen-elf-towns",
-      "Trait": "gen-personality-traits"
-    }
-  },
-  {
-    "name": "Human NPC",
-    "weight": 3,
-    "patterns": [
-      "{Name} is a Human from {Hometown}, known for {Trait}."
-    ],
-    "tokenMap": {
-      "Name": "gen-human-names",
-      "Hometown": "gen-human-towns",
-      "Trait": "gen-personality-traits"
-    }
-  }
-]
-            </pre>
-          </details>
         `;
 
         const advCountInput = panel.querySelector("#advCountInput");
         const advGenerateBtn = panel.querySelector("#advGenerateBtn");
         const advResults = panel.querySelector("#advResults");
+        const advEditToggleBtn = panel.querySelector("#advEditToggleBtn");
+        const advEditSection = panel.querySelector("#advEditSection");
         const advPatternsInput = panel.querySelector("#advPatternsInput");
-        const advTokensContainer = panel.querySelector("#advTokensContainer");
+        const advTokensSimpleContainer = panel.querySelector("#advTokensSimpleContainer");
+        const advTokensAdvancedContainer = panel.querySelector("#advTokensAdvancedContainer");
         const advSaveBtn = panel.querySelector("#advSaveBtn");
         const advDeleteBtn = panel.querySelector("#advDeleteBtn");
-        const advProfilesInput = panel.querySelector("#advProfilesInput");
-        const advProfilesSaveBtn = panel.querySelector("#advProfilesSaveBtn");
+        const advTabs = panel.querySelectorAll(".adv-tab");
 
-        function renderTokenMappings(currentTokens, currentMap) {
-          if (!currentTokens.length) {
-            advTokensContainer.innerHTML = `<div class="muted" style="margin-top:4px;">No tokens found yet. Add <code>{Token}</code> placeholders to your patterns above.</div>`;
+        let advMode = "simple"; // which tab's mapping to use for generation
+
+        function setAdvMode(mode) {
+          advMode = mode === "advanced" ? "advanced" : "simple";
+          advTabs.forEach(btn => {
+            if (btn.dataset.mode === advMode) {
+              btn.classList.add("active");
+            } else {
+              btn.classList.remove("active");
+            }
+          });
+          if (advMode === "simple") {
+            advTokensSimpleContainer.style.display = "block";
+            advTokensAdvancedContainer.style.display = "none";
+          } else {
+            advTokensSimpleContainer.style.display = "none";
+            advTokensAdvancedContainer.style.display = "block";
+          }
+        }
+
+        function renderTokenMappingsSimple(tokens, map) {
+          if (!tokens.length) {
+            advTokensSimpleContainer.innerHTML = `<div class="muted" style="margin-top:4px;">No tokens found yet. Add <code>{Token}</code> placeholders to your patterns above, then save.</div>`;
             return;
           }
           const gensAll = loadGenerators();
@@ -1810,9 +1798,9 @@
           `;
           const tbody = table.querySelector("tbody");
 
-          currentTokens.forEach(token => {
+          tokens.forEach(token => {
             const tr = document.createElement("tr");
-            const selectHtmlOptions = [
+            const optionsHtml = [
               `<option value="">— none —</option>`,
               ...listGenerators.map(g => `<option value="${g.id}">${g.name}</option>`)
             ].join("");
@@ -1820,67 +1808,138 @@
               <td>{${token}}</td>
               <td>
                 <select class="adv-token-select" data-token="${token}">
-                  ${selectHtmlOptions}
+                  ${optionsHtml}
                 </select>
               </td>
             `;
             tbody.appendChild(tr);
           });
 
-          advTokensContainer.innerHTML = "";
-          advTokensContainer.appendChild(table);
+          advTokensSimpleContainer.innerHTML = "";
+          advTokensSimpleContainer.appendChild(table);
 
-          const selects = advTokensContainer.querySelectorAll(".adv-token-select");
+          const selects = advTokensSimpleContainer.querySelectorAll(".adv-token-select");
           selects.forEach(sel => {
             const tok = sel.dataset.token;
-            const mappedId = currentMap[tok] || "";
-            if (mappedId) {
-              sel.value = mappedId;
-            }
+            const mappedId = map[tok] || "";
+            if (mappedId) sel.value = mappedId;
           });
         }
 
-        // initial token mapping UI
-        renderTokenMappings(allTokens, tokenMap);
+        function renderTokenMappingsAdvanced(tokens, map) {
+          if (!tokens.length) {
+            advTokensAdvancedContainer.innerHTML = `<div class="muted" style="margin-top:4px;">No tokens to configure yet. Once you add <code>{Token}</code> placeholders and save, you can assign multiple generators per token here.</div>`;
+            return;
+          }
+          const gensAll = loadGenerators();
+          const listGenerators = gensAll.filter(g => g.type === "list");
+          const table = document.createElement("table");
+          table.className = "token-table";
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th style="width:20%;">Token</th>
+                <th>Allowed generators (multi-select)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+          const tbody = table.querySelector("tbody");
 
-        // save simple template
+          tokens.forEach(token => {
+            const tr = document.createElement("tr");
+            const optionsHtml = listGenerators
+              .map(g => `<option value="${g.id}">${g.name}</option>`)
+              .join("");
+            tr.innerHTML = `
+              <td>{${token}}</td>
+              <td>
+                <select multiple class="adv-token-multi-select" data-token="${token}">
+                  ${optionsHtml}
+                </select>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          advTokensAdvancedContainer.innerHTML = "";
+          advTokensAdvancedContainer.appendChild(table);
+
+          const multiSelects = advTokensAdvancedContainer.querySelectorAll(".adv-token-multi-select");
+          multiSelects.forEach(sel => {
+            const tok = sel.dataset.token;
+            const arr = Array.isArray(map[tok]) ? map[tok] : [];
+            Array.from(sel.options).forEach(opt => {
+              opt.selected = arr.includes(opt.value);
+            });
+          });
+        }
+
+        // initial UI state
+        renderTokenMappingsSimple(allTokens, simpleTokenMap);
+        renderTokenMappingsAdvanced(allTokens, multiTokenMap);
+        setAdvMode("simple");
+
+        advEditToggleBtn.addEventListener("click", () => {
+          const isHidden = advEditSection.style.display === "none";
+          advEditSection.style.display = isHidden ? "block" : "none";
+          advEditToggleBtn.textContent = isHidden ? "Hide template & mappings" : "Edit template & mappings";
+        });
+
+        advTabs.forEach(btn => {
+          btn.addEventListener("click", () => {
+            setAdvMode(btn.dataset.mode);
+          });
+        });
+
         advSaveBtn.addEventListener("click", () => {
-          const rawPatterns = (advPatternsInput.value || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          const rawPatterns = (advPatternsInput.value || "")
+            .split(/\r?\n/)
+            .map(s => s.trim())
+            .filter(Boolean);
           const newTokens = extractTokensFromPatterns(rawPatterns);
 
           const gensCurrent = loadGenerators();
           const idx = gensCurrent.findIndex(x => x.id === gen.id);
           if (idx === -1) return;
 
-          const selects = advTokensContainer.querySelectorAll(".adv-token-select");
-          const newTokenMap = {};
-          selects.forEach(sel => {
+          const simpleMapNew = {};
+          const simpleSelects = advTokensSimpleContainer.querySelectorAll(".adv-token-select");
+          simpleSelects.forEach(sel => {
             const tok = sel.dataset.token;
             const val = sel.value || "";
             if (tok && val) {
-              newTokenMap[tok] = val;
+              simpleMapNew[tok] = val;
+            }
+          });
+
+          const multiMapNew = {};
+          const multiSelects = advTokensAdvancedContainer.querySelectorAll(".adv-token-multi-select");
+          multiSelects.forEach(sel => {
+            const tok = sel.dataset.token;
+            const values = Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+            if (tok && values.length) {
+              multiMapNew[tok] = values;
             }
           });
 
           gensCurrent[idx].items = gensCurrent[idx].items || {};
           gensCurrent[idx].items.patterns = rawPatterns;
-          gensCurrent[idx].items.tokenMap = newTokenMap;
-          if (!Array.isArray(gensCurrent[idx].items.profiles)) {
-            gensCurrent[idx].items.profiles = [];
-          }
+          gensCurrent[idx].items.tokenMap = simpleMapNew;
+          gensCurrent[idx].items.multiTokenMap = multiMapNew;
 
           saveGenerators(gensCurrent);
 
-          renderTokenMappings(newTokens, newTokenMap);
+          renderTokenMappingsSimple(newTokens, simpleMapNew);
+          renderTokenMappingsAdvanced(newTokens, multiMapNew);
 
           const msg = document.getElementById("copyMessage");
-          msg.textContent = `Simple template saved with ${rawPatterns.length} pattern(s) and ${Object.keys(newTokenMap).length} mapped token(s).`;
+          msg.textContent = `Saved ${rawPatterns.length} pattern(s), ${Object.keys(simpleMapNew).length} simple mapping(s), ${Object.keys(multiMapNew).length} advanced mapping(s).`;
           setTimeout(() => {
             msg.textContent = "Click any generated item or lexicon entry to copy.";
           }, 2500);
         });
 
-        // delete advanced generator
         advDeleteBtn.addEventListener("click", () => {
           const gensCurrent = loadGenerators();
           const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
@@ -1894,165 +1953,58 @@
           renderActiveGeneratorPanel();
         });
 
-        // save profiles JSON
-        advProfilesSaveBtn.addEventListener("click", () => {
-          const raw = advProfilesInput.value || "";
-          const msg = document.getElementById("copyMessage");
-
-          if (!raw.trim()) {
-            // Clear profiles
-            const gensCurrent = loadGenerators();
-            const idx = gensCurrent.findIndex(x => x.id === gen.id);
-            if (idx === -1) return;
-            gensCurrent[idx].items = gensCurrent[idx].items || {};
-            gensCurrent[idx].items.profiles = [];
-            saveGenerators(gensCurrent);
-            msg.textContent = "Profiles cleared. Advanced generator will use the simple template only.";
-            setTimeout(() => {
-              msg.textContent = "Click any generated item or lexicon entry to copy.";
-            }, 2500);
-            return;
-          }
-
-          try {
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) {
-              msg.textContent = "Profiles JSON must be an array (e.g. [ { ... }, { ... } ]).";
-              return;
-            }
-
-            // Light validation & normalization
-            const cleanedProfiles = parsed.map((p, idx) => {
-              const name = (p && p.name) ? String(p.name) : `Profile ${idx + 1}`;
-              const weight = Number.isFinite(p && p.weight) ? p.weight : parseInt(p && p.weight, 10) || 1;
-              const patterns = Array.isArray(p && p.patterns)
-                ? p.patterns.map(s => String(s).trim()).filter(Boolean)
-                : [];
-              const tokenMapObj = (p && typeof p.tokenMap === "object") ? p.tokenMap : {};
-              return { name, weight, patterns, tokenMap: tokenMapObj };
-            }).filter(p => p.patterns.length > 0);
-
-            const gensCurrent = loadGenerators();
-            const idx = gensCurrent.findIndex(x => x.id === gen.id);
-            if (idx === -1) return;
-
-            gensCurrent[idx].items = gensCurrent[idx].items || {};
-            gensCurrent[idx].items.profiles = cleanedProfiles;
-
-            saveGenerators(gensCurrent);
-
-            msg.textContent = `Saved ${cleanedProfiles.length} profile(s). When profiles exist, this generator will use them instead of the simple template.`;
-            setTimeout(() => {
-              msg.textContent = "Click any generated item or lexicon entry to copy.";
-            }, 3500);
-          } catch (e) {
-            msg.textContent = "Error parsing profiles JSON. Make sure it's valid JSON.";
-            setTimeout(() => {
-              msg.textContent = "Click any generated item or lexicon entry to copy.";
-            }, 3500);
-          }
-        });
-
-        // generate from simple or profiles
         advGenerateBtn.addEventListener("click", () => {
           const gensLatest = loadGenerators();
-          const g = gensLatest.find(x => x.id === gen.id);
-          if (!g || g.type !== "advanced") return;
-          const advItems = g.items || { patterns: [], tokenMap: {}, profiles: [] };
+          const gCurrent = gensLatest.find(x => x.id === gen.id);
+          if (!gCurrent || gCurrent.type !== "advanced") return;
+          const advItems = gCurrent.items || {};
+          const patternsNow = Array.isArray(advItems.patterns) ? advItems.patterns : [];
+          const simpleMapNow = advItems.tokenMap && typeof advItems.tokenMap === "object" ? advItems.tokenMap : {};
+          const multiMapNow = advItems.multiTokenMap && typeof advItems.multiTokenMap === "object" ? advItems.multiTokenMap : {};
 
-          const simplePatternsNow = Array.isArray(advItems.patterns) ? advItems.patterns : [];
-          const simpleTokenMapNow = advItems.tokenMap && typeof advItems.tokenMap === "object" ? advItems.tokenMap : {};
-          const profilesNow = Array.isArray(advItems.profiles) ? advItems.profiles : [];
+          advResults.innerHTML = "";
+
+          if (!patternsNow.length) {
+            advResults.innerHTML = `<div class="muted">No patterns defined yet. Click “Edit template & mappings” and add at least one pattern.</div>`;
+            return;
+          }
 
           const count = Math.max(1, Math.min(50, parseInt(advCountInput.value || "1", 10)));
           const genById = {};
           gensLatest.forEach(x => { genById[x.id] = x; });
 
-          advResults.innerHTML = "";
           const frag = document.createDocumentFragment();
 
-          function pickProfile(profilesArr) {
-            if (!profilesArr.length) return null;
-            let total = 0;
-            const weights = [];
-            for (const p of profilesArr) {
-              let w = parseInt(p.weight, 10);
-              if (!Number.isFinite(w) || w <= 0) w = 1;
-              weights.push(w);
-              total += w;
-            }
-            let roll = Math.random() * total;
-            for (let i = 0; i < profilesArr.length; i++) {
-              if (roll < weights[i]) return profilesArr[i];
-              roll -= weights[i];
-            }
-            return profilesArr[0];
-          }
-
           for (let i = 0; i < count; i++) {
-            let text = "";
+            const pattern = rand(patternsNow);
+            const tokensInPattern = extractTokensFromPatterns([pattern]);
+            let result = pattern;
 
-            if (profilesNow.length) {
-              const profile = pickProfile(profilesNow);
-              if (!profile) continue;
-
-              const pPatterns = Array.isArray(profile.patterns) && profile.patterns.length
-                ? profile.patterns
-                : simplePatternsNow;
-
-              if (!pPatterns || !pPatterns.length) {
-                continue;
+            tokensInPattern.forEach(tok => {
+              let chosenGenId = null;
+              if (advMode === "advanced") {
+                const listIds = multiMapNow[tok];
+                if (Array.isArray(listIds) && listIds.length) {
+                  chosenGenId = rand(listIds);
+                } else if (simpleMapNow[tok]) {
+                  chosenGenId = simpleMapNow[tok];
+                }
+              } else {
+                chosenGenId = simpleMapNow[tok];
               }
 
-              let pattern = rand(pPatterns);
-              const tokens = extractTokensFromPatterns([pattern]);
-              let result = pattern;
+              if (!chosenGenId) return;
+              const srcGen = genById[chosenGenId];
+              if (!srcGen || srcGen.type !== "list" || !Array.isArray(srcGen.items) || !srcGen.items.length) return;
 
-              tokens.forEach(tok => {
-                let mappedId = null;
-                if (profile.tokenMap && profile.tokenMap[tok]) {
-                  mappedId = profile.tokenMap[tok];
-                } else if (simpleTokenMapNow[tok]) {
-                  mappedId = simpleTokenMapNow[tok];
-                }
-                if (!mappedId) return;
-                const sourceGen = genById[mappedId];
-                if (!sourceGen || sourceGen.type !== "list" || !Array.isArray(sourceGen.items) || !sourceGen.items.length) {
-                  return;
-                }
-                const value = rand(sourceGen.items);
-                const re = new RegExp("\\{" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\}", "g");
-                result = result.replace(re, value);
-              });
+              const value = rand(srcGen.items);
+              const re = new RegExp("\\{" + tok.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&") + "\\}", "g");
+              result = result.replace(re, value);
+            });
 
-              text = result;
-            } else {
-              if (!simplePatternsNow.length) {
-                continue;
-              }
-              let pattern = rand(simplePatternsNow);
-              const tokens = extractTokensFromPatterns([pattern]);
-              let result = pattern;
-
-              tokens.forEach(tok => {
-                const mappedId = simpleTokenMapNow[tok];
-                if (!mappedId) return;
-                const sourceGen = genById[mappedId];
-                if (!sourceGen || sourceGen.type !== "list" || !Array.isArray(sourceGen.items) || !sourceGen.items.length) {
-                  return;
-                }
-                const value = rand(sourceGen.items);
-                const re = new RegExp("\\{" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\}", "g");
-                result = result.replace(re, value);
-              });
-
-              text = result;
-            }
-
-            if (!text) continue;
             const div = document.createElement("div");
             div.className = "generated-item";
-            div.textContent = text;
+            div.textContent = result;
             frag.appendChild(div);
           }
 
@@ -2235,10 +2187,10 @@
             parsed.duplicates > 0 ? parsed.duplicates + " duplicates removed." : "No duplicates detected."
           }`;
         } else {
-          // advanced: folder/name updated, template & profiles edited in main panel
+          // advanced: folder/name updated; template edited in main panel
           saveGenerators(gens);
           msg.classList.remove("danger");
-          msg.textContent = `Updated “${name}” (advanced generator). Edit patterns & profiles in the main panel.`;
+          msg.textContent = `Updated “${name}” (advanced generator). Edit patterns & mappings in the main panel.`;
         }
 
         activeGenerator = { id: editingGeneratorId };
@@ -2252,11 +2204,11 @@
             folder,
             name,
             type: "advanced",
-            items: { patterns: [], tokenMap: {}, profiles: [] }
+            items: { patterns: [], tokenMap: {}, multiTokenMap: {} }
           });
           saveGenerators(gens);
           msg.classList.remove("danger");
-          msg.textContent = `Saved advanced generator “${name}” in folder “${folder}”. Configure patterns & profiles in the main panel.`;
+          msg.textContent = `Saved advanced generator “${name}” in folder “${folder}”. Configure patterns & mappings in the main panel.`;
           activeGenerator = { id };
         } else {
           let parsed;
