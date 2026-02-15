@@ -1,1096 +1,1584 @@
 // tool-encounter.js
-// Encounter / Initiative tool – self-contained, plugs into existing toolbox.
-// - Injects its own scoped styles
-// - Registers as a tool in toolsConfig
-// - Wraps renderToolPanel to handle id = "encounter"
-// - Uses localStorage to persist encounters between sessions
+// Encounter / Initiative tool with card-style UI, integrated into the existing toolbox.
+// Drop this file alongside app.js and index.html, loaded with:
+//   <script src="app.js"></script>
+//   <script src="tool-encounter.js"></script>
 
 (function () {
-  const STYLE_ID = "encounter-tool-styles-v1";
-  const STORAGE_KEY = "vrahune_toolbox_encounter_v1";
+  "use strict";
 
-  // ---- STYLE INJECTION (scoped under .encounter-panel) ----
+  const STORAGE_KEY = "vrahuneEncounterV2";
+  const STORAGE_PARTY_KEY = "vrahuneEncounterPartyV2";
+
+  // Ensure the core toolbox exists
+  if (
+    typeof window === "undefined" ||
+    !window.toolsConfig ||
+    typeof window.renderToolPanel !== "function"
+  ) {
+    console.warn(
+      "[EncounterTool] toolsConfig or renderToolPanel not found; encounter tool not initialized."
+    );
+    return;
+  }
+
+  // Register the tool in the left sidebar
+  window.toolsConfig.push({
+    id: "encounterInitiative",
+    name: "Encounter / Initiative",
+    description: "Track initiative order, HP, rounds, and your saved party.",
+  });
+
+  const originalRenderToolPanel = window.renderToolPanel;
+
+  // ----------------------------
+  //  CSS injection (scoped)
+  // ----------------------------
   function injectEncounterStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById("encounter-tool-styles")) return;
+
     const style = document.createElement("style");
-    style.id = STYLE_ID;
+    style.id = "encounter-tool-styles";
     style.textContent = `
-      /* === Encounter / Initiative – scoped styles === */
-      .encounter-panel {
+      /* ===== Encounter / Initiative Tool Scoped Styles ===== */
+
+      .enc-root {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        font-size: 0.85rem;
-      }
-
-      .encounter-panel .header-line {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 4px;
-      }
-
-      .encounter-panel .title {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #f8fafc;
-      }
-
-      .encounter-panel .subtitle {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-        max-width: 280px;
-      }
-
-      .encounter-panel .label-pill {
-        font-size: 0.72rem;
-        padding: 3px 8px;
-        border-radius: 999px;
-        border: 1px solid #2d3748;
-        background: #05070c;
-        color: var(--accent-soft);
-        white-space: nowrap;
-      }
-
-      .encounter-panel .tabs-row {
-        display: inline-flex;
-        background: #05070c;
-        padding: 2px;
-        border-radius: 999px;
-        border: 1px solid #202633;
-      }
-
-      .encounter-panel .tab {
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-size: 0.78rem;
-        padding: 3px 10px;
-        border-radius: 999px;
-        cursor: pointer;
-      }
-
-      .encounter-panel .tab.active {
-        background: linear-gradient(to bottom right, #1f2933, #111827);
-        color: #f9fafb;
-      }
-
-      .encounter-panel .panel-inner {
-        border-radius: 12px;
-        border: 1px solid #202633;
-        background: #05070c;
-        padding: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .encounter-panel .section-heading-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
         gap: 6px;
       }
 
-      .encounter-panel .section-title {
-        font-size: 0.88rem;
+      .enc-topbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+      }
+
+      .enc-topbar-section {
+        flex: 1 1 220px;
+        min-width: 0;
+      }
+
+      .enc-topbar-section label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted, #9ba3b4);
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .enc-round-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .enc-round-number {
+        font-size: 1.3rem;
         font-weight: 600;
-        color: #e5e7eb;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: radial-gradient(circle at top, #1c2430, #090c13);
+        border: 1px solid #2e3847;
+        box-shadow: 0 0 10px rgba(0,0,0,0.4);
       }
 
-      .encounter-panel .hint-text {
-        font-size: 0.72rem;
-        color: var(--text-muted);
+      .enc-topbar-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
       }
 
-      .encounter-panel .section-divider {
-        border: none;
-        border-top: 1px solid #1c2430;
-        margin: 4px 0;
+      .enc-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.4fr);
+        gap: 8px;
+        align-items: flex-start;
       }
 
-      .encounter-panel .boxed-subsection {
+      @media (max-width: 900px) {
+        .enc-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .enc-box {
         border-radius: 10px;
-        border: 1px solid #262c37;
-        background: #05070c;
-        padding: 6px 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        border: 1px solid #222832;
+        padding: 6px 8px 8px;
+        background: radial-gradient(circle at top, #10131b, #05070c);
+        box-shadow: 0 0 18px rgba(0,0,0,0.5);
       }
 
-      .encounter-panel .boxed-subsection-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 4px;
+      .enc-box + .enc-box {
+        margin-top: 6px;
       }
 
-      .encounter-panel .boxed-subsection-title {
-        display: flex;
-        align-items: center;
-        gap: 4px;
+      .enc-box-title {
         font-size: 0.8rem;
-        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent-soft, #8fb3ff);
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
-      .encounter-panel .boxed-subsection-title .chevron {
-        font-size: 0.72rem;
-        color: var(--text-muted);
+      .enc-box-title span.subtle {
+        font-size: 0.75rem;
+        text-transform: none;
+        letter-spacing: normal;
+        color: var(--text-muted, #9ba3b4);
       }
 
-      .encounter-panel .initiative-box {
-        border-radius: 10px;
-        border: 1px solid #262c37;
-        background: #05070c;
-        padding: 6px 8px;
+      .enc-turn-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted, #9ba3b4);
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+      }
+
+      .enc-turn-hint strong {
+        color: var(--text-main, #e8ecf5);
+      }
+
+      .enc-list {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-      }
-
-      .encounter-panel .initiative-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        gap: 4px;
         max-height: 320px;
         overflow-y: auto;
         padding-right: 2px;
       }
 
-      .encounter-panel .card {
-        border-radius: 10px;
-        border: 1px solid #2c3340;
-        background: #070a10;
-        padding: 5px 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+      .enc-empty {
+        font-size: 0.8rem;
+        color: var(--text-muted, #8a93a3);
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px dashed #2a3341;
+        text-align: center;
       }
 
-      .encounter-panel .card.pc-card {
-        border-color: #2563eb;
-      }
-
-      .encounter-panel .card.enemy-card {
-        border-color: #b91c1c;
-      }
-
-      .encounter-panel .card.npc-card {
-        border-color: #059669;
-      }
-
-      .encounter-panel .card.active-turn {
-        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.7);
-        transform: translateY(-1px);
-      }
-
-      .encounter-panel .card.downed {
-        opacity: 0.65;
-      }
-
-      .encounter-panel .card-main {
+      /* ===== Card layout ===== */
+      .enc-card {
         display: flex;
         align-items: stretch;
-        gap: 6px;
-      }
-
-      .encounter-panel .card-portrait {
-        width: 26px;
-        height: 26px;
-        border-radius: 999px;
-        background: radial-gradient(circle at 30% 20%, #4b5563, #020617);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #e5e7eb;
-        flex-shrink: 0;
-      }
-
-      .encounter-panel .card-content {
-        display: flex;
-        flex: 1;
-        flex-direction: row;
-        gap: 6px;
-        align-items: stretch;
-      }
-
-      .encounter-panel .name-block {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        flex: 0 0 90px;
-        max-width: 120px;
-      }
-
-      .encounter-panel .name-row {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .encounter-panel .card-name {
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: #f9fafb;
-      }
-
-      .encounter-panel .card-tag {
-        font-size: 0.7rem;
-        padding: 1px 5px;
-        border-radius: 999px;
-        background: #0b1120;
-        border: 1px solid #1f2937;
-        color: var(--accent-soft);
-      }
-
-      .encounter-panel .hp-block {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-      }
-
-      .encounter-panel .hp-label {
-        font-size: 0.78rem;
-        color: #e5e7eb;
-      }
-
-      .encounter-panel .hp-amount-input {
-        width: 100%;
-        font-size: 0.75rem;
-        padding: 2px 4px;
-      }
-
-      .encounter-panel .hp-buttons {
-        display: flex;
-        gap: 3px;
-      }
-
-      .encounter-panel .hp-buttons .btn {
-        font-size: 0.72rem;
-        padding-inline: 6px;
-      }
-
-      .encounter-panel .card-meta {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        flex: 0 0 92px;
-        max-width: 110px;
-      }
-
-      .encounter-panel .card-meta-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 4px;
-        font-size: 0.72rem;
-        color: var(--text-muted);
-      }
-
-      .encounter-panel .btn-icon {
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-size: 0.8rem;
-        cursor: pointer;
-        padding: 0 3px;
-      }
-
-      .encounter-panel .btn-icon:hover {
-        color: #fca5a5;
-      }
-
-      .encounter-panel .party-strip {
-        border-radius: 10px;
-        border: 1px solid #262c37;
-        background: #05070c;
+        gap: 8px;
+        border-radius: 12px;
+        border: 1px solid #293344;
+        background: radial-gradient(circle at top left, #151b26, #05070c);
         padding: 6px 8px;
+        box-shadow: 0 0 12px rgba(0,0,0,0.45);
+        font-size: 0.78rem;
+        position: relative;
+      }
+
+      .enc-card--pc {
+        border-color: #3464d0;
+      }
+
+      .enc-card--enemy {
+        border-color: #c13b3b;
+        background: radial-gradient(circle at top left, #241117, #050406);
+      }
+
+      .enc-card--other {
+        border-style: dashed;
+      }
+
+      .enc-card--active {
+        box-shadow: 0 0 0 1px #d5d5d5, 0 0 16px rgba(255,255,255,0.15);
+      }
+
+      .enc-card--dead {
+        opacity: 0.6;
+        filter: grayscale(0.25);
+      }
+
+      .enc-card-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #e8ecf5;
+        background: radial-gradient(circle at top, #293448, #090d15);
+        border: 1px solid #3a4662;
+        text-transform: uppercase;
+      }
+
+      .enc-card--enemy .enc-card-avatar {
+        background: radial-gradient(circle at top, #4b2222, #140607);
+        border-color: #7f3a3a;
+      }
+
+      .enc-card-body {
+        flex: 1;
         display: flex;
         flex-direction: column;
         gap: 4px;
+        min-width: 0;
       }
 
-      .encounter-panel .party-row {
+      .enc-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .enc-card-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .enc-card-tag {
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid #3a414f;
+        font-size: 0.7rem;
+        color: var(--text-muted, #a0a8b8);
+        white-space: nowrap;
+      }
+
+      .enc-card-middle {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .enc-hp-section {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .enc-hp-label {
+        font-size: 0.75rem;
+        color: var(--text-muted, #9ba3b4);
+      }
+
+      .enc-hp-current {
+        font-size: 1.0rem;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 6px;
+        border: 1px solid #2c3340;
+        background: #05070c;
+        min-width: 46px;
+        text-align: center;
+      }
+
+      .enc-hp-slash {
+        opacity: 0.5;
+      }
+
+      .enc-hp-max {
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .enc-hp-current::-webkit-outer-spin-button,
+      .enc-hp-current::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .enc-hp-current[type=number] {
+        -moz-appearance: textfield;
+      }
+
+      .enc-delta-section {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+
+      .enc-delta-input {
+        width: 48px;
+        padding: 2px 4px;
+        border-radius: 6px;
+        border: 1px solid #2c3340;
+        background: #05070c;
+        color: var(--text-main, #e8ecf5);
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      .enc-delta-input::-webkit-outer-spin-button,
+      .enc-delta-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .enc-delta-input[type=number] {
+        -moz-appearance: textfield;
+      }
+
+      .enc-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        font-size: 0.72rem;
+        color: var(--text-muted, #9ba3b4);
+      }
+
+      .enc-meta-group {
         display: flex;
         flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .enc-meta-pill {
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid #353f4e;
+        background: #05070c;
+      }
+
+      .enc-meta-pill strong {
+        font-weight: 600;
+      }
+
+      .enc-controls-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: flex-end;
+      }
+
+      .enc-kill-btn {
+        border-color: #7c3131;
+      }
+
+      .enc-kill-btn.dangerous {
+        background: linear-gradient(135deg, #c23c3c, #7c2424);
+        border-color: #c23c3c;
+        color: #fff;
+      }
+
+      .enc-remove-icon-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-muted, #9ba3b4);
+        cursor: pointer;
+        padding: 0 4px;
+        font-size: 0.9rem;
+      }
+
+      .enc-remove-icon-btn:hover {
+        color: #ff6b6b;
+      }
+
+      /* Party chips */
+      .enc-party-row {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+      }
+
+      .enc-party-chips {
+        display: flex;
+        flex-wrap: wrap;
         gap: 4px;
       }
 
-      .encounter-panel .party-name {
-        font-size: 0.78rem;
-        color: var(--accent-soft);
-        font-weight: 500;
-        margin-right: 4px;
-      }
-
-      .encounter-panel .party-chip {
+      .enc-party-chip {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.76rem;
+        padding: 2px 8px;
         border-radius: 999px;
-        border: 1px solid #303641;
-        padding: 2px 6px;
-        background: #080b11;
-        color: #e6e6e6;
-      }
-
-      .encounter-panel .party-chip button {
-        border: none;
-        background: transparent;
-        color: var(--accent-soft);
+        border: 1px solid #313846;
         font-size: 0.78rem;
-        cursor: default;
-        padding: 0 2px;
-      }
-
-      .encounter-panel .encounter-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        max-height: 220px;
-        overflow-y: auto;
-        padding-right: 2px;
-      }
-
-      .encounter-panel .encounter-row {
-        border-radius: 8px;
-        border: 1px solid #262c37;
         background: #05070c;
-        padding: 6px 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+        cursor: pointer;
       }
 
-      .encounter-panel .encounter-row-header {
+      .enc-party-chip span.avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: radial-gradient(circle at top, #2b3544, #0b0f17);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.68rem;
+        font-weight: 600;
+      }
+
+      .enc-party-empty {
+        font-size: 0.78rem;
+        color: var(--text-muted, #949fb3);
+      }
+
+      .enc-small-tip {
+        font-size: 0.72rem;
+        color: var(--text-muted, #8e96a9);
+        margin-top: 4px;
+      }
+
+      .enc-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 8px;
+      }
+
+      .enc-form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .enc-form-row label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted, #9ba3b4);
+      }
+
+      .enc-form-row input,
+      .enc-form-row select,
+      .enc-form-row textarea {
+        border-radius: 6px;
+        border: 1px solid #2a3341;
+        background: #05070c;
+        color: var(--text-main, #e8ecf5);
+        padding: 4px 6px;
+        font-size: 0.78rem;
+      }
+
+      .enc-form-row textarea {
+        resize: vertical;
+        min-height: 40px;
+      }
+
+      .enc-form-actions {
+        margin-top: 6px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 6px;
-      }
-
-      .encounter-panel .encounter-name {
-        font-weight: 500;
-        font-size: 0.82rem;
-      }
-
-      .encounter-panel .encounter-tags {
-        font-size: 0.72rem;
-        color: var(--text-muted);
-      }
-
-      .encounter-panel .encounter-actions {
-        display: flex;
         flex-wrap: wrap;
+      }
+
+      .enc-form-actions-left,
+      .enc-form-actions-right {
+        display: flex;
         gap: 4px;
-        margin-top: 2px;
+        flex-wrap: wrap;
       }
 
-      .encounter-panel code {
-        font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-        font-size: 0.74rem;
-        background: rgba(255,255,255,0.04);
-        padding: 0 3px;
-        border-radius: 4px;
-      }
-
-      .encounter-panel .enc-tabs-view {
-        display: none;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .encounter-panel .enc-tabs-view.active {
-        display: flex;
-      }
-
-      .encounter-panel .row-tight {
-        display: flex;
-        gap: 6px;
-        flex-wrap: nowrap;
-      }
-
-      .encounter-panel .row-tight > .col {
-        flex: 1;
+      .enc-badge-soft {
+        font-size: 0.7rem;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid #3f4a5d;
+        color: var(--text-muted, #9ba3b4);
       }
     `;
     document.head.appendChild(style);
   }
 
-  // ---- STATE & STORAGE ----
-  function defaultState() {
-    return {
-      round: 1,
-      turnIndex: 0,
-      combatants: [],
-      savedEncounters: []
-    };
-  }
-
-  function loadState() {
+  // ----------------------------
+  //  State helpers
+  // ----------------------------
+  function loadEncounterState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return defaultState();
+      if (!raw) {
+        return {
+          round: 1,
+          activeId: null,
+          nextId: 1,
+          combatants: [],
+        };
+      }
       const parsed = JSON.parse(raw);
-      const base = defaultState();
-      return {
-        round: typeof parsed.round === "number" && parsed.round > 0 ? parsed.round : base.round,
-        turnIndex: typeof parsed.turnIndex === "number" ? parsed.turnIndex : base.turnIndex,
-        combatants: Array.isArray(parsed.combatants) ? parsed.combatants : base.combatants,
-        savedEncounters: Array.isArray(parsed.savedEncounters) ? parsed.savedEncounters : base.savedEncounters
-      };
+      if (!parsed || typeof parsed !== "object") throw new Error("bad");
+      // backward safety
+      parsed.round = Number(parsed.round) || 1;
+      parsed.nextId = Number(parsed.nextId) || 1;
+      parsed.activeId = parsed.activeId || null;
+      parsed.combatants = Array.isArray(parsed.combatants)
+        ? parsed.combatants
+        : [];
+      return parsed;
     } catch (e) {
-      return defaultState();
+      console.warn("[EncounterTool] Failed to load encounter state:", e);
+      return {
+        round: 1,
+        activeId: null,
+        nextId: 1,
+        combatants: [],
+      };
     }
   }
 
-  function saveState(state) {
+  function saveEncounterState(state) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
-      // ignore
+      console.warn("[EncounterTool] Failed to save encounter state:", e);
     }
   }
 
-  let encounterState = loadState();
+  function loadPartyState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_PARTY_KEY);
+      if (!raw) return { members: [] };
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.members)) throw new Error("bad");
+      return parsed;
+    } catch (e) {
+      console.warn("[EncounterTool] Failed to load party:", e);
+      return { members: [] };
+    }
+  }
 
-  function ensureSorted(state) {
-    state.combatants.sort((a, b) => {
-      const ai = typeof a.initiative === "number" ? a.initiative : 0;
-      const bi = typeof b.initiative === "number" ? b.initiative : 0;
-      if (bi !== ai) return bi - ai;
-      // tie-breaker: PCs first, then NPC, then Enemy
-      const order = { PC: 0, NPC: 1, Enemy: 2 };
-      const at = order[a.type] ?? 99;
-      const bt = order[b.type] ?? 99;
-      if (at !== bt) return at - bt;
-      return String(a.name || "").localeCompare(String(b.name || ""));
+  function savePartyState(partyState) {
+    try {
+      localStorage.setItem(STORAGE_PARTY_KEY, JSON.stringify(partyState));
+    } catch (e) {
+      console.warn("[EncounterTool] Failed to save party:", e);
+    }
+  }
+
+  // Shared in the closure
+  let encounterState = loadEncounterState();
+  let partyState = loadPartyState();
+  let currentEditingId = null; // null means "create new" in the form
+
+  // ----------------------------
+  //  Utilities
+  // ----------------------------
+  function createId() {
+    const id = encounterState.nextId || 1;
+    encounterState.nextId = id + 1;
+    return id;
+  }
+
+  function sideLabel(side) {
+    if (side === "pc") return "PC";
+    if (side === "enemy") return "Enemy";
+    return "Other";
+  }
+
+  function initialsFromName(name) {
+    if (!name) return "?";
+    const trimmed = name.trim();
+    if (!trimmed) return "?";
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (
+      (parts[0][0] || "") + (parts[1][0] || "")
+    ).toUpperCase();
+  }
+
+  function sortCombatants(list) {
+    // Desc initiative, PC before others, then name
+    const copy = [...list];
+    copy.sort((a, b) => {
+      const aInit = Number(a.init) || 0;
+      const bInit = Number(b.init) || 0;
+      if (bInit !== aInit) return bInit - aInit;
+
+      const orderSide = (s) => (s === "pc" ? 0 : s === "enemy" ? 1 : 2);
+      const diffSide = orderSide(a.side) - orderSide(b.side);
+      if (diffSide !== 0) return diffSide;
+
+      const an = (a.name || "").toLowerCase();
+      const bn = (b.name || "").toLowerCase();
+      if (an < bn) return -1;
+      if (an > bn) return 1;
+      return 0;
     });
+    return copy;
   }
 
-  function getActiveCombatant(state) {
-    if (!state.combatants.length) return null;
-    const n = state.combatants.length;
-    let idx = state.turnIndex % n;
-    if (idx < 0) idx = 0;
-
-    // Prefer a non-downed combatant; avoid infinite loop
-    for (let i = 0; i < n; i++) {
-      const c = state.combatants[idx];
-      if (c && c.hpCurrent > 0) {
-        state.turnIndex = idx;
-        return c;
-      }
-      idx = (idx + 1) % n;
-    }
-    // if all are downed, just return first
-    state.turnIndex = 0;
-    return state.combatants[0] || null;
+  function getAliveSorted() {
+    const list = sortCombatants(encounterState.combatants);
+    return list.filter((c) => !c.dead);
   }
 
-  // ---- TOOL REGISTRATION ----
-  function registerEncounterTool() {
-    if (Array.isArray(window.toolsConfig)) {
-      const exists = window.toolsConfig.some(t => t && t.id === "encounter");
-      if (!exists) {
-        window.toolsConfig.push({
-          id: "encounter",
-          name: "Encounter / Initiative",
-          description: "Quick initiative tracker & encounter builder."
-        });
-        if (typeof window.renderToolsNav === "function") {
-          window.renderToolsNav();
-        }
-      }
+  function clampHP(c) {
+    if (typeof c.hpCurrent === "number" && typeof c.hpMax === "number") {
+      if (c.hpCurrent > c.hpMax) c.hpCurrent = c.hpMax;
+      if (c.hpCurrent < 0) c.hpCurrent = 0;
+    } else if (typeof c.hpCurrent === "number" && c.hpCurrent < 0) {
+      c.hpCurrent = 0;
     }
   }
 
-  // ---- MAIN RENDERER ----
-  function renderEncounterTool(panel) {
+  function ensureActiveId() {
+    const alive = getAliveSorted();
+    if (alive.length === 0) {
+      encounterState.activeId = null;
+      return;
+    }
+    if (!encounterState.activeId) {
+      encounterState.activeId = alive[0].id;
+      return;
+    }
+    const found = alive.some((c) => c.id === encounterState.activeId);
+    if (!found) {
+      encounterState.activeId = alive[0].id;
+    }
+  }
+
+  function findCombatantById(id) {
+    return encounterState.combatants.find((c) => c.id === id) || null;
+  }
+
+  function nextTurn() {
+    const aliveSorted = getAliveSorted();
+    if (aliveSorted.length === 0) {
+      encounterState.activeId = null;
+      return;
+    }
+    if (!encounterState.activeId) {
+      encounterState.activeId = aliveSorted[0].id;
+      return;
+    }
+    const idx = aliveSorted.findIndex((c) => c.id === encounterState.activeId);
+    if (idx === -1 || idx === aliveSorted.length - 1) {
+      // wrap and increment round
+      encounterState.round = (Number(encounterState.round) || 1) + 1;
+      encounterState.activeId = aliveSorted[0].id;
+    } else {
+      encounterState.activeId = aliveSorted[idx + 1].id;
+    }
+  }
+
+  function nextRound() {
+    encounterState.round = (Number(encounterState.round) || 1) + 1;
+    ensureActiveId();
+  }
+
+  function resetEncounterKeepList() {
+    encounterState.round = 1;
+    // Reset HP to max, clear dead flags but keep list & initiative
+    encounterState.combatants.forEach((c) => {
+      if (typeof c.hpMax === "number" && !isNaN(c.hpMax)) {
+        c.hpCurrent = c.hpMax;
+      }
+      c.dead = false;
+      clampHP(c);
+    });
+    ensureActiveId();
+  }
+
+  // ----------------------------
+  //  Party helpers
+  // ----------------------------
+  function saveCurrentPCsAsParty() {
+    const pcs = encounterState.combatants.filter((c) => c.side === "pc");
+    if (pcs.length === 0) {
+      return false;
+    }
+    partyState.members = pcs.map((c) => ({
+      name: c.name || "",
+      side: "pc",
+      hpMax: typeof c.hpMax === "number" ? c.hpMax : null,
+      ac: c.ac || "",
+      speed: c.speed || "",
+      notes: c.notes || "",
+    }));
+    savePartyState(partyState);
+    return true;
+  }
+
+  function addPartyToEncounter() {
+    if (!partyState.members || partyState.members.length === 0) return 0;
+    const added = [];
+    for (const m of partyState.members) {
+      const hpMax = typeof m.hpMax === "number" ? m.hpMax : null;
+      const hpCurrent = hpMax != null ? hpMax : null;
+      const combatant = {
+        id: createId(),
+        name: m.name || "Party member",
+        side: m.side || "pc",
+        hpMax,
+        hpCurrent,
+        ac: m.ac || "",
+        speed: m.speed || "",
+        init: 0,
+        notes: m.notes || "",
+        dead: false,
+      };
+      clampHP(combatant);
+      encounterState.combatants.push(combatant);
+      added.push(combatant);
+    }
+    ensureActiveId();
+    return added.length;
+  }
+
+  // ----------------------------
+  //  Render helpers
+  // ----------------------------
+  function renderEncounterTool() {
     injectEncounterStyles();
-    encounterState = loadState();
-    ensureSorted(encounterState);
+
+    const labelEl = document.getElementById("activeGeneratorLabel");
+    const panel = document.getElementById("generatorPanel");
+
+    if (!panel) return;
+
+    if (labelEl) {
+      labelEl.textContent = "Encounter / Initiative";
+    }
 
     panel.innerHTML = `
-      <div class="encounter-panel">
-        <div class="header-line">
+      <div class="enc-root">
+        <div class="muted" style="margin-bottom: 4px;">
+          Track initiative order, hit points, rounds, and your usual party.
+        </div>
+
+        <div class="enc-topbar">
+          <div class="enc-topbar-section">
+            <label>Round & turn</label>
+            <div class="enc-round-display">
+              <div class="enc-round-number" id="encRoundBadge">1</div>
+              <button type="button" class="btn-primary btn-small" id="encNextTurnBtn">Next turn</button>
+              <button type="button" class="btn-secondary btn-small" id="encNextRoundBtn">Next round</button>
+              <button type="button" class="btn-secondary btn-small" id="encResetBtn">Reset</button>
+            </div>
+          </div>
+          <div class="enc-topbar-section">
+            <label>Encounter tools</label>
+            <div class="enc-topbar-tools">
+              <button type="button" class="btn-secondary btn-small" id="encQuickAddPcBtn">Quick add PC</button>
+              <button type="button" class="btn-secondary btn-small" id="encQuickAddEnemyBtn">Quick add enemy</button>
+              <button type="button" class="btn-secondary btn-small danger" id="encClearEncounterBtn">Clear encounter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="enc-layout">
+          <!-- Left: Turn order -->
           <div>
-            <div class="title">Encounter / Initiative</div>
-            <div class="subtitle">
-              Quick initiative tracker & encounter builder – designed to live on the right side of your toolbox.
+            <div class="enc-box">
+              <div class="enc-box-title">
+                <span>Turn order & rounds</span>
+                <span class="subtle" id="encSummaryLabel"></span>
+              </div>
+              <div class="enc-turn-hint">
+                <span id="encTurnHintMain"></span>
+                <span id="encTurnHintSide"></span>
+              </div>
+              <div id="encList" class="enc-list"></div>
             </div>
           </div>
-          <div class="label-pill">Tool · Right Panel</div>
+
+          <!-- Right: Form + Party -->
+          <div>
+            <div class="enc-box">
+              <div class="enc-box-title">
+                <span>Add / edit combatant</span>
+                <span class="subtle" id="encEditingLabel"></span>
+              </div>
+              <div id="encFormContainer"></div>
+            </div>
+
+            <div class="enc-box">
+              <div class="enc-box-title">
+                <span>Saved party</span>
+                <span class="subtle" id="encPartySummary"></span>
+              </div>
+              <div class="enc-party-row">
+                <div class="enc-party-chips" id="encPartyChips"></div>
+                <div class="enc-form-actions-right">
+                  <button type="button" class="btn-secondary btn-small" id="encUsePartyBtn">Add party</button>
+                  <button type="button" class="btn-secondary btn-small" id="encSavePartyBtn">Save PCs</button>
+                </div>
+              </div>
+              <div id="encPartyEmpty" class="enc-party-empty"></div>
+              <div class="enc-small-tip">
+                "Save PCs" snapshots all current PCs as your usual party, then "Add party" drops them into a new encounter.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <div class="tabs-row">
-            <button class="tab active" data-view="active">Active Encounter</button>
-            <button class="tab" data-view="library">Encounter Library</button>
-          </div>
-          <div class="hint-text">
-            Use this even outside combat (stealth runs, chases, social scenes with “turns”).
-          </div>
-        </div>
-
-        <div class="panel-inner">
-          <!-- ACTIVE VIEW -->
-          <div class="enc-tabs-view active" data-view="active">
-            <div class="section-heading-row">
-              <div class="section-title">Active Encounter</div>
-              <div class="hint-text">Round & turn tracking with compact, draggable cards.</div>
-            </div>
-
-            <!-- ROUND / TURN CONTROLS -->
-            <div class="row row-tight">
-              <div class="col" style="max-width:80px;">
-                <label for="encRoundInput">Round</label>
-                <input id="encRoundInput" type="number" min="1">
-              </div>
-              <div class="col">
-                <label for="encCurrentTurnInput">Current turn</label>
-                <input id="encCurrentTurnInput" type="text" readonly>
-              </div>
-              <div class="col" style="display:flex; gap:4px; justify-content:flex-end;">
-                <button id="encNextTurnBtn" class="btn btn-xs">Next turn</button>
-                <button id="encNextRoundBtn" class="btn btn-secondary btn-xs">Next round</button>
-              </div>
-            </div>
-
-            <!-- SAVED PARTY STRIP (lightweight for now) -->
-            <div class="party-strip">
-              <div class="party-row">
-                <span class="party-name" id="encPartyName">Saved party: not configured yet</span>
-                <span class="hint-text">Use the Encounter Library to store your usual parties/combats.</span>
-              </div>
-              <div class="party-row">
-                <span class="hint-text">
-                  Party support will hook into <code>localStorage</code> later. For now, save a “party template”
-                  encounter and load/append it as needed.
-                </span>
-              </div>
-            </div>
-
-            <!-- ADD / EDIT COMBATANTS -->
-            <div class="boxed-subsection">
-              <div class="boxed-subsection-header">
-                <div class="boxed-subsection-title">
-                  <span class="chevron">▾</span>
-                  Add / edit combatants
-                </div>
-                <span class="hint-text">Preload monsters or drop in ad-hoc PCs/NPCs.</span>
-              </div>
-              <div class="row row-tight">
-                <div class="col">
-                  <label for="encAddName">Name</label>
-                  <input id="encAddName" type="text" placeholder="Vesper, Goblin Scout, Frostclaw Wolf">
-                </div>
-                <div class="col" style="max-width:80px;">
-                  <label for="encAddAC">AC</label>
-                  <input id="encAddAC" type="number" min="0" placeholder="15">
-                </div>
-                <div class="col" style="max-width:100px;">
-                  <label for="encAddSpeed">Speed (ft)</label>
-                  <input id="encAddSpeed" type="number" min="0" placeholder="30">
-                </div>
-                <div class="col" style="max-width:170px;">
-                  <label>HP (current / max)</label>
-                  <div style="display:flex; gap:4px;">
-                    <input id="encAddHpCurrent" type="number" min="0" placeholder="27">
-                    <input id="encAddHpMax" type="number" min="0" placeholder="35">
-                  </div>
-                </div>
-                <div class="col" style="max-width:110px;">
-                  <label for="encAddType">Type</label>
-                  <select id="encAddType">
-                    <option value="PC">PC</option>
-                    <option value="NPC">NPC</option>
-                    <option value="Enemy">Enemy</option>
-                  </select>
-                </div>
-                <div class="col" style="max-width:90px;">
-                  <label for="encAddInit">Init</label>
-                  <input id="encAddInit" type="number" placeholder="15">
-                </div>
-                <div class="col" style="max-width:90px;">
-                  <label>&nbsp;</label>
-                  <button id="encAddBtn" class="btn btn-xs">Add</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- TURN ORDER + CARDS -->
-            <div class="initiative-box">
-              <div class="section-heading-row">
-                <div class="section-title">Turn order</div>
-                <div class="hint-text">Sorted by initiative. Click a card to set active.</div>
-              </div>
-              <div id="encCardsContainer" class="initiative-list"></div>
-              <div id="encCardsEmpty" class="muted" style="font-size:0.78rem;">
-                No combatants yet. Add PCs, NPCs, or enemies above.
-              </div>
-            </div>
-          </div>
-
-          <!-- LIBRARY VIEW -->
-          <div class="enc-tabs-view" data-view="library">
-            <div class="section-heading-row">
-              <div class="section-title">Encounter Library</div>
-              <div class="hint-text">
-                Prebuild fights, then load them into the Active view with a single click.
-              </div>
-            </div>
-
-            <div class="row" style="margin-bottom:4px;">
-              <button id="encSaveEncounterBtn" class="btn btn-xs">Save current as new encounter</button>
-            </div>
-
-            <div id="encLibraryList" class="encounter-list"></div>
-
-            <div class="hint-text">
-              Encounters and their combatants are stored in <code>localStorage</code>.
-              Use “Load as active” to replace the current encounter, or “Append to active” to stack them.
-            </div>
-          </div>
+        <div class="enc-small-tip">
+          Tips: Use quick-add to seed an encounter, then refine stats in the form. "Kill" keeps them in the order, while HP drops to 0.
+          Data stays in your browser only.
         </div>
       </div>
     `;
 
-    wireEncounterEvents(panel);
-    syncUiFromState(panel);
-  }
-
-  function wireEncounterEvents(panel) {
-    const tabs = panel.querySelectorAll(".tab[data-view]");
-    const views = panel.querySelectorAll(".enc-tabs-view");
-
-    tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        const view = tab.dataset.view;
-        tabs.forEach(t => t.classList.toggle("active", t === tab));
-        views.forEach(v => v.classList.toggle("active", v.dataset.view === view));
-      });
-    });
-
-    const roundInput = panel.querySelector("#encRoundInput");
-    const currentTurnInput = panel.querySelector("#encCurrentTurnInput");
+    // Wire up static buttons
+    const roundBadge = panel.querySelector("#encRoundBadge");
     const nextTurnBtn = panel.querySelector("#encNextTurnBtn");
     const nextRoundBtn = panel.querySelector("#encNextRoundBtn");
-
-    if (roundInput) {
-      roundInput.addEventListener("change", () => {
-        let r = parseInt(roundInput.value || "1", 10);
-        if (!Number.isFinite(r) || r < 1) r = 1;
-        encounterState.round = r;
-        saveState(encounterState);
-        syncRoundAndTurn(panel);
-      });
-    }
+    const resetBtn = panel.querySelector("#encResetBtn");
+    const quickAddPcBtn = panel.querySelector("#encQuickAddPcBtn");
+    const quickAddEnemyBtn = panel.querySelector("#encQuickAddEnemyBtn");
+    const clearEncounterBtn = panel.querySelector("#encClearEncounterBtn");
+    const usePartyBtn = panel.querySelector("#encUsePartyBtn");
+    const savePartyBtn = panel.querySelector("#encSavePartyBtn");
 
     if (nextTurnBtn) {
       nextTurnBtn.addEventListener("click", () => {
-        if (!encounterState.combatants.length) return;
-        const n = encounterState.combatants.length;
-        encounterState.turnIndex = (encounterState.turnIndex + 1) % n;
-        saveState(encounterState);
-        syncRoundAndTurn(panel);
-        renderCards(panel);
+        nextTurn();
+        saveEncounterState(encounterState);
+        renderAll(panel);
       });
     }
 
     if (nextRoundBtn) {
       nextRoundBtn.addEventListener("click", () => {
-        encounterState.round = (encounterState.round || 1) + 1;
-        if (!encounterState.combatants.length) {
-          encounterState.turnIndex = 0;
-        } else {
-          const n = encounterState.combatants.length;
-          encounterState.turnIndex = (encounterState.turnIndex + 1) % n;
-        }
-        saveState(encounterState);
-        syncRoundAndTurn(panel);
-        renderCards(panel);
+        nextRound();
+        saveEncounterState(encounterState);
+        renderAll(panel);
       });
     }
 
-    // Add combatant
-    const addBtn = panel.querySelector("#encAddBtn");
-    if (addBtn) {
-      addBtn.addEventListener("click", () => {
-        const nameInput = panel.querySelector("#encAddName");
-        const acInput = panel.querySelector("#encAddAC");
-        const speedInput = panel.querySelector("#encAddSpeed");
-        const hpCurInput = panel.querySelector("#encAddHpCurrent");
-        const hpMaxInput = panel.querySelector("#encAddHpMax");
-        const typeSelect = panel.querySelector("#encAddType");
-        const initInput = panel.querySelector("#encAddInit");
-
-        const name = (nameInput.value || "").trim();
-        if (!name) {
-          nameInput.focus();
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        if (!window.confirm("Reset round to 1 and restore HP for all combatants?")) {
           return;
         }
-
-        const type = typeSelect.value || "PC";
-        const ac = parseInt(acInput.value || "0", 10) || 0;
-        const speed = parseInt(speedInput.value || "0", 10) || 0;
-        const hpMaxRaw = parseInt(hpMaxInput.value || hpCurInput.value || "0", 10);
-        const hpMax = Number.isFinite(hpMaxRaw) && hpMaxRaw > 0 ? hpMaxRaw : 0;
-        const hpCurRaw = parseInt(hpCurInput.value || hpMaxInput.value || "0", 10);
-        const hpCurrent = Number.isFinite(hpCurRaw) && hpCurRaw >= 0 ? hpCurRaw : hpMax;
-        const init = parseInt(initInput.value || "0", 10) || 0;
-
-        const id = `c_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-
-        encounterState.combatants.push({
-          id,
-          name,
-          type,
-          ac,
-          speed,
-          hpCurrent,
-          hpMax,
-          initiative: init
-        });
-        ensureSorted(encounterState);
-        saveState(encounterState);
-
-        nameInput.value = "";
-        acInput.value = "";
-        speedInput.value = "";
-        hpCurInput.value = "";
-        hpMaxInput.value = "";
-        initInput.value = "";
-
-        renderCards(panel);
-        syncRoundAndTurn(panel);
+        resetEncounterKeepList();
+        saveEncounterState(encounterState);
+        renderAll(panel);
       });
     }
 
-    // Cards – event delegation
-    const cardsContainer = panel.querySelector("#encCardsContainer");
-    if (cardsContainer) {
-      cardsContainer.addEventListener("click", (evt) => {
-        const target = evt.target;
-        if (!(target instanceof HTMLElement)) return;
-
-        // Damage / Heal
-        if (target.classList.contains("btn")) {
-          const label = target.textContent && target.textContent.trim().toLowerCase();
-          if (label === "damage" || label === "heal") {
-            const cardEl = target.closest(".card");
-            if (!cardEl) return;
-            const id = cardEl.dataset.id;
-            const c = encounterState.combatants.find(x => x.id === id);
-            if (!c) return;
-            const input = cardEl.querySelector(".hp-amount-input");
-            const valRaw = input && input.value ? parseInt(input.value, 10) : NaN;
-            if (!Number.isFinite(valRaw) || valRaw <= 0) return;
-            if (label === "damage") {
-              c.hpCurrent = Math.max(0, (c.hpCurrent || 0) - valRaw);
-            } else {
-              const max = c.hpMax || 0;
-              if (max > 0) {
-                c.hpCurrent = Math.min(max, (c.hpCurrent || 0) + valRaw);
-              } else {
-                c.hpCurrent = (c.hpCurrent || 0) + valRaw;
-              }
-            }
-            if (input) input.value = "";
-            saveState(encounterState);
-            renderCards(panel);
-            syncRoundAndTurn(panel);
-            return;
-          }
-        }
-
-        // Remove button
-        if (target.classList.contains("btn-icon")) {
-          const cardEl = target.closest(".card");
-          if (!cardEl) return;
-          const id = cardEl.dataset.id;
-          encounterState.combatants = encounterState.combatants.filter(x => x.id !== id);
-          if (encounterState.turnIndex >= encounterState.combatants.length) {
-            encounterState.turnIndex = 0;
-          }
-          saveState(encounterState);
-          renderCards(panel);
-          syncRoundAndTurn(panel);
-          return;
-        }
-
-        // Click card body to set active
-        const cardMain = target.closest(".card-main");
-        if (cardMain) {
-          const cardEl = cardMain.closest(".card");
-          if (!cardEl) return;
-          const id = cardEl.dataset.id;
-          const idx = encounterState.combatants.findIndex(x => x.id === id);
-          if (idx !== -1) {
-            encounterState.turnIndex = idx;
-            saveState(encounterState);
-            renderCards(panel);
-            syncRoundAndTurn(panel);
-          }
-        }
-      });
-    }
-
-    // Library actions
-    const saveEncounterBtn = panel.querySelector("#encSaveEncounterBtn");
-    if (saveEncounterBtn) {
-      saveEncounterBtn.addEventListener("click", () => {
-        if (!encounterState.combatants.length) {
-          window.alert("No combatants to save. Add some first.");
-          return;
-        }
-        const name = window.prompt("Name for this encounter:", "New encounter");
-        if (!name) return;
-        const enc = {
-          id: `e_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-          name: name.trim(),
-          createdAt: Date.now(),
-          combatants: encounterState.combatants.map(c => ({ ...c }))
+    if (quickAddPcBtn) {
+      quickAddPcBtn.addEventListener("click", () => {
+        const numExistingPC = encounterState.combatants.filter(
+          (c) => c.side === "pc"
+        ).length;
+        const newC = {
+          id: createId(),
+          name: `PC ${numExistingPC + 1}`,
+          side: "pc",
+          hpMax: null,
+          hpCurrent: null,
+          ac: "",
+          speed: "",
+          init: 0,
+          notes: "",
+          dead: false,
         };
-        encounterState.savedEncounters.push(enc);
-        saveState(encounterState);
-        renderLibrary(panel);
+        encounterState.combatants.push(newC);
+        currentEditingId = newC.id;
+        ensureActiveId();
+        saveEncounterState(encounterState);
+        renderAll(panel);
       });
     }
 
-    const libraryList = panel.querySelector("#encLibraryList");
-    if (libraryList) {
-      libraryList.addEventListener("click", (evt) => {
-        const target = evt.target;
-        if (!(target instanceof HTMLElement)) return;
-        if (!target.dataset.action) return;
+    if (quickAddEnemyBtn) {
+      quickAddEnemyBtn.addEventListener("click", () => {
+        const numEnemies = encounterState.combatants.filter(
+          (c) => c.side === "enemy"
+        ).length;
+        const newC = {
+          id: createId(),
+          name: `Enemy ${numEnemies + 1}`,
+          side: "enemy",
+          hpMax: null,
+          hpCurrent: null,
+          ac: "",
+          speed: "",
+          init: 0,
+          notes: "",
+          dead: false,
+        };
+        encounterState.combatants.push(newC);
+        currentEditingId = newC.id;
+        ensureActiveId();
+        saveEncounterState(encounterState);
+        renderAll(panel);
+      });
+    }
 
-        const row = target.closest(".encounter-row");
-        if (!row) return;
-        const encId = row.dataset.id;
-        const enc = encounterState.savedEncounters.find(e => e.id === encId);
-        if (!enc) return;
-
-        const action = target.dataset.action;
-        if (action === "load") {
-          encounterState.combatants = enc.combatants.map(c => ({ ...c }));
-          encounterState.round = 1;
-          encounterState.turnIndex = 0;
-          ensureSorted(encounterState);
-          saveState(encounterState);
-          // switch back to active tab
-          const tabs = panel.querySelectorAll(".tab[data-view]");
-          const views = panel.querySelectorAll(".enc-tabs-view");
-          tabs.forEach(t => {
-            t.classList.toggle("active", t.dataset.view === "active");
-          });
-          views.forEach(v => {
-            v.classList.toggle("active", v.dataset.view === "active");
-          });
-          renderCards(panel);
-          syncRoundAndTurn(panel);
-        } else if (action === "append") {
-          const extras = enc.combatants.map(c => ({ ...c }));
-          encounterState.combatants = encounterState.combatants.concat(extras);
-          ensureSorted(encounterState);
-          saveState(encounterState);
-          renderCards(panel);
-          syncRoundAndTurn(panel);
-        } else if (action === "edit") {
-          const newName = window.prompt("Rename encounter:", enc.name || "");
-          if (!newName) return;
-          enc.name = newName.trim();
-          saveState(encounterState);
-          renderLibrary(panel);
-        } else if (action === "duplicate") {
-          const copy = {
-            id: `e_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-            name: (enc.name || "Encounter") + " (copy)",
-            createdAt: Date.now(),
-            combatants: enc.combatants.map(c => ({ ...c }))
-          };
-          encounterState.savedEncounters.push(copy);
-          saveState(encounterState);
-          renderLibrary(panel);
-        } else if (action === "delete") {
-          const ok = window.confirm(`Delete encounter “${enc.name}”?`);
-          if (!ok) return;
-          encounterState.savedEncounters = encounterState.savedEncounters.filter(e => e.id !== encId);
-          saveState(encounterState);
-          renderLibrary(panel);
+    if (clearEncounterBtn) {
+      clearEncounterBtn.addEventListener("click", () => {
+        if (
+          !window.confirm(
+            "Clear all combatants from this encounter? (Saved party will remain.)"
+          )
+        ) {
+          return;
         }
+        encounterState.combatants = [];
+        encounterState.round = 1;
+        encounterState.activeId = null;
+        saveEncounterState(encounterState);
+        currentEditingId = null;
+        renderAll(panel);
       });
     }
-  }
 
-  function syncRoundAndTurn(panel) {
-    const roundInput = panel.querySelector("#encRoundInput");
-    const currentTurnInput = panel.querySelector("#encCurrentTurnInput");
-
-    if (roundInput) {
-      roundInput.value = String(encounterState.round || 1);
+    if (usePartyBtn) {
+      usePartyBtn.addEventListener("click", () => {
+        const added = addPartyToEncounter();
+        if (added === 0) {
+          window.alert("No party saved yet. Use 'Save PCs' first.");
+          return;
+        }
+        if (!encounterState.round || encounterState.round < 1) {
+          encounterState.round = 1;
+        }
+        saveEncounterState(encounterState);
+        renderAll(panel);
+      });
     }
 
-    const active = getActiveCombatant(encounterState);
-    if (currentTurnInput) {
-      currentTurnInput.value = active ? active.name || "" : "";
+    if (savePartyBtn) {
+      savePartyBtn.addEventListener("click", () => {
+        const ok = saveCurrentPCsAsParty();
+        if (!ok) {
+          window.alert("No PCs found in this encounter to save.");
+          return;
+        }
+        window.alert("Saved current PCs as your party.");
+        renderAll(panel);
+      });
     }
+
+    // Initial render pass
+    if (roundBadge) {
+      roundBadge.textContent = String(encounterState.round || 1);
+    }
+    renderAll(panel);
   }
 
-  function renderCards(panel) {
-    const container = panel.querySelector("#encCardsContainer");
-    const emptyMsg = panel.querySelector("#encCardsEmpty");
-    if (!container) return;
+  function renderAll(panel) {
+    const roundBadge = panel.querySelector("#encRoundBadge");
+    if (roundBadge) {
+      roundBadge.textContent = String(encounterState.round || 1);
+    }
+    ensureActiveId();
+    saveEncounterState(encounterState);
 
-    container.innerHTML = "";
-    const list = encounterState.combatants;
-    if (!list.length) {
-      if (emptyMsg) emptyMsg.style.display = "block";
+    renderSummary(panel);
+    renderList(panel);
+    renderForm(panel);
+    renderParty(panel);
+  }
+
+  function renderSummary(panel) {
+    const summaryLabel = panel.querySelector("#encSummaryLabel");
+    const turnHintMain = panel.querySelector("#encTurnHintMain");
+    const turnHintSide = panel.querySelector("#encTurnHintSide");
+
+    const total = encounterState.combatants.length;
+    const alive = encounterState.combatants.filter((c) => !c.dead).length;
+    const dead = encounterState.combatants.filter((c) => c.dead).length;
+    const pcs = encounterState.combatants.filter((c) => c.side === "pc").length;
+    const enemies = encounterState.combatants.filter(
+      (c) => c.side === "enemy"
+    ).length;
+
+    if (summaryLabel) {
+      if (total === 0) {
+        summaryLabel.textContent = "No combatants yet.";
+      } else {
+        summaryLabel.textContent = `${alive}/${total} active • ${pcs} PC • ${enemies} enemy • ${dead} down`;
+      }
+    }
+
+    const active = encounterState.activeId
+      ? findCombatantById(encounterState.activeId)
+      : null;
+
+    if (!active) {
+      if (turnHintMain) {
+        turnHintMain.textContent = "No active turn.";
+      }
+      if (turnHintSide) {
+        turnHintSide.textContent = "Add combatants and roll initiative.";
+      }
       return;
     }
-    if (emptyMsg) emptyMsg.style.display = "none";
 
-    const active = getActiveCombatant(encounterState);
-    const activeId = active ? active.id : null;
-
-    const frag = document.createDocumentFragment();
-
-    list.forEach(c => {
-      const card = document.createElement("div");
-      card.className = "card " + (c.type === "PC" ? "pc-card" : c.type === "NPC" ? "npc-card" : "enemy-card");
-      if (c.hpCurrent <= 0) card.classList.add("downed");
-      if (c.id === activeId) card.classList.add("active-turn");
-      card.dataset.id = c.id;
-
-      const initial = (c.name || "?").trim().charAt(0).toUpperCase() || "?";
-      const hpCurrent = Number.isFinite(c.hpCurrent) ? c.hpCurrent : 0;
-      const hpMax = Number.isFinite(c.hpMax) ? c.hpMax : 0;
-      const ac = Number.isFinite(c.ac) ? c.ac : 0;
-      const spd = Number.isFinite(c.speed) ? c.speed : 0;
-
-      card.innerHTML = `
-        <div class="card-main">
-          <div class="card-portrait" title="Portrait">
-            ${initial}
-          </div>
-          <div class="card-content">
-            <div class="name-block">
-              <div class="name-row">
-                <span class="card-name">${c.name || "Unnamed"}</span>
-                <span class="card-tag">${c.type || ""}</span>
-              </div>
-            </div>
-
-            <div class="hp-block">
-              <span class="hp-label">HP: ${hpCurrent} / <strong>${hpMax}</strong></span>
-              <input class="hp-amount-input" type="text" placeholder="">
-              <div class="hp-buttons">
-                <button class="btn btn-xs">Damage</button>
-                <button class="btn btn-secondary btn-xs">Heal</button>
-              </div>
-            </div>
-
-            <div class="card-meta">
-              <div class="card-meta-top">
-                <span>AC: ${ac}</span>
-                <span>Spd: ${spd} ft</span>
-                <button class="btn-icon" title="Remove">×</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      frag.appendChild(card);
-    });
-
-    container.appendChild(frag);
+    if (turnHintMain) {
+      turnHintMain.innerHTML = `Current turn: <strong>${active.name || "Unknown"}</strong>`;
+    }
+    if (turnHintSide) {
+      const side = sideLabel(active.side);
+      const hpInfo =
+        typeof active.hpCurrent === "number" && typeof active.hpMax === "number"
+          ? `${active.hpCurrent}/${active.hpMax} HP`
+          : "HP unknown";
+      turnHintSide.textContent = `${side} • ${hpInfo}`;
+    }
   }
 
-  function renderLibrary(panel) {
-    const listEl = panel.querySelector("#encLibraryList");
+  function renderList(panel) {
+    const listEl = panel.querySelector("#encList");
     if (!listEl) return;
 
     listEl.innerHTML = "";
 
-    const list = encounterState.savedEncounters;
-    if (!list.length) {
-      listEl.innerHTML = `<div class="muted" style="font-size:0.78rem;">
-        No encounters saved yet. Build a fight in the Active tab, then click “Save current as new encounter”.
-      </div>`;
+    const sorted = sortCombatants(encounterState.combatants);
+
+    if (sorted.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "enc-empty";
+      empty.textContent =
+        "No combatants in this encounter. Use the form or quick-add to start.";
+      listEl.appendChild(empty);
       return;
     }
 
-    const frag = document.createDocumentFragment();
+    for (const c of sorted) {
+      const card = document.createElement("div");
+      card.className = "enc-card";
+      if (c.side === "pc") card.classList.add("enc-card--pc");
+      else if (c.side === "enemy") card.classList.add("enc-card--enemy");
+      else card.classList.add("enc-card--other");
+      if (c.dead) card.classList.add("enc-card--dead");
+      if (encounterState.activeId === c.id) card.classList.add("enc-card--active");
 
-    list
-      .slice()
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-      .forEach(enc => {
-        const row = document.createElement("div");
-        row.className = "encounter-row";
-        row.dataset.id = enc.id;
+      // Avatar
+      const avatar = document.createElement("div");
+      avatar.className = "enc-card-avatar";
+      avatar.textContent = initialsFromName(c.name || "");
 
-        const pcs = enc.combatants.filter(c => c.type === "PC").length;
-        const npcs = enc.combatants.filter(c => c.type === "NPC").length;
-        const enemies = enc.combatants.filter(c => c.type === "Enemy").length;
-        const parts = [];
-        if (pcs) parts.push(`${pcs}x PC`);
-        if (npcs) parts.push(`${npcs}x NPC`);
-        if (enemies) parts.push(`${enemies}x Enemy`);
-        const tagsText = parts.length ? parts.join(" · ") : `${enc.combatants.length} combatant(s)`;
+      // Body
+      const body = document.createElement("div");
+      body.className = "enc-card-body";
 
-        row.innerHTML = `
-          <div class="encounter-row-header">
-            <div>
-              <div class="encounter-name">${enc.name || "Encounter"}</div>
-              <div class="encounter-tags">${tagsText}</div>
-            </div>
-          </div>
-          <div class="encounter-actions">
-            <button class="btn btn-xs" data-action="load">Load as active</button>
-            <button class="btn btn-secondary btn-xs" data-action="append">Append to active</button>
-            <button class="btn btn-secondary btn-xs" data-action="edit">Edit</button>
-            <button class="btn btn-secondary btn-xs" data-action="duplicate">Duplicate</button>
-            <button class="btn btn-secondary btn-xs" data-action="delete">Delete</button>
-          </div>
-        `;
-        frag.appendChild(row);
+      // Header
+      const header = document.createElement("div");
+      header.className = "enc-card-header";
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "enc-card-name";
+      nameEl.textContent = c.name || "(unnamed)";
+
+      const tag = document.createElement("div");
+      tag.className = "enc-card-tag";
+      tag.textContent = sideLabel(c.side);
+
+      header.appendChild(nameEl);
+      header.appendChild(tag);
+
+      // Middle (HP + delta)
+      const middle = document.createElement("div");
+      middle.className = "enc-card-middle";
+
+      const hpSection = document.createElement("div");
+      hpSection.className = "enc-hp-section";
+
+      const hpLabel = document.createElement("span");
+      hpLabel.className = "enc-hp-label";
+      hpLabel.textContent = "HP";
+
+      const hpCurrent = document.createElement("input");
+      hpCurrent.className = "enc-hp-current";
+      hpCurrent.type = "number";
+      hpCurrent.step = "1";
+      hpCurrent.placeholder = "-";
+      if (typeof c.hpCurrent === "number" && !isNaN(c.hpCurrent)) {
+        hpCurrent.value = String(c.hpCurrent);
+      }
+
+      const slash = document.createElement("span");
+      slash.className = "enc-hp-slash";
+      slash.textContent = "/";
+
+      const hpMax = document.createElement("span");
+      hpMax.className = "enc-hp-max";
+      hpMax.textContent =
+        typeof c.hpMax === "number" && !isNaN(c.hpMax)
+          ? String(c.hpMax)
+          : "?";
+
+      hpSection.appendChild(hpLabel);
+      hpSection.appendChild(hpCurrent);
+      hpSection.appendChild(slash);
+      hpSection.appendChild(hpMax);
+
+      const deltaSection = document.createElement("div");
+      deltaSection.className = "enc-delta-section";
+
+      const deltaInput = document.createElement("input");
+      deltaInput.className = "enc-delta-input";
+      deltaInput.type = "number";
+      deltaInput.step = "1";
+      deltaInput.placeholder = "±HP";
+
+      const dmgBtn = document.createElement("button");
+      dmgBtn.type = "button";
+      dmgBtn.className = "btn-primary btn-small";
+      dmgBtn.textContent = "Damage";
+
+      const healBtn = document.createElement("button");
+      healBtn.type = "button";
+      healBtn.className = "btn-secondary btn-small";
+      healBtn.textContent = "Heal";
+
+      deltaSection.appendChild(deltaInput);
+      deltaSection.appendChild(dmgBtn);
+      deltaSection.appendChild(healBtn);
+
+      middle.appendChild(hpSection);
+      middle.appendChild(deltaSection);
+
+      // Footer (meta + controls)
+      const footer = document.createElement("div");
+      footer.className = "enc-card-footer";
+
+      const metaGroup = document.createElement("div");
+      metaGroup.className = "enc-meta-group";
+
+      const pillInit = document.createElement("div");
+      pillInit.className = "enc-meta-pill";
+      pillInit.innerHTML = `<strong>Init</strong> ${c.init != null ? c.init : 0}`;
+
+      const pillAC = document.createElement("div");
+      pillAC.className = "enc-meta-pill";
+      pillAC.innerHTML = `<strong>AC</strong> ${c.ac ? c.ac : "—"}`;
+
+      const pillSpeed = document.createElement("div");
+      pillSpeed.className = "enc-meta-pill";
+      pillSpeed.innerHTML = `<strong>Speed</strong> ${c.speed ? c.speed : "—"}`;
+
+      metaGroup.appendChild(pillInit);
+      metaGroup.appendChild(pillAC);
+      metaGroup.appendChild(pillSpeed);
+
+      const controlsGroup = document.createElement("div");
+      controlsGroup.className = "enc-controls-group";
+
+      const killBtn = document.createElement("button");
+      killBtn.type = "button";
+      killBtn.className = "btn-secondary btn-small enc-kill-btn";
+      if (!c.dead) {
+        killBtn.classList.add("dangerous");
+        killBtn.textContent = "Kill";
+      } else {
+        killBtn.textContent = "Revive";
+      }
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "btn-secondary btn-small";
+      removeBtn.textContent = "Remove";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn-secondary btn-small";
+      editBtn.textContent = "Edit";
+
+      controlsGroup.appendChild(killBtn);
+      controlsGroup.appendChild(editBtn);
+      controlsGroup.appendChild(removeBtn);
+
+      footer.appendChild(metaGroup);
+      footer.appendChild(controlsGroup);
+
+      body.appendChild(header);
+      body.appendChild(middle);
+      body.appendChild(footer);
+
+      card.appendChild(avatar);
+      card.appendChild(body);
+
+      // --- Interactions ---
+
+      // Manually edit HP current
+      hpCurrent.addEventListener("change", () => {
+        const val = Number(hpCurrent.value);
+        if (!isNaN(val)) {
+          c.hpCurrent = val;
+          clampHP(c);
+          saveEncounterState(encounterState);
+          renderAll(panel);
+        }
       });
 
-    listEl.appendChild(frag);
-  }
-
-  function syncUiFromState(panel) {
-    syncRoundAndTurn(panel);
-    renderCards(panel);
-    renderLibrary(panel);
-  }
-
-  // ---- PATCH renderToolPanel ----
-  function patchRenderToolPanel() {
-    if (typeof window.renderToolPanel !== "function") return;
-    const base = window.renderToolPanel;
-    window.renderToolPanel = function (toolId) {
-      if (toolId === "encounter") {
-        const label = document.getElementById("activeGeneratorLabel");
-        const panel = document.getElementById("generatorPanel");
-        if (label) label.textContent = "Encounter / Initiative";
-        if (panel) renderEncounterTool(panel);
-        return;
+      // Damage / heal
+      function applyDelta(sign) {
+        const raw = deltaInput.value.trim();
+        if (!raw) return;
+        const val = Number(raw);
+        if (isNaN(val)) return;
+        if (typeof c.hpCurrent !== "number" || isNaN(c.hpCurrent)) {
+          // If current is unknown but max is known, start from max
+          if (typeof c.hpMax === "number" && !isNaN(c.hpMax)) {
+            c.hpCurrent = c.hpMax;
+          } else {
+            c.hpCurrent = 0;
+          }
+        }
+        c.hpCurrent += sign * val;
+        if (c.hpCurrent < 0) c.hpCurrent = 0;
+        if (typeof c.hpMax === "number" && !isNaN(c.hpMax)) {
+          if (c.hpCurrent > c.hpMax) c.hpCurrent = c.hpMax;
+        }
+        if (c.hpCurrent === 0 && sign < 0) {
+          c.dead = true;
+        }
+        clampHP(c);
+        saveEncounterState(encounterState);
+        renderAll(panel);
       }
-      return base(toolId);
-    };
+
+      dmgBtn.addEventListener("click", () => applyDelta(-1));
+      healBtn.addEventListener("click", () => applyDelta(1));
+
+      // Kill / revive
+      killBtn.addEventListener("click", () => {
+        if (!c.dead) {
+          c.dead = true;
+          if (typeof c.hpCurrent === "number") {
+            if (c.hpCurrent > 0) c.hpCurrent = 0;
+          } else if (typeof c.hpMax === "number" && !isNaN(c.hpMax)) {
+            c.hpCurrent = 0;
+          }
+        } else {
+          c.dead = false;
+          if (typeof c.hpMax === "number" && !isNaN(c.hpMax)) {
+            c.hpCurrent = c.hpMax;
+          }
+        }
+        clampHP(c);
+        ensureActiveId();
+        saveEncounterState(encounterState);
+        renderAll(panel);
+      });
+
+      // Remove
+      removeBtn.addEventListener("click", () => {
+        if (
+          !window.confirm(
+            `Remove ${c.name || "this combatant"} from the encounter?`
+          )
+        ) {
+          return;
+        }
+        encounterState.combatants = encounterState.combatants.filter(
+          (x) => x.id !== c.id
+        );
+        if (encounterState.activeId === c.id) {
+          ensureActiveId();
+        }
+        saveEncounterState(encounterState);
+        if (currentEditingId === c.id) currentEditingId = null;
+        renderAll(panel);
+      });
+
+      // Edit opens form bound to this combatant
+      editBtn.addEventListener("click", () => {
+        currentEditingId = c.id;
+        renderForm(panel);
+      });
+
+      listEl.appendChild(card);
+    }
   }
 
-  // ---- INIT ----
-  registerEncounterTool();
-  patchRenderToolPanel();
+  function renderForm(panel) {
+    const container = panel.querySelector("#encFormContainer");
+    const editingLabel = panel.querySelector("#encEditingLabel");
+    if (!container) return;
+
+    const editing =
+      currentEditingId != null
+        ? findCombatantById(currentEditingId)
+        : null;
+
+    if (editingLabel) {
+      if (editing) {
+        editingLabel.textContent = `Editing: ${editing.name || "(unnamed)"}`;
+      } else {
+        editingLabel.textContent = "New combatant";
+      }
+    }
+
+    // Build form HTML
+    container.innerHTML = `
+      <form id="encForm" autocomplete="off">
+        <div class="enc-form-grid">
+          <div class="enc-form-row">
+            <label for="encNameInput">Name</label>
+            <input id="encNameInput" type="text" placeholder="Name or label" />
+          </div>
+          <div class="enc-form-row">
+            <label for="encSideInput">Side</label>
+            <select id="encSideInput">
+              <option value="pc">PC</option>
+              <option value="enemy">Enemy</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="enc-form-row">
+            <label for="encInitInput">Initiative</label>
+            <input id="encInitInput" type="number" step="1" placeholder="e.g. 15" />
+          </div>
+          <div class="enc-form-row">
+            <label for="encAcInput">AC</label>
+            <input id="encAcInput" type="text" placeholder="e.g. 16" />
+          </div>
+
+          <div class="enc-form-row">
+            <label for="encHpMaxInput">Max HP</label>
+            <input id="encHpMaxInput" type="number" step="1" placeholder="e.g. 38" />
+          </div>
+          <div class="enc-form-row">
+            <label for="encHpCurrentInput">Current HP</label>
+            <input id="encHpCurrentInput" type="number" step="1" placeholder="Leave blank to use max" />
+          </div>
+
+          <div class="enc-form-row">
+            <label for="encSpeedInput">Speed</label>
+            <input id="encSpeedInput" type="text" placeholder="e.g. 30 ft." />
+          </div>
+          <div class="enc-form-row">
+            <label for="encNotesInput">Notes</label>
+            <textarea id="encNotesInput" rows="2" placeholder="Conditions, resistances, etc."></textarea>
+          </div>
+        </div>
+
+        <div class="enc-form-actions">
+          <div class="enc-form-actions-left">
+            <button type="submit" class="btn-primary btn-small" id="encSaveBtn">
+              ${editing ? "Update combatant" : "Add combatant"}
+            </button>
+            <button type="button" class="btn-secondary btn-small" id="encNewBtn">
+              New
+            </button>
+          </div>
+          <div class="enc-form-actions-right">
+            <span class="enc-badge-soft">Sorted by initiative (desc)</span>
+          </div>
+        </div>
+      </form>
+    `;
+
+    const form = container.querySelector("#encForm");
+    const nameInput = container.querySelector("#encNameInput");
+    const sideInput = container.querySelector("#encSideInput");
+    const initInput = container.querySelector("#encInitInput");
+    const acInput = container.querySelector("#encAcInput");
+    const hpMaxInput = container.querySelector("#encHpMaxInput");
+    const hpCurrentInput = container.querySelector("#encHpCurrentInput");
+    const speedInput = container.querySelector("#encSpeedInput");
+    const notesInput = container.querySelector("#encNotesInput");
+    const newBtn = container.querySelector("#encNewBtn");
+
+    // Fill form from editing entry if present
+    if (editing) {
+      if (nameInput) nameInput.value = editing.name || "";
+      if (sideInput) sideInput.value = editing.side || "pc";
+      if (initInput)
+        initInput.value =
+          editing.init != null && !isNaN(editing.init)
+            ? String(editing.init)
+            : "";
+      if (acInput) acInput.value = editing.ac || "";
+      if (hpMaxInput)
+        hpMaxInput.value =
+          editing.hpMax != null && !isNaN(editing.hpMax)
+            ? String(editing.hpMax)
+            : "";
+      if (hpCurrentInput)
+        hpCurrentInput.value =
+          editing.hpCurrent != null && !isNaN(editing.hpCurrent)
+            ? String(editing.hpCurrent)
+            : "";
+      if (speedInput) speedInput.value = editing.speed || "";
+      if (notesInput) notesInput.value = editing.notes || "";
+    } else {
+      if (sideInput) sideInput.value = "pc";
+    }
+
+    if (newBtn) {
+      newBtn.addEventListener("click", () => {
+        currentEditingId = null;
+        renderForm(panel);
+      });
+    }
+
+    if (form) {
+      form.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+
+        const name = nameInput ? nameInput.value.trim() : "";
+        const side = sideInput ? sideInput.value : "pc";
+
+        const initVal = initInput ? initInput.value.trim() : "";
+        const init = initVal ? Number(initVal) : 0;
+
+        const ac = acInput ? acInput.value.trim() : "";
+
+        const hpMaxVal = hpMaxInput ? hpMaxInput.value.trim() : "";
+        const hpMax =
+          hpMaxVal !== "" && !isNaN(Number(hpMaxVal))
+            ? Number(hpMaxVal)
+            : null;
+
+        const hpCurrentVal = hpCurrentInput
+          ? hpCurrentInput.value.trim()
+          : "";
+        let hpCurrent =
+          hpCurrentVal !== "" && !isNaN(Number(hpCurrentVal))
+            ? Number(hpCurrentVal)
+            : null;
+
+        const speed = speedInput ? speedInput.value.trim() : "";
+        const notes = notesInput ? notesInput.value.trim() : "";
+
+        if (hpCurrent == null && hpMax != null) {
+          hpCurrent = hpMax;
+        }
+
+        let target;
+        if (currentEditingId != null) {
+          target = findCombatantById(currentEditingId);
+        }
+
+        if (target) {
+          target.name = name || target.name || "Unnamed";
+          target.side = side || target.side || "pc";
+          target.init = init;
+          target.ac = ac;
+          target.hpMax = hpMax;
+          target.hpCurrent = hpCurrent;
+          target.speed = speed;
+          target.notes = notes;
+          clampHP(target);
+        } else {
+          const newC = {
+            id: createId(),
+            name: name || "New combatant",
+            side: side || "pc",
+            init,
+            ac,
+            hpMax,
+            hpCurrent,
+            speed,
+            notes,
+            dead: false,
+          };
+          clampHP(newC);
+          encounterState.combatants.push(newC);
+          currentEditingId = newC.id;
+        }
+
+        ensureActiveId();
+        saveEncounterState(encounterState);
+        renderAll(panel);
+      });
+    }
+  }
+
+  function renderParty(panel) {
+    const chipsEl = panel.querySelector("#encPartyChips");
+    const emptyEl = panel.querySelector("#encPartyEmpty");
+    const summary = panel.querySelector("#encPartySummary");
+
+    if (chipsEl) chipsEl.innerHTML = "";
+
+    const members = partyState.members || [];
+
+    if (summary) {
+      if (members.length === 0) {
+        summary.textContent = "No party saved.";
+      } else {
+        summary.textContent = `${members.length} member${
+          members.length === 1 ? "" : "s"
+        } saved`;
+      }
+    }
+
+    if (!chipsEl || !emptyEl) return;
+
+    if (members.length === 0) {
+      emptyEl.textContent =
+        "No saved party yet. Use “Save PCs” to snapshot your current player characters.";
+      return;
+    }
+
+    emptyEl.textContent = "";
+
+    for (const m of members) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "enc-party-chip";
+
+      const avatar = document.createElement("span");
+      avatar.className = "avatar";
+      avatar.textContent = initialsFromName(m.name || "");
+
+      const label = document.createElement("span");
+      label.textContent = m.name || "PC";
+
+      chip.appendChild(avatar);
+      chip.appendChild(label);
+
+      chip.title = "Click to add this party member into the encounter";
+
+      chip.addEventListener("click", () => {
+        const hpMax =
+          typeof m.hpMax === "number" && !isNaN(m.hpMax) ? m.hpMax : null;
+        const hpCurrent = hpMax != null ? hpMax : null;
+
+        const newC = {
+          id: createId(),
+          name: m.name || "Party member",
+          side: m.side || "pc",
+          hpMax,
+          hpCurrent,
+          ac: m.ac || "",
+          speed: m.speed || "",
+          init: 0,
+          notes: m.notes || "",
+          dead: false,
+        };
+        clampHP(newC);
+        encounterState.combatants.push(newC);
+        ensureActiveId();
+        saveEncounterState(encounterState);
+        currentEditingId = newC.id;
+        renderAll(panel);
+      });
+
+      chipsEl.appendChild(chip);
+    }
+  }
+
+  // ----------------------------
+  //  Hook into the toolbox
+  // ----------------------------
+  window.renderToolPanel = function (toolId) {
+    if (toolId === "encounterInitiative") {
+      renderEncounterTool();
+    } else {
+      originalRenderToolPanel(toolId);
+    }
+  };
+
+  // Done.
 })();
