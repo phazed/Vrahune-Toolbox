@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Vrahune Tools Hub – Valathi Lexicon & Generators</title>
+  <title>Vrahune Tools Hub – Generators & Lexicon Library</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
-      --bg: #050610;
-      --bg-alt: #0b0f1c;
-      --accent: #7fd4ff;
-      --accent-soft: rgba(127, 212, 255, 0.15);
-      --text: #f3f7ff;
-      --muted: #9aa4c2;
-      --border: #1a2133;
-      --danger: #ff8181;
-      --shadow-soft: 0 14px 45px rgba(0, 0, 0, 0.55);
+      --bg: #050505;
+      --bg-alt: #101010;
+      --accent: #c0c0c0;          /* silver */
+      --accent-soft: rgba(192,192,192,0.22);
+      --text: #f5f5f5;
+      --muted: #a0a0a0;
+      --border: #2a2a2a;
+      --danger: #ff8080;
+      --shadow-soft: 0 14px 40px rgba(0, 0, 0, 0.75);
       --radius-lg: 16px;
     }
 
@@ -26,7 +26,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at top, #141b33 0, #050610 55%, #02030a 100%);
+      background: radial-gradient(circle at top, #222 0, #050505 55%, #000 100%);
       color: var(--text);
       min-height: 100vh;
       display: flex;
@@ -39,7 +39,7 @@
       width: 100%;
       padding: 24px;
       display: grid;
-      grid-template-columns: 1.1fr 1.1fr;
+      grid-template-columns: 1.2fr 1.1fr; /* LEFT: generators, RIGHT: lexicons */
       gap: 24px;
     }
 
@@ -50,7 +50,7 @@
     }
 
     .card {
-      background: linear-gradient(145deg, rgba(8, 15, 36, 0.98), rgba(5, 7, 20, 0.99));
+      background: linear-gradient(145deg, rgba(8, 8, 8, 0.97), rgba(4, 4, 4, 0.99));
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
       box-shadow: var(--shadow-soft);
@@ -78,9 +78,10 @@
       width: 26px;
       height: 26px;
       border-radius: 999px;
-      border: 1px solid rgba(127, 212, 255, 0.45);
-      background: radial-gradient(circle at top, rgba(127, 212, 255, 0.25), transparent 60%);
-      font-size: 0.85rem;
+      border: 1px solid rgba(192,192,192,0.55);
+      background: radial-gradient(circle at top, rgba(230,230,230,0.25), transparent 60%);
+      font-size: 0.9rem;
+      color: var(--text);
     }
 
     .subtitle {
@@ -98,22 +99,28 @@
       margin-bottom: 4px;
     }
 
-    input[type="text"], input[type="number"], select, textarea {
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
       width: 100%;
       padding: 8px 9px;
       border-radius: 10px;
       border: 1px solid var(--border);
-      background: rgba(6, 9, 26, 0.9);
+      background: rgba(12, 12, 12, 0.95);
       color: var(--text);
       font-size: 0.9rem;
       outline: none;
       transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
     }
 
-    input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent-soft);
-      background: rgba(9, 13, 34, 1);
+      background: rgba(18, 18, 18, 1);
     }
 
     textarea {
@@ -135,14 +142,14 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #7fd4ff, #55a8ff);
-      color: #02101c;
-      box-shadow: 0 8px 22px rgba(85, 168, 255, 0.45);
+      background: linear-gradient(135deg, #f5f5f5, #bfbfbf);
+      color: #111;
+      box-shadow: 0 8px 22px rgba(200, 200, 200, 0.4);
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 30px rgba(85, 168, 255, 0.6);
+      box-shadow: 0 12px 30px rgba(230, 230, 230, 0.6);
     }
 
     .btn-secondary {
@@ -153,12 +160,29 @@
 
     .btn-secondary:hover {
       border-color: var(--accent-soft);
-      background: rgba(10, 16, 36, 0.9);
+      background: rgba(18, 18, 18, 0.96);
     }
 
     .btn-small {
       padding: 4px 10px;
       font-size: 0.8rem;
+    }
+
+    .btn-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      font-size: 1rem;
+      border-color: var(--border);
+    }
+
+    .btn-icon:hover {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .row {
@@ -178,8 +202,8 @@
       margin-top: 12px;
       padding: 10px 12px;
       border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(127, 212, 255, 0.08), rgba(8, 13, 30, 0.98));
-      border: 1px solid rgba(127, 212, 255, 0.18);
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.08), rgba(10,10,10,0.98));
+      border: 1px solid rgba(160,160,160,0.35);
     }
 
     .result-word {
@@ -196,7 +220,7 @@
 
     .result-notes {
       font-size: 0.9rem;
-      color: #d2ddff;
+      color: #e2e2e2;
     }
 
     .pill {
@@ -207,8 +231,8 @@
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      background: rgba(127, 212, 255, 0.08);
-      border: 1px solid rgba(127, 212, 255, 0.24);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(200,200,200,0.45);
       color: var(--accent);
       margin-left: 6px;
     }
@@ -227,18 +251,24 @@
       gap: 10px;
     }
 
+    .section-title span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .lexicon-list {
       margin-top: 10px;
-      max-height: 210px;
+      max-height: 230px;
       overflow-y: auto;
       border-radius: 10px;
-      border: 1px solid rgba(26, 33, 51, 0.9);
-      background: linear-gradient(180deg, rgba(5, 8, 22, 0.98), rgba(3, 5, 13, 0.98));
+      border: 1px solid rgba(50,50,50,0.95);
+      background: linear-gradient(180deg, rgba(10,10,10,0.98), rgba(5,5,5,0.98));
     }
 
     .lexicon-item {
       padding: 8px 10px;
-      border-bottom: 1px solid rgba(21, 27, 43, 0.88);
+      border-bottom: 1px solid rgba(40,40,40,0.9);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -271,7 +301,7 @@
       font-size: 0.7rem;
       padding: 2px 6px;
       border-radius: 999px;
-      background: rgba(50, 60, 90, 0.9);
+      background: rgba(30,30,30,0.95);
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -293,18 +323,26 @@
       margin: 16px 0;
     }
 
+    /* Generators */
     .generator-block {
       margin-bottom: 16px;
       padding: 10px 12px;
       border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(127, 212, 255, 0.06), rgba(8, 13, 30, 0.96));
-      border: 1px solid rgba(127, 212, 255, 0.12);
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.05), rgba(8,8,8,0.96));
+      border: 1px solid rgba(90,90,90,0.7);
+    }
+
+    .generator-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
     }
 
     .generator-title {
       font-size: 0.9rem;
       font-weight: 600;
-      margin-bottom: 4px;
     }
 
     .generator-subtitle {
@@ -317,9 +355,9 @@
       margin-top: 8px;
       padding: 6px 8px;
       border-radius: 10px;
-      border: 1px solid rgba(26, 33, 51, 0.9);
-      background: rgba(5, 8, 22, 0.98);
-      max-height: 160px;
+      border: 1px solid rgba(45,45,45,0.9);
+      background: rgba(8,8,8,0.98);
+      max-height: 150px;
       overflow-y: auto;
       font-size: 0.88rem;
     }
@@ -338,108 +376,48 @@
       font-size: 0.78rem;
       color: var(--muted);
     }
+
+    .create-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(120,120,120,0.7);
+      background: rgba(10,10,10,0.95);
+    }
+
+    .folder-heading {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin: 10px 2px 4px;
+    }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <!-- LEFT: Lexicon -->
+    <!-- LEFT: GENERATORS -->
     <div class="card">
       <h1>
         <span class="logo">V</span>
-        Vrahune – Valathi Lexicon
+        Vrahune – Generators Hub
       </h1>
-      <div class="subtitle">Lookup & grow the language of the Valathar.</div>
-
-      <!-- Lookup -->
-      <div class="section-title">
-        <span>English → Valathi Lookup</span>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="searchInput">English word</label>
-          <input id="searchInput" type="text" placeholder="e.g. silver, castle, river" autocomplete="off">
-        </div>
-        <button id="searchBtn" class="btn-primary">
-          Translate
-        </button>
-      </div>
-
-      <div id="searchResult"></div>
-
-      <hr>
-
-      <!-- Add / Edit -->
-      <div class="section-title">
-        <span>Add / Edit Entry</span>
-        <span class="muted">Custom entries are saved in this browser only.</span>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="addEnglish">English</label>
-          <input id="addEnglish" type="text" placeholder="e.g. castle">
-        </div>
-        <div class="col">
-          <label for="addValathi">Valathi</label>
-          <input id="addValathi" type="text" placeholder="e.g. valdor">
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="addType">Type</label>
-          <select id="addType">
-            <option value="root">root</option>
-            <option value="noun" selected>noun</option>
-            <option value="place">place</option>
-            <option value="person-name">person-name</option>
-            <option value="title">title</option>
-            <option value="concept">concept</option>
-            <option value="other">other</option>
-          </select>
-        </div>
-        <div class="col">
-          <label for="addNotes">Notes (meaning, etymology)</label>
-          <input id="addNotes" type="text" placeholder="e.g. noble seat / fortress">
-        </div>
-        <button id="addBtn" class="btn-secondary">
-          Save word
-        </button>
-      </div>
-
-      <div id="addMessage" class="muted"></div>
-
-      <div class="tagline">
-        Tip: use roots like val, ’ath, anna, dor, vor, mir, len, vrae, sel, thal, nor, ves, etc. when inventing new words.
-      </div>
-
-      <hr>
-
-      <div class="section-title">
-        <span>Lexicon (Built-in + Custom)</span>
-        <button id="resetBtn" class="btn-secondary btn-small" title="Remove only your custom entries, not the built-ins.">
-          Clear custom
-        </button>
-      </div>
-      <div class="lexicon-list" id="lexiconList"></div>
-      <div class="tagline">
-        Words marked as <span class="pill">root</span> are your naming Lego bricks.
-      </div>
-    </div>
-
-    <!-- RIGHT: Generators Hub -->
-    <div class="card">
-      <h2>Generators Hub</h2>
       <div class="subtitle">
-        Quick tools for naming Valathar elves, books, and more. Click any result to copy it.
+        All your random generators in one place. Click results to copy.
+      </div>
+
+      <!-- Built-in generators header -->
+      <div class="section-title">
+        <span>Built-in Generators</span>
       </div>
 
       <!-- ELF NAME GENERATOR -->
       <div class="generator-block">
-        <div class="generator-title">Elf Name Generator</div>
+        <div class="generator-title-row">
+          <div class="generator-title">Elf Name Generator</div>
+        </div>
         <div class="generator-subtitle">
-          Generates Valathar-style names (classic Valathi or newer, mixed-region vibes).
+          Valathar-style names: classic Valathi or newer, mixed-region vibes.
         </div>
 
         <div class="row">
@@ -473,9 +451,11 @@
 
       <!-- BOOK TITLE GENERATOR -->
       <div class="generator-block">
-        <div class="generator-title">Book Title Generator</div>
+        <div class="generator-title-row">
+          <div class="generator-title">Book Title Generator</div>
+        </div>
         <div class="generator-subtitle">
-          Fantasy book / tome / legend titles, in common tongue or with Valathi flavor.
+          Titles for tomes, legends, grimoires. Common tongue or Valathi-flavored.
         </div>
 
         <div class="row">
@@ -499,8 +479,186 @@
         <div class="generated-list" id="bookResults"></div>
       </div>
 
+      <hr>
+
+      <!-- CUSTOM GENERATORS -->
+      <div class="section-title">
+        <span>Custom Generators (Folders)</span>
+        <button id="addGeneratorToggle" class="btn-secondary btn-icon" title="Create new generator">
+          ＋
+        </button>
+      </div>
+
+      <div id="generatorCreateBox" class="create-box" style="display:none;">
+        <div class="generator-subtitle">
+          Give your generator a folder and a name, then paste a list of items (one per line or comma-separated).
+          Duplicates are removed automatically (case-insensitive).
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="genFolderInput">Folder name</label>
+            <input id="genFolderInput" type="text" placeholder="e.g. Lexicons, Names, Taverns" value="General">
+          </div>
+          <div class="col">
+            <label for="genNameInput">Generator name</label>
+            <input id="genNameInput" type="text" placeholder="e.g. Tavern Names, Ancient Relics">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="genItemsInput">Items list</label>
+            <textarea id="genItemsInput" placeholder="One item per line, or comma-separated..."></textarea>
+          </div>
+        </div>
+        <div class="row">
+          <button id="saveGeneratorBtn" class="btn-primary">
+            Save generator
+          </button>
+          <button id="cancelGeneratorBtn" class="btn-secondary">
+            Cancel
+          </button>
+        </div>
+        <div id="generatorCreateMessage" class="muted"></div>
+      </div>
+
+      <div id="customGenerators"></div>
+
       <div id="copyMessage" class="copy-message">
         Click any generated name or title to copy it.
+      </div>
+    </div>
+
+    <!-- RIGHT: LEXICON LIBRARY -->
+    <div class="card">
+      <h2>Lexicon Library</h2>
+      <div class="subtitle">Switch between Valathi and future race lexicons; add or import new ones.</div>
+
+      <!-- Lexicon selector & manage -->
+      <div class="row">
+        <div class="col">
+          <label for="lexiconSelect">Active lexicon</label>
+          <select id="lexiconSelect"></select>
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <button id="lexiconManageToggle" class="btn-secondary btn-small">
+            Manage / Add
+          </button>
+        </div>
+      </div>
+
+      <div id="lexiconManageBox" class="create-box" style="display:none;">
+        <div class="generator-subtitle">
+          Create a blank lexicon (for another race), or import one from a JSON file.
+          Imported JSON can be:
+          <ul style="margin:4px 0 0 18px; padding:0; font-size:0.75rem;">
+            <li>{ "name": "...", "entries": { "english": { "valathi": "...", "type": "...", "notes": "..." } } }</li>
+            <li>Or just { "english": { ... }, ... } (name taken from the field below).</li>
+          </ul>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="lexiconNameInput">New lexicon name</label>
+            <input id="lexiconNameInput" type="text" placeholder="e.g. Dwarven, Draconic">
+          </div>
+          <div class="col">
+            <label>&nbsp;</label>
+            <button id="createLexiconBtn" class="btn-primary btn-small">
+              Create blank
+            </button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="lexiconFileInput">Import lexicon from JSON file</label>
+            <input id="lexiconFileInput" type="file" accept=".json">
+          </div>
+        </div>
+        <div class="row">
+          <button id="lexiconManageClose" class="btn-secondary btn-small">
+            Close
+          </button>
+        </div>
+        <div id="lexiconManageMessage" class="muted"></div>
+      </div>
+
+      <hr>
+
+      <!-- Lookup -->
+      <div class="section-title">
+        <span>English → Lexicon Lookup</span>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label for="searchInput">English word</label>
+          <input id="searchInput" type="text" placeholder="e.g. silver, castle, river" autocomplete="off">
+        </div>
+        <button id="searchBtn" class="btn-primary">
+          Translate
+        </button>
+      </div>
+
+      <div id="searchResult"></div>
+
+      <hr>
+
+      <!-- Add / Edit -->
+      <div class="section-title">
+        <span>Add / Edit Entry</span>
+        <span class="muted">Entries are per-lexicon and saved in this browser only.</span>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label for="addEnglish">English</label>
+          <input id="addEnglish" type="text" placeholder="e.g. castle">
+        </div>
+        <div class="col">
+          <label for="addValathi">Lexicon word</label>
+          <input id="addValathi" type="text" placeholder="e.g. valdor">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label for="addType">Type</label>
+          <select id="addType">
+            <option value="root">root</option>
+            <option value="noun" selected>noun</option>
+            <option value="place">place</option>
+            <option value="person-name">person-name</option>
+            <option value="title">title</option>
+            <option value="concept">concept</option>
+            <option value="other">other</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="addNotes">Notes (meaning, etymology)</label>
+          <input id="addNotes" type="text" placeholder="e.g. noble seat / fortress">
+        </div>
+        <button id="addBtn" class="btn-secondary">
+          Save word
+        </button>
+      </div>
+
+      <div id="addMessage" class="muted"></div>
+
+      <div class="tagline">
+        In Valathi, roots like val, ’ath, anna, dor, vor, mir, len, vrae, sel, thal, nor, ves, etc. are your builders. Other lexicons can follow their own rules.
+      </div>
+
+      <hr>
+
+      <div class="section-title">
+        <span>Lexicon Entries (Active)</span>
+        <button id="resetBtn" class="btn-secondary btn-small" title="Clear custom entries for the active lexicon (built-in roots remain for Valathi).">
+          Clear active
+        </button>
+      </div>
+      <div class="lexicon-list" id="lexiconList"></div>
+      <div class="tagline">
+        In Valathi, entries marked as <span class="pill">root</span> are your naming Lego bricks.
       </div>
     </div>
   </div>
@@ -509,7 +667,7 @@
     // ------------------------
     // BASE VALATHI LEXICON
     // ------------------------
-    const baseLexicon = {
+    const baseValathiLexicon = {
       // Core nature & geography
       "wind":      { valathi: "vrae",    type: "root",   notes: "wind, current of air" },
       "world":     { valathi: "huneth",  type: "root",   notes: "wide expanse, world" },
@@ -571,76 +729,104 @@
       "continent": { valathi: "Vrahune", type: "place",  notes: "Wind-wreathed expanse (vrae + huneth)" }
     };
 
-    const STORAGE_KEY = "valathiLexiconCustom";
+    const LEXICONS_STORAGE_KEY = "vrahuneLexicons";
+    const ACTIVE_LEXICON_KEY   = "vrahuneActiveLexiconId";
+    const GEN_STORAGE_KEY      = "vrahuneCustomGenerators";
 
-    function loadCustomLexicon() {
+    // ------------------------
+    // LEXICON STORAGE HELPERS
+    // ------------------------
+    function loadLexicons() {
       try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const raw = window.localStorage.getItem(LEXICONS_STORAGE_KEY);
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return (parsed && typeof parsed === "object") ? parsed : {};
-      } catch (e) {
-        console.warn("Failed to load custom lexicon:", e);
+      } catch {
         return {};
       }
     }
 
-    function saveCustomLexicon(custom) {
+    function saveLexicons(obj) {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
-      } catch (e) {
-        console.warn("Failed to save custom lexicon:", e);
+        window.localStorage.setItem(LEXICONS_STORAGE_KEY, JSON.stringify(obj));
+      } catch {}
+    }
+
+    function getActiveLexiconId() {
+      const custom = loadLexicons();
+      let active = window.localStorage.getItem(ACTIVE_LEXICON_KEY);
+      if (!active || (active !== "valathi" && !custom[active])) {
+        active = "valathi";
       }
+      return active;
     }
 
-    function mergeLexicons() {
-      const custom = loadCustomLexicon();
-      return { ...baseLexicon, ...custom };
+    function setActiveLexiconId(id) {
+      window.localStorage.setItem(ACTIVE_LEXICON_KEY, id);
     }
 
-    function renderSearchResult(entryKey, entryData) {
-      const container = document.getElementById("searchResult");
-      container.innerHTML = "";
+    function getLexiconName(id) {
+      const custom = loadLexicons();
+      if (id === "valathi") {
+        return (custom["valathi"] && custom["valathi"].name) || "Valathi";
+      }
+      return (custom[id] && custom[id].name) || id;
+    }
 
-      if (!entryData) {
-        container.innerHTML = `
-          <div class="result-box">
-            <div class="result-word danger">No entry yet for “${entryKey}”.</div>
-            <div class="result-notes">
-              You can add it below with your own Valathi word and meaning.
-            </div>
+    function getLexiconEntries(id) {
+      const custom = loadLexicons();
+      const customEntries = (custom[id] && custom[id].entries) || {};
+      if (id === "valathi") {
+        return { ...baseValathiLexicon, ...customEntries };
+      }
+      return { ...customEntries };
+    }
+
+    function renderLexiconSelector() {
+      const select = document.getElementById("lexiconSelect");
+      if (!select) return;
+      const custom = loadLexicons();
+      const active = getActiveLexiconId();
+
+      select.innerHTML = "";
+      const valOption = document.createElement("option");
+      valOption.value = "valathi";
+      valOption.textContent = getLexiconName("valathi");
+      select.appendChild(valOption);
+
+      Object.keys(custom)
+        .filter(id => id !== "valathi")
+        .sort((a, b) => (custom[a].name || a).localeCompare(custom[b].name || b))
+        .forEach(id => {
+          const op = document.createElement("option");
+          op.value = id;
+          op.textContent = custom[id].name || id;
+          select.appendChild(op);
+        });
+
+      select.value = active;
+      renderLexiconList();
+    }
+
+    function renderLexiconList() {
+      const listElement = document.getElementById("lexiconList");
+      const activeId = getActiveLexiconId();
+      const entries = getLexiconEntries(activeId);
+      const keys = Object.keys(entries).sort((a, b) => a.localeCompare(b));
+      listElement.innerHTML = "";
+
+      if (!keys.length) {
+        listElement.innerHTML = `
+          <div class="lexicon-item">
+            <span class="muted">No entries yet. Add some words using the form above.</span>
           </div>
         `;
         return;
       }
 
-      const fromBase = !!baseLexicon[entryKey];
-      const sourceLabel = fromBase ? "built-in" : "custom";
-
-      container.innerHTML = `
-        <div class="result-box">
-          <div class="result-word">
-            ${entryData.valathi}
-            <span class="pill">${entryData.type || "word"}</span>
-          </div>
-          <div class="result-meta">
-            English: <strong>${entryKey}</strong> · Source: ${sourceLabel}
-          </div>
-          <div class="result-notes">
-            ${entryData.notes || "<span class='muted'>No notes yet.</span>"}
-          </div>
-        </div>
-      `;
-    }
-
-    function renderLexiconList() {
-      const listElement = document.getElementById("lexiconList");
-      const merged = mergeLexicons();
-      const keys = Object.keys(merged).sort((a, b) => a.localeCompare(b));
-      listElement.innerHTML = "";
-
       keys.forEach(key => {
-        const entry = merged[key];
+        const entry = entries[key];
         const div = document.createElement("div");
         div.className = "lexicon-item";
         div.innerHTML = `
@@ -653,29 +839,51 @@
         `;
         listElement.appendChild(div);
       });
-
-      if (!keys.length) {
-        listElement.innerHTML = `
-          <div class="lexicon-item">
-            <span class="muted">No entries yet. Add some words using the form above.</span>
-          </div>
-        `;
-      }
     }
 
     function handleSearch() {
       const input = document.getElementById("searchInput");
       const term = (input.value || "").trim().toLowerCase();
-      if (!term) {
-        document.getElementById("searchResult").innerHTML = "";
+      const container = document.getElementById("searchResult");
+      container.innerHTML = "";
+      if (!term) return;
+
+      const activeId = getActiveLexiconId();
+      const entries = getLexiconEntries(activeId);
+      const entry = entries[term];
+
+      if (!entry) {
+        container.innerHTML = `
+          <div class="result-box">
+            <div class="result-word danger">No entry yet for “${term}”.</div>
+            <div class="result-notes">
+              You can add it below with your own word and meaning.
+            </div>
+          </div>
+        `;
         return;
       }
-      const lexicon = mergeLexicons();
-      const entry = lexicon[term];
-      renderSearchResult(term, entry);
+
+      const fromBase = (activeId === "valathi" && !!baseValathiLexicon[term]);
+      const sourceLabel = fromBase ? "built-in" : "custom";
+
+      container.innerHTML = `
+        <div class="result-box">
+          <div class="result-word">
+            ${entry.valathi}
+            <span class="pill">${entry.type || "word"}</span>
+          </div>
+          <div class="result-meta">
+            English: <strong>${term}</strong> · Source: ${sourceLabel}
+          </div>
+          <div class="result-notes">
+            ${entry.notes || "<span class='muted'>No notes yet.</span>"}
+          </div>
+        </div>
+      `;
     }
 
-    function handleAdd() {
+    function handleAddWord() {
       const enInput = document.getElementById("addEnglish");
       const vaInput = document.getElementById("addValathi");
       const typeSelect = document.getElementById("addType");
@@ -683,22 +891,36 @@
       const msg = document.getElementById("addMessage");
 
       const english = (enInput.value || "").trim().toLowerCase();
-      const valathi = (vaInput.value || "").trim();
+      const word = (vaInput.value || "").trim();
       const type = typeSelect.value;
       const notes = notesInput.value.trim();
 
-      if (!english || !valathi) {
-        msg.textContent = "Please provide both an English word and a Valathi form.";
+      if (!english || !word) {
+        msg.textContent = "Please provide both an English word and a lexicon form.";
         msg.classList.remove("danger");
         msg.classList.add("muted");
         return;
       }
 
-      const custom = loadCustomLexicon();
-      custom[english] = { valathi, type, notes };
-      saveCustomLexicon(custom);
+      const activeId = getActiveLexiconId();
+      const all = loadLexicons();
 
-      msg.textContent = `Saved entry for “${english}” → ${valathi}.`;
+      if (!all[activeId]) {
+        all[activeId] = {
+          name: getLexiconName(activeId),
+          entries: {}
+        };
+      }
+
+      all[activeId].entries[english] = {
+        valathi: word,
+        type,
+        notes
+      };
+
+      saveLexicons(all);
+
+      msg.textContent = `Saved entry for “${english}” → ${word} in ${getLexiconName(activeId)}.`;
       msg.classList.remove("danger");
       msg.classList.add("muted");
 
@@ -706,33 +928,193 @@
 
       const currentSearch = (document.getElementById("searchInput").value || "").trim().toLowerCase();
       if (currentSearch === english) {
-        renderSearchResult(english, custom[english]);
+        handleSearch();
       }
     }
 
-    function handleResetCustom() {
-      const ok = window.confirm("Clear ALL custom Valathi entries? Built-in words will remain.");
-      if (!ok) return;
-      saveCustomLexicon({});
+    function handleResetActiveLexicon() {
+      const activeId = getActiveLexiconId();
+      const all = loadLexicons();
+      const msg = document.getElementById("addMessage");
+
+      if (activeId === "valathi") {
+        if (!all["valathi"]) {
+          // nothing custom yet
+          msg.textContent = "No custom entries to clear for Valathi.";
+          msg.classList.remove("danger");
+          msg.classList.add("muted");
+        } else {
+          all["valathi"].entries = {};
+          saveLexicons(all);
+          msg.textContent = "Cleared custom entries for Valathi (built-in roots remain).";
+          msg.classList.remove("danger");
+          msg.classList.add("muted");
+        }
+      } else {
+        if (all[activeId]) {
+          all[activeId].entries = {};
+          saveLexicons(all);
+          msg.textContent = `Cleared entries for lexicon “${getLexiconName(activeId)}”.`;
+          msg.classList.remove("danger");
+          msg.classList.add("muted");
+        } else {
+          msg.textContent = "No entries to clear.";
+        }
+      }
+
       renderLexiconList();
-      document.getElementById("addMessage").textContent = "Custom entries cleared.";
       document.getElementById("searchResult").innerHTML = "";
     }
 
     // ------------------------
-    // GENERATORS – ELF NAMES
+    // LEXICON MANAGE / ADD / IMPORT
     // ------------------------
+    function toggleLexiconManageBox() {
+      const box = document.getElementById("lexiconManageBox");
+      const msg = document.getElementById("lexiconManageMessage");
+      if (box.style.display === "none" || box.style.display === "") {
+        box.style.display = "block";
+        msg.textContent = "";
+        msg.classList.remove("danger");
+      } else {
+        box.style.display = "none";
+      }
+    }
 
+    function closeLexiconManageBox() {
+      const box = document.getElementById("lexiconManageBox");
+      const msg = document.getElementById("lexiconManageMessage");
+      document.getElementById("lexiconNameInput").value = "";
+      document.getElementById("lexiconFileInput").value = "";
+      msg.textContent = "";
+      msg.classList.remove("danger");
+      box.style.display = "none";
+    }
+
+    function handleCreateLexicon() {
+      const nameInput = document.getElementById("lexiconNameInput");
+      const msg = document.getElementById("lexiconManageMessage");
+      const name = (nameInput.value || "").trim();
+
+      if (!name) {
+        msg.textContent = "Please enter a name for the new lexicon.";
+        msg.classList.add("danger");
+        return;
+      }
+
+      const all = loadLexicons();
+      const id = "lex-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+      all[id] = { name, entries: {} };
+      saveLexicons(all);
+      setActiveLexiconId(id);
+
+      msg.classList.remove("danger");
+      msg.textContent = `Created lexicon “${name}”.`;
+      renderLexiconSelector();
+      document.getElementById("searchResult").innerHTML = "";
+      document.getElementById("addMessage").textContent = "";
+    }
+
+    function handleLexiconFileChange(event) {
+      const fileInput = event.target;
+      const file = fileInput.files && fileInput.files[0];
+      const msg = document.getElementById("lexiconManageMessage");
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const text = ev.target.result;
+          const parsed = JSON.parse(text);
+          let name = (document.getElementById("lexiconNameInput").value || "").trim();
+          let rawEntries;
+
+          if (parsed && typeof parsed === "object" && parsed.entries) {
+            rawEntries = parsed.entries;
+            if (!name && parsed.name) name = parsed.name;
+          } else {
+            rawEntries = parsed;
+          }
+
+          if (!rawEntries || typeof rawEntries !== "object") {
+            msg.textContent = "File format not recognized. Expecting JSON object of entries.";
+            msg.classList.add("danger");
+            return;
+          }
+
+          if (!name) name = "Imported Lexicon";
+
+          const entries = {};
+          for (const [english, val] of Object.entries(rawEntries)) {
+            const key = english.toLowerCase();
+            if (typeof val === "string") {
+              entries[key] = { valathi: val, type: "noun", notes: "" };
+            } else if (val && typeof val === "object") {
+              entries[key] = {
+                valathi: val.valathi || "",
+                type: val.type || "noun",
+                notes: val.notes || ""
+              };
+            }
+          }
+
+          const all = loadLexicons();
+          const id = "lex-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+          all[id] = { name, entries };
+          saveLexicons(all);
+          setActiveLexiconId(id);
+
+          msg.classList.remove("danger");
+          msg.textContent = `Imported lexicon “${name}” with ${Object.keys(entries).length} entries.`;
+          renderLexiconSelector();
+          document.getElementById("searchResult").innerHTML = "";
+          document.getElementById("addMessage").textContent = "";
+        } catch (e) {
+          msg.textContent = "Error reading file: " + e;
+          msg.classList.add("danger");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ------------------------
+    // GENERATORS – UTILITIES
+    // ------------------------
     function rand(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
 
+    function showCopyMessage(text) {
+      const msg = document.getElementById("copyMessage");
+      msg.textContent = `Copied: "${text}"`;
+      setTimeout(() => {
+        msg.textContent = "Click any generated name or title to copy it.";
+      }, 2500);
+    }
+
+    function handleCopyClick(event) {
+      const target = event.target;
+      if (!target.classList.contains("generated-item")) return;
+      const text = target.textContent.trim();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showCopyMessage(text))
+          .catch(() => showCopyMessage(text));
+      } else {
+        showCopyMessage(text);
+      }
+    }
+
+    // ------------------------
+    // BUILT-IN: ELF NAMES
+    // ------------------------
     const elfStartsClassic = [
       "Val", "Ves", "Vor", "Vrae", "Sel", "Thal", "Mir", "Nor", "Lae", "Vel", "Vyn", "Maer"
     ];
 
     const elfStartsNewGen = [
-      "Ael", "Ny", "Syl", "Cae", "Ari", "Eli", "Var", "Lor", "Sael", "Cal", "Ser", "Ty", "Vael", "Ari", "Oryn"
+      "Ael", "Ny", "Syl", "Cae", "Ari", "Eli", "Var", "Lor", "Sael", "Cal", "Ser", "Ty", "Vael", "Oryn"
     ];
 
     const elfMiddles = [
@@ -762,7 +1144,7 @@
       }
 
       const start = rand(startPool);
-      const useMiddle = Math.random() < 0.55; // about half the time
+      const useMiddle = Math.random() < 0.55;
       let middle = "";
       if (useMiddle) {
         middle = rand(elfMiddles);
@@ -793,7 +1175,7 @@
     }
 
     // ------------------------
-    // GENERATORS – BOOK TITLES
+    // BUILT-IN: BOOK TITLES
     // ------------------------
     const bookAdjCommon = [
       "Silent", "Forgotten", "Gilded", "Broken", "Crimson", "Twilight", "Shattered",
@@ -822,8 +1204,7 @@
     ];
 
     function generateSingleBookTitle(flavor) {
-      // Choose a structure
-      const pattern = Math.floor(Math.random() * 3); // 0,1,2
+      const pattern = Math.floor(Math.random() * 3);
 
       const adj = rand(bookAdjCommon);
       const noun1 = rand(bookNounCommon);
@@ -839,7 +1220,6 @@
           return `The ${noun1} ${ofPhrase}`;
         }
       } else {
-        // Valathi-flavored
         const valBit = rand(bookValathiBits);
         if (pattern === 0) {
           return `The ${adj} ${noun1} of ${valBit}`;
@@ -870,53 +1250,257 @@
     }
 
     // ------------------------
-    // COPY ON CLICK
+    // CUSTOM GENERATORS W/ FOLDERS
     // ------------------------
-    function showCopyMessage(text) {
-      const msg = document.getElementById("copyMessage");
-      msg.textContent = `Copied: "${text}"`;
-      setTimeout(() => {
-        msg.textContent = "Click any generated name or title to copy it.";
-      }, 2500);
+    function loadCustomGenerators() {
+      try {
+        const raw = window.localStorage.getItem(GEN_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
     }
 
-    function handleCopyClick(event) {
-      const target = event.target;
-      if (!target.classList.contains("generated-item")) return;
-      const text = target.textContent.trim();
-      if (!text) return;
+    function saveCustomGenerators(list) {
+      try {
+        window.localStorage.setItem(GEN_STORAGE_KEY, JSON.stringify(list));
+      } catch {}
+    }
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text)
-          .then(() => showCopyMessage(text))
-          .catch(() => showCopyMessage(text));
-      } else {
-        // Fallback: still show message
-        showCopyMessage(text);
+    function parseGeneratorItems(rawText) {
+      if (!rawText) return { items: [], duplicates: 0 };
+      const normalized = rawText.replace(/,/g, "\n");
+      const lines = normalized.split(/\r?\n/);
+      const set = new Set();
+      const items = [];
+      let total = 0;
+
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        total++;
+        const key = t.toLowerCase();
+        if (!set.has(key)) {
+          set.add(key);
+          items.push(t);
+        }
       }
+      const duplicates = Math.max(0, total - items.length);
+      return { items, duplicates };
+    }
+
+    function renderCustomGenerators() {
+      const container = document.getElementById("customGenerators");
+      const gens = loadCustomGenerators();
+      container.innerHTML = "";
+
+      if (!gens.length) {
+        container.innerHTML = `<div class="muted" style="font-size:0.8rem;">No custom generators yet. Click ＋ to create one.</div>`;
+        return;
+      }
+
+      // Group by folder
+      const byFolder = {};
+      gens.forEach(gen => {
+        const folder = gen.folder || "General";
+        if (!byFolder[folder]) byFolder[folder] = [];
+        byFolder[folder].push(gen);
+      });
+
+      const folderNames = Object.keys(byFolder).sort((a, b) => a.localeCompare(b));
+
+      folderNames.forEach(folder => {
+        const heading = document.createElement("div");
+        heading.className = "folder-heading";
+        heading.textContent = folder;
+        container.appendChild(heading);
+
+        byFolder[folder].forEach(gen => {
+          const block = document.createElement("div");
+          block.className = "generator-block";
+          block.dataset.genId = gen.id;
+
+          block.innerHTML = `
+            <div class="generator-title-row">
+              <div class="generator-title">${gen.name}</div>
+              <button class="btn-secondary btn-small custom-gen-delete" title="Delete this generator">Delete</button>
+            </div>
+            <div class="generator-subtitle">
+              ${gen.items.length} items in pool.
+            </div>
+            <div class="row">
+              <div class="col">
+                <label>Count</label>
+                <input type="number" class="custom-gen-count" min="1" max="50" value="10">
+              </div>
+              <div class="col">
+                <label>&nbsp;</label>
+                <button class="btn-primary custom-gen-generate">Generate</button>
+              </div>
+            </div>
+            <div class="generated-list custom-gen-results"></div>
+          `;
+          container.appendChild(block);
+        });
+      });
+    }
+
+    function handleSaveGenerator() {
+      const folderInput = document.getElementById("genFolderInput");
+      const nameInput = document.getElementById("genNameInput");
+      const itemsInput = document.getElementById("genItemsInput");
+      const msg = document.getElementById("generatorCreateMessage");
+
+      const folder = (folderInput.value || "").trim() || "General";
+      const name = (nameInput.value || "").trim();
+      const raw = itemsInput.value || "";
+
+      if (!name) {
+        msg.textContent = "Please enter a name for the generator.";
+        msg.classList.add("danger");
+        return;
+      }
+
+      const { items, duplicates } = parseGeneratorItems(raw);
+      if (!items.length) {
+        msg.textContent = "Please provide at least one non-empty item.";
+        msg.classList.add("danger");
+        return;
+      }
+
+      const gens = loadCustomGenerators();
+      const id = "gen-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+      gens.push({ id, folder, name, items });
+      saveCustomGenerators(gens);
+
+      msg.classList.remove("danger");
+      msg.textContent = `Saved generator “${name}” in folder “${folder}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+
+      // Clear inputs
+      nameInput.value = "";
+      itemsInput.value = "";
+
+      renderCustomGenerators();
+      setTimeout(() => {
+        document.getElementById("generatorCreateBox").style.display = "none";
+        msg.textContent = "";
+      }, 1200);
+    }
+
+    function handleCustomGeneratorsClick(event) {
+      const target = event.target;
+      const container = document.getElementById("customGenerators");
+      if (!container.contains(target)) return;
+
+      const block = target.closest(".generator-block");
+      if (!block) return;
+      const genId = block.dataset.genId;
+      if (!genId) return;
+
+      const gens = loadCustomGenerators();
+      const gen = gens.find(g => g.id === genId);
+      if (!gen) return;
+
+      if (target.classList.contains("custom-gen-delete")) {
+        const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
+        if (!ok) return;
+        const newList = gens.filter(g => g.id !== genId);
+        saveCustomGenerators(newList);
+        renderCustomGenerators();
+        return;
+      }
+
+      if (target.classList.contains("custom-gen-generate")) {
+        const countInput = block.querySelector(".custom-gen-count");
+        const resultsBox = block.querySelector(".custom-gen-results");
+        const count = Math.max(1, Math.min(50, parseInt(countInput.value || "1", 10)));
+
+        const pool = [...gen.items];
+        const frag = document.createDocumentFragment();
+
+        resultsBox.innerHTML = "";
+        if (!pool.length) return;
+
+        for (let i = 0; i < count; i++) {
+          if (!pool.length) break;
+          const idx = Math.floor(Math.random() * pool.length);
+          const value = pool.splice(idx, 1)[0];
+          const div = document.createElement("div");
+          div.className = "generated-item";
+          div.textContent = value;
+          frag.appendChild(div);
+        }
+        resultsBox.appendChild(frag);
+        return;
+      }
+
+      if (target.classList.contains("generated-item")) {
+        handleCopyClick(event);
+      }
+    }
+
+    function toggleGeneratorCreateBox() {
+      const box = document.getElementById("generatorCreateBox");
+      const msg = document.getElementById("generatorCreateMessage");
+      if (box.style.display === "none" || box.style.display === "") {
+        box.style.display = "block";
+        msg.textContent = "";
+        msg.classList.remove("danger");
+      } else {
+        box.style.display = "none";
+      }
+    }
+
+    function cancelGeneratorCreateBox() {
+      const box = document.getElementById("generatorCreateBox");
+      const msg = document.getElementById("generatorCreateMessage");
+      document.getElementById("genNameInput").value = "";
+      document.getElementById("genItemsInput").value = "";
+      msg.textContent = "";
+      msg.classList.remove("danger");
+      box.style.display = "none";
     }
 
     // ------------------------
     // INIT
     // ------------------------
     document.addEventListener("DOMContentLoaded", () => {
-      renderLexiconList();
+      // Lexicon init
+      renderLexiconSelector();
 
-      // Lexicon handlers
-      document.getElementById("searchBtn").addEventListener("click", handleSearch);
-      document.getElementById("searchInput").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") handleSearch();
+      document.getElementById("lexiconSelect").addEventListener("change", () => {
+        setActiveLexiconId(document.getElementById("lexiconSelect").value);
+        document.getElementById("searchResult").innerHTML = "";
+        document.getElementById("addMessage").textContent = "";
+        renderLexiconList();
       });
 
-      document.getElementById("addBtn").addEventListener("click", handleAdd);
-      document.getElementById("resetBtn").addEventListener("click", handleResetCustom);
+      document.getElementById("searchBtn").addEventListener("click", handleSearch);
+      document.getElementById("searchInput").addEventListener("keydown", e => {
+        if (e.key === "Enter") handleSearch();
+      });
+      document.getElementById("addBtn").addEventListener("click", handleAddWord);
+      document.getElementById("resetBtn").addEventListener("click", handleResetActiveLexicon);
 
-      // Generators
+      document.getElementById("lexiconManageToggle").addEventListener("click", toggleLexiconManageBox);
+      document.getElementById("lexiconManageClose").addEventListener("click", closeLexiconManageBox);
+      document.getElementById("createLexiconBtn").addEventListener("click", handleCreateLexicon);
+      document.getElementById("lexiconFileInput").addEventListener("change", handleLexiconFileChange);
+
+      // Built-in generators
       document.getElementById("elfGenerateBtn").addEventListener("click", handleElfGenerate);
       document.getElementById("bookGenerateBtn").addEventListener("click", handleBookGenerate);
-
       document.getElementById("elfResults").addEventListener("click", handleCopyClick);
       document.getElementById("bookResults").addEventListener("click", handleCopyClick);
+
+      // Custom generators
+      renderCustomGenerators();
+      document.getElementById("addGeneratorToggle").addEventListener("click", toggleGeneratorCreateBox);
+      document.getElementById("saveGeneratorBtn").addEventListener("click", handleSaveGenerator);
+      document.getElementById("cancelGeneratorBtn").addEventListener("click", cancelGeneratorCreateBox);
+      document.getElementById("customGenerators").addEventListener("click", handleCustomGeneratorsClick);
     });
   </script>
 </body>
