@@ -158,6 +158,12 @@
       border-radius: 999px;
     }
 
+    .toggle-active {
+      background: #181f2b !important;
+      color: var(--accent-strong) !important;
+      border-color: #6d7584 !important;
+    }
+
     .layout-main {
       display: grid;
       grid-template-columns: 270px minmax(0, 1fr);
@@ -375,8 +381,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      /* Make all generator/tool views the same size */
-      height: 320px;
+      height: 340px;        /* fixed height so tools & generators match */
       overflow-y: auto;
     }
 
@@ -616,40 +621,6 @@
     .adv-search-item:hover {
       background: #161b24;
       color: var(--accent-strong);
-    }
-
-    .toolbox {
-      border-radius: var(--radius-md);
-      border: 1px solid #232a33;
-      background: #05070c;
-      padding: 6px 8px;
-      font-size: 0.78rem;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .toolbox-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-      gap: 6px;
-    }
-
-    .toolbox-title {
-      font-size: 0.8rem;
-      color: var(--accent-soft);
-    }
-
-    .toolbox-body {
-      margin-top: 2px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
     }
 
     .toolbox-row {
@@ -1130,7 +1101,7 @@
       const regex = /([+-])?(\d*)d(\d+)|([+-])?(\d+)/g;
       let match;
       let total = 0;
-      const breakdown = [];
+      const terms = [];
       let found = false;
 
       while ((match = regex.exec(text)) !== null) {
@@ -1147,12 +1118,13 @@
           }
           const subtotal = rolls.reduce((a,b)=>a+b,0) * sign;
           total += subtotal;
-          breakdown.push(`${sign < 0 ? "-" : ""}${count}d${faces} [${rolls.join(", ")}] = ${subtotal}`);
+          terms.push({ type: "dice", sign, count, faces, rolls, subtotal });
         } else if (match[5]) {
           const sign = match[4] === "-" ? -1 : 1;
-          const value = parseInt(match[5], 10) * sign;
-          total += value;
-          breakdown.push(`${value >= 0 ? "+" : ""}${value}`);
+          const value = parseInt(match[5], 10);
+          const subtotal = value * sign;
+          total += subtotal;
+          terms.push({ type: "mod", sign, value, subtotal });
         }
       }
 
@@ -1160,7 +1132,27 @@
         throw new Error("Invalid dice expression");
       }
 
-      return { total, breakdown };
+      return { total, terms };
+    }
+
+    function formatTermSegments(terms) {
+      if (!terms || !terms.length) return "";
+      let first = true;
+      let str = "";
+      for (const term of terms) {
+        const val = term.subtotal;
+        if (first) {
+          str = String(val);
+          first = false;
+        } else {
+          if (val >= 0) {
+            str += " + " + val;
+          } else {
+            str += " - " + (-val);
+          }
+        }
+      }
+      return str;
     }
 
     function loadFolderState() {
@@ -1508,42 +1500,33 @@
 
       if (toolId === "textCleaner") {
         panel.innerHTML = `
-          <div class="toolbox">
-            <div class="toolbox-header">
-              <div class="toolbox-title">Text Cleaner • list formatting helper</div>
-              <button id="toolCloseBtn" class="btn-secondary btn-small" type="button">Close tool</button>
+          <div class="muted" style="margin-bottom:4px;">
+            Paste messy, numbered or multi-column text (e.g. <code>4 Arrogant 54 Logical</code>) below,
+            click <b>Clean text</b>, then copy the cleaned list for your generators.
+          </div>
+          <div class="toolbox-row">
+            <div class="toolbox-col">
+              <label for="cleanInput">Raw text</label>
+              <textarea id="cleanInput" placeholder="4 Arrogant 54 Logical&#10;5 Blunt 55 Love-struck&#10;..."></textarea>
             </div>
-            <div class="toolbox-body">
-              <div class="muted">
-                Paste messy, numbered or multi-column text (e.g. <code>4 Arrogant 54 Logical</code>) below,
-                click <b>Clean text</b>, then copy the cleaned list for your generators.
-              </div>
-              <div class="toolbox-row">
-                <div class="toolbox-col">
-                  <label for="cleanInput">Raw text</label>
-                  <textarea id="cleanInput" placeholder="4 Arrogant 54 Logical&#10;5 Blunt 55 Love-struck&#10;..."></textarea>
-                </div>
-                <div class="toolbox-col">
-                  <label for="cleanOutput">Cleaned · one item per line</label>
-                  <textarea id="cleanOutput" readonly></textarea>
-                </div>
-              </div>
-              <div class="row" style="margin-top:4px;">
-                <button id="cleanRunBtn" class="btn-primary btn-small" type="button">
-                  Clean text
-                </button>
-                <button id="cleanCopyBtn" class="btn-secondary btn-small" type="button">
-                  Copy cleaned text
-                </button>
-              </div>
-              <div id="copyMessage" class="copy-tip">Click an item or use “Copy cleaned text”.</div>
+            <div class="toolbox-col">
+              <label for="cleanOutput">Cleaned · one item per line</label>
+              <textarea id="cleanOutput" readonly></textarea>
             </div>
           </div>
+          <div class="row" style="margin-top:4px;">
+            <button id="cleanRunBtn" class="btn-primary btn-small" type="button">
+              Clean text
+            </button>
+            <button id="cleanCopyBtn" class="btn-secondary btn-small" type="button">
+              Copy cleaned text
+            </button>
+          </div>
+          <div id="copyMessage" class="copy-tip">Click an item or use “Copy cleaned text”.</div>
         `;
 
         const cleanRunBtn = panel.querySelector("#cleanRunBtn");
         const cleanCopyBtn = panel.querySelector("#cleanCopyBtn");
-        const toolCloseBtn = panel.querySelector("#toolCloseBtn");
         const cleanInput = panel.querySelector("#cleanInput");
         const cleanOutput = panel.querySelector("#cleanOutput");
 
@@ -1567,103 +1550,114 @@
           });
         }
 
-        if (toolCloseBtn) {
-          toolCloseBtn.addEventListener("click", () => {
-            activeToolId = null;
-            renderToolsNav();
-            renderMainPanel();
-          });
-        }
-
         return;
       }
 
       if (toolId === "diceRoller") {
         panel.innerHTML = `
-          <div class="toolbox">
-            <div class="toolbox-header">
-              <div class="toolbox-title">Dice Roller • D&D-style</div>
-              <button id="toolCloseBtn" class="btn-secondary btn-small" type="button">Close tool</button>
+          <div class="muted" style="margin-bottom:4px;">
+            Enter expressions like <code>1d20</code>, <code>4d6+2</code>, or <code>2d6+1d4+3</code>.
+            Use <b>Adv</b>/<b>Dis</b> toggles for advantage / disadvantage (rolls the expression twice and picks high/low).
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="diceExprInput">Dice expression</label>
+              <input id="diceExprInput" type="text" placeholder="e.g. 1d20+5" />
             </div>
-            <div class="toolbox-body">
-              <div class="muted">
-                Enter expressions like <code>1d20</code>, <code>4d6+2</code>, or <code>2d6+1d4+3</code>.
-                Click a quick button for common rolls, or use Advantage / Disadvantage.
-              </div>
-              <div class="row">
-                <div class="col">
-                  <label for="diceExprInput">Dice expression</label>
-                  <input id="diceExprInput" type="text" placeholder="e.g. 1d20, 4d6+2, 2d6+1d4+3" />
-                </div>
-                <div class="col">
-                  <label>&nbsp;</label>
-                  <button id="diceRollBtn" class="btn-primary">Roll</button>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col">
-                  <label>Quick rolls</label>
-                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d4">d4</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d6">d6</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d8">d8</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d10">d10</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d12">d12</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d20">d20</button>
-                    <button class="btn-secondary btn-small dice-quick" data-exp="1d100">d100</button>
-                  </div>
-                </div>
-                <div class="col">
-                  <label>Advantage / Disadvantage (d20)</label>
-                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
-                    <button class="btn-secondary btn-small dice-adv" data-mode="adv">Advantage</button>
-                    <button class="btn-secondary btn-small dice-adv" data-mode="dis">Disadvantage</button>
-                  </div>
-                </div>
-              </div>
-              <div id="diceResults" class="generated-list"></div>
-              <div id="copyMessage" class="copy-tip">Click any line to copy the text.</div>
+            <div class="col">
+              <label>&nbsp;</label>
+              <button id="diceRollBtn" class="btn-primary">Roll</button>
             </div>
           </div>
+          <div class="row">
+            <div class="col">
+              <label>Quick rolls</label>
+              <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d4">d4</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d6">d6</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d8">d8</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d10">d10</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d12">d12</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d20">d20</button>
+                <button class="btn-secondary btn-small dice-quick" data-exp="1d100">d100</button>
+              </div>
+            </div>
+            <div class="col">
+              <label>Advantage / Disadvantage</label>
+              <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                <button id="diceAdvToggle" class="btn-secondary btn-small" type="button">Adv</button>
+                <button id="diceDisToggle" class="btn-secondary btn-small" type="button">Dis</button>
+              </div>
+            </div>
+          </div>
+          <div id="diceResults" class="generated-list"></div>
+          <div id="copyMessage" class="copy-tip">Click any line to copy the text. History shows last 10 rolls.</div>
         `;
 
-        const toolCloseBtn = panel.querySelector("#toolCloseBtn");
         const exprInput = panel.querySelector("#diceExprInput");
         const rollBtn = panel.querySelector("#diceRollBtn");
         const quickButtons = panel.querySelectorAll(".dice-quick");
-        const advButtons = panel.querySelectorAll(".dice-adv");
+        const advToggle = panel.querySelector("#diceAdvToggle");
+        const disToggle = panel.querySelector("#diceDisToggle");
         const resultsDiv = panel.querySelector("#diceResults");
 
-        function renderRollResult(expr, total, breakdown, labelSuffix = "") {
-          resultsDiv.innerHTML = "";
-          const header = document.createElement("div");
-          header.className = "muted";
-          header.textContent = `Roll${labelSuffix ? " – " + labelSuffix : ""}: ${expr}`;
-          resultsDiv.appendChild(header);
+        let advMode = null; // null, "adv", "dis"
+        let history = [];
 
-          breakdown.forEach(line => {
+        function setAdvMode(mode) {
+          advMode = mode;
+          advToggle.classList.remove("toggle-active");
+          disToggle.classList.remove("toggle-active");
+          if (mode === "adv") advToggle.classList.add("toggle-active");
+          if (mode === "dis") disToggle.classList.add("toggle-active");
+        }
+
+        function addHistoryLine(line) {
+          history.unshift(line);
+          if (history.length > 10) history.pop();
+          renderHistory();
+        }
+
+        function renderHistory() {
+          resultsDiv.innerHTML = "";
+          const frag = document.createDocumentFragment();
+          history.forEach(line => {
             const div = document.createElement("div");
             div.className = "generated-item";
             div.textContent = line;
-            resultsDiv.appendChild(div);
+            frag.appendChild(div);
           });
-
-          const totalDiv = document.createElement("div");
-          totalDiv.className = "generated-item";
-          totalDiv.textContent = `Total = ${total}`;
-          resultsDiv.appendChild(totalDiv);
-
+          resultsDiv.appendChild(frag);
           resultsDiv.addEventListener("click", handleCopyClick);
         }
 
         function doExprRoll() {
-          const expr = exprInput.value || "";
-          if (!expr.trim()) return;
+          let expr = (exprInput.value || "").trim();
+          if (!expr) expr = "1d20";
           try {
-            const { total, breakdown } = rollDiceExpression(expr);
-            renderRollResult(expr, total, breakdown);
+            if (!advMode) {
+              const result = rollDiceExpression(expr);
+              const seg = formatTermSegments(result.terms);
+              const line = seg
+                ? `${expr} = ${result.total} [${seg}]`
+                : `${expr} = ${result.total}`;
+              addHistoryLine(line);
+            } else {
+              const first = rollDiceExpression(expr);
+              const second = rollDiceExpression(expr);
+              const chosen = advMode === "adv"
+                ? (first.total >= second.total ? first : second)
+                : (first.total <= second.total ? first : second);
+              const other = chosen === first ? second : first;
+              const seg1 = formatTermSegments(first.terms);
+              const seg2 = formatTermSegments(second.terms);
+              const label = advMode === "adv" ? "adv" : "dis";
+              const line = `${expr} (${label}) = ${chosen.total} [${first.total} (${seg1}) vs ${second.total} (${seg2})]`;
+              addHistoryLine(line);
+            }
           } catch (err) {
-            resultsDiv.innerHTML = `<div class="muted">Error: ${err.message || "Invalid expression."}</div>`;
+            const msg = err && err.message ? err.message : "Invalid expression.";
+            addHistoryLine(`Error: ${msg}`);
           }
         }
 
@@ -1684,33 +1678,21 @@
           });
         });
 
-        advButtons.forEach(btn => {
-          btn.addEventListener("click", () => {
-            const mode = btn.dataset.mode;
-            const expr = "1d20";
-            try {
-              const first = rollDiceExpression(expr);
-              const second = rollDiceExpression(expr);
-              const rolls = [first.total, second.total];
-              const chosen = mode === "dis" ? Math.min(...rolls) : Math.max(...rolls);
-              const breakdown = [
-                `Rolls: [${rolls[0]}, ${rolls[1]}]`,
-                `Chosen (${mode === "dis" ? "disadvantage" : "advantage"}) = ${chosen}`
-              ];
-              renderRollResult("2 × 1d20", chosen, breakdown, mode === "dis" ? "Disadvantage" : "Advantage");
-            } catch (err) {
-              resultsDiv.innerHTML = `<div class="muted">Error: ${err.message || "Invalid expression."}</div>`;
-            }
-          });
+        advToggle.addEventListener("click", () => {
+          if (advMode === "adv") {
+            setAdvMode(null);
+          } else {
+            setAdvMode("adv");
+          }
         });
 
-        if (toolCloseBtn) {
-          toolCloseBtn.addEventListener("click", () => {
-            activeToolId = null;
-            renderToolsNav();
-            renderMainPanel();
-          });
-        }
+        disToggle.addEventListener("click", () => {
+          if (advMode === "dis") {
+            setAdvMode(null);
+          } else {
+            setAdvMode("dis");
+          }
+        });
 
         return;
       }
