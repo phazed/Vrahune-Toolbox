@@ -1899,6 +1899,10 @@ async function initApp() {
   renderMainPanel();
   populateFolderSelect("General");
 }
+// Make core things available to tool-*.js files
+window.toolsConfig = toolsConfig;
+window.renderToolPanel = renderToolPanel;
+window.renderToolsNav = renderToolsNav;
 
 
 document.addEventListener("DOMContentLoaded", () => {
