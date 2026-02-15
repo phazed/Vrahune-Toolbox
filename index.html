@@ -446,6 +446,15 @@
             </button>
           </div>
 
+          <!-- SEARCH BAR -->
+          <div class="row" style="margin-top:0; margin-bottom:6px;">
+            <div class="col">
+              <label for="generatorSearchInput">Search</label>
+              <input id="generatorSearchInput" type="text" placeholder="Search generators...">
+            </div>
+          </div>
+
+          <!-- CREATE / EDIT GENERATOR -->
           <div id="generatorCreateBox" class="create-box" style="display:none;">
             <div class="muted" style="margin-bottom:6px;">
               Create or edit a generator. Items can be names, lexicon entries, book titles, etc.
@@ -494,6 +503,25 @@
             <div id="generatorCreateMessage" class="muted"></div>
           </div>
 
+          <!-- TEXT CLEANER TOOL -->
+          <div id="textCleanerBox" class="create-box">
+            <div class="section-title" style="margin-bottom:4px;">
+              <span>Text cleaner</span>
+            </div>
+            <div class="muted" style="margin-bottom:6px;">
+              Paste messy lists (1. text, 2) text, - bullets). Click Clean and paste the result into a generator.
+            </div>
+            <label for="cleanInput">Raw text</label>
+            <textarea id="cleanInput" placeholder="e.g. 1. Alya, 2. Voren, 3) Maelis"></textarea>
+            <label for="cleanOutput" style="margin-top:6px;">Cleaned text</label>
+            <textarea id="cleanOutput" readonly placeholder="Result will appear here..."></textarea>
+            <div class="row" style="margin-top:6px;">
+              <button id="cleanRunBtn" class="btn-secondary btn-small">Clean text</button>
+              <button id="cleanCopyBtn" class="btn-secondary btn-small">Copy cleaned</button>
+            </div>
+          </div>
+
+          <!-- GENERATOR NAV -->
           <div id="generatorNav" class="nav-area"></div>
         </div>
 
@@ -528,6 +556,7 @@
     let editingGeneratorId = null;
     let itemsExpanded = false;
     let folderState = {}; // { folderName: { collapsed: bool } }
+    let generatorSearchTerm = "";
 
     // --------------------------------
     // INITIAL LEXICON SEED
@@ -676,6 +705,35 @@
         }
       }
       return Array.from(tokenSet);
+    }
+
+    // Text cleaner: remove numbering/bullets and inline numbered lists.
+    function cleanTextForGenerator(raw) {
+      if (!raw) return "";
+
+      // Break inline "1. text 2. text" into new lines
+      let replaced = raw.replace(/(\d+[\.\)]\s*)/g, "\n");
+
+      const lines = replaced.split(/\r?\n/);
+      const cleaned = [];
+
+      for (let line of lines) {
+        let t = line.trim();
+        if (!t) continue;
+
+        // Strip leading bullets like "-", "*", "•"
+        t = t.replace(/^[\-\*\u2022]+\s*/, "");
+
+        // Strip leading numbering like "1." or "2)"
+        t = t.replace(/^\d+[\.\)]\s*/, "");
+
+        // Trim again, remove trailing commas/extra spaces
+        t = t.trim().replace(/[,\s]+$/, "").trim();
+
+        if (t) cleaned.push(t);
+      }
+
+      return cleaned.join("\n");
     }
 
     // --------------------------------
@@ -925,7 +983,7 @@
     }
 
     // --------------------------------
-    // NAV RENDERING (with collapse & rename)
+    // NAV RENDERING (with collapse & rename & search)
     // --------------------------------
     function renderGeneratorNav() {
       const nav = document.getElementById("generatorNav");
@@ -947,10 +1005,22 @@
         return;
       }
 
-      folderNames.forEach(folder => {
-        const gensInFolder = folderMap[folder].sort((a,b) => a.name.localeCompare(b.name));
-        const count = gensInFolder.length;
+      const q = (generatorSearchTerm || "").trim().toLowerCase();
+      let hasAnyMatch = false;
 
+      folderNames.forEach(folder => {
+        let gensInFolder = folderMap[folder].slice().sort((a,b) => a.name.localeCompare(b.name));
+
+        if (q) {
+          gensInFolder = gensInFolder.filter(g =>
+            String(g.name || "").toLowerCase().includes(q)
+          );
+        }
+
+        if (!gensInFolder.length) return;
+
+        hasAnyMatch = true;
+        const count = gensInFolder.length;
         const collapsed = folderState[folder] && folderState[folder].collapsed;
 
         const heading = document.createElement("div");
@@ -980,6 +1050,10 @@
           });
         }
       });
+
+      if (!hasAnyMatch && q) {
+        nav.innerHTML = `<div class="muted" style="font-size:0.8rem; padding:4px 4px 8px;">No generators match “${generatorSearchTerm}”.</div>`;
+      }
     }
 
     // --------------------------------
@@ -1577,7 +1651,7 @@
                 return;
               }
               const value = rand(sourceGen.items);
-              const re = new RegExp("\\{" + tok.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + "\\}", "g");
+              const re = new RegExp("\\{" + tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "\\}", "g");
               result = result.replace(re, value);
             });
 
@@ -1943,6 +2017,41 @@
       const folderSelect = document.getElementById("genFolderSelect");
       if (folderSelect) {
         folderSelect.addEventListener("change", handleFolderSelectChange);
+      }
+
+      // Search bar event
+      const searchInput = document.getElementById("generatorSearchInput");
+      if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+          generatorSearchTerm = e.target.value || "";
+          renderGeneratorNav();
+        });
+      }
+
+      // Text cleaner events
+      const cleanRunBtn = document.getElementById("cleanRunBtn");
+      const cleanCopyBtn = document.getElementById("cleanCopyBtn");
+      const cleanInput = document.getElementById("cleanInput");
+      const cleanOutput = document.getElementById("cleanOutput");
+
+      if (cleanRunBtn && cleanInput && cleanOutput) {
+        cleanRunBtn.addEventListener("click", () => {
+          const raw = cleanInput.value || "";
+          const cleaned = cleanTextForGenerator(raw);
+          cleanOutput.value = cleaned;
+        });
+
+        cleanCopyBtn.addEventListener("click", () => {
+          const val = cleanOutput.value || "";
+          if (!val.trim()) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(val)
+              .then(() => showCopyMessage(val.split("\n")[0] + (val.includes("\n") ? " ..." : "")))
+              .catch(() => showCopyMessage("Cleaned text"));
+          } else {
+            showCopyMessage("Cleaned text");
+          }
+        });
       }
 
       initApp();
