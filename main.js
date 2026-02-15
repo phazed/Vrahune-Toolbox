@@ -1,14 +1,12 @@
-// main.js – single entry point for the toolbox
+// main.js – ES module entry for tools
 
-// Core app (generators, lexicons, toolbox UI)
-// This is your big logic that used to live inside the <script> tag in the HTML.
-import "./app.js";
+// Each tool file calls window.registerTool(...) when loaded.
+// app.js is included as a classic script in index.html and defines registerTool.
 
-// Tools – each file registers itself with window.registerTool(...)
 import "./tool-text-cleaner.js";
 import "./tool-dice-roller.js";
 import "./tool-encounter.js";
 
-// In the future, to add a new tool:
-// 1) Create tool-my-new-tool.js
-// 2) Add: import "./tool-my-new-tool.js";
+// In the future:
+// 1) Create "tool-my-new-thing.js"
+// 2) Add: import "./tool-my-new-thing.js";
