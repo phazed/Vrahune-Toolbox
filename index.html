@@ -367,17 +367,17 @@
     }
 
     #generatorPanel {
-      flex: 1;
-      min-height: 0;
       border-radius: var(--radius-md);
       border: 1px solid #222832;
       background: radial-gradient(circle at top left, #10151f, #05070c 70%);
       padding: 10px 10px;
       font-size: 0.8rem;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 6px;
+      /* Make all generator/tool views the same size */
+      height: 320px;
+      overflow-y: auto;
     }
 
     .row {
@@ -624,10 +624,11 @@
       background: #05070c;
       padding: 6px 8px;
       font-size: 0.78rem;
-      margin-top: 4px;
       display: flex;
       flex-direction: column;
       gap: 4px;
+      flex: 1;
+      overflow: hidden;
     }
 
     .toolbox-header {
@@ -648,6 +649,7 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      flex: 1;
     }
 
     .toolbox-row {
@@ -655,10 +657,20 @@
       grid-template-columns: 1fr 1fr;
       gap: 4px;
       margin-top: 4px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .toolbox-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .toolbox-col textarea {
-      min-height: 80px;
+      min-height: 60px;
+      max-height: 140px;
+      flex: 1;
       font-size: 0.78rem;
     }
 
@@ -732,6 +744,9 @@
       }
       .toolbox-row {
         grid-template-columns: 1fr;
+      }
+      #generatorPanel {
+        height: 360px;
       }
     }
 
@@ -918,6 +933,11 @@
         id: "textCleaner",
         name: "Text Cleaner",
         description: "Clean numbered / multi-column lists into one-entry-per-line."
+      },
+      {
+        id: "diceRoller",
+        name: "Dice Roller",
+        description: "Roll D&D-style dice (1d20, 4d6+2, etc.)."
       }
     ];
     let activeToolId = null;
@@ -1098,6 +1118,49 @@
       }
 
       return cleaned.join("\n");
+    }
+
+    function rollDiceExpression(expr) {
+      let text = (expr || "").toString().trim().toLowerCase();
+      if (!text) {
+        throw new Error("Empty expression");
+      }
+      text = text.replace(/\s+/g, "");
+
+      const regex = /([+-])?(\d*)d(\d+)|([+-])?(\d+)/g;
+      let match;
+      let total = 0;
+      const breakdown = [];
+      let found = false;
+
+      while ((match = regex.exec(text)) !== null) {
+        found = true;
+        if (match[3]) {
+          const sign = match[1] === "-" ? -1 : 1;
+          const count = match[2] ? parseInt(match[2], 10) : 1;
+          const faces = parseInt(match[3], 10);
+          if (!faces || !count) continue;
+          const rolls = [];
+          for (let i = 0; i < count; i++) {
+            const r = Math.floor(Math.random() * faces) + 1;
+            rolls.push(r);
+          }
+          const subtotal = rolls.reduce((a,b)=>a+b,0) * sign;
+          total += subtotal;
+          breakdown.push(`${sign < 0 ? "-" : ""}${count}d${faces} [${rolls.join(", ")}] = ${subtotal}`);
+        } else if (match[5]) {
+          const sign = match[4] === "-" ? -1 : 1;
+          const value = parseInt(match[5], 10) * sign;
+          total += value;
+          breakdown.push(`${value >= 0 ? "+" : ""}${value}`);
+        }
+      }
+
+      if (!found) {
+        throw new Error("Invalid dice expression");
+      }
+
+      return { total, breakdown };
     }
 
     function loadFolderState() {
@@ -1503,6 +1566,143 @@
             }
           });
         }
+
+        if (toolCloseBtn) {
+          toolCloseBtn.addEventListener("click", () => {
+            activeToolId = null;
+            renderToolsNav();
+            renderMainPanel();
+          });
+        }
+
+        return;
+      }
+
+      if (toolId === "diceRoller") {
+        panel.innerHTML = `
+          <div class="toolbox">
+            <div class="toolbox-header">
+              <div class="toolbox-title">Dice Roller • D&D-style</div>
+              <button id="toolCloseBtn" class="btn-secondary btn-small" type="button">Close tool</button>
+            </div>
+            <div class="toolbox-body">
+              <div class="muted">
+                Enter expressions like <code>1d20</code>, <code>4d6+2</code>, or <code>2d6+1d4+3</code>.
+                Click a quick button for common rolls, or use Advantage / Disadvantage.
+              </div>
+              <div class="row">
+                <div class="col">
+                  <label for="diceExprInput">Dice expression</label>
+                  <input id="diceExprInput" type="text" placeholder="e.g. 1d20, 4d6+2, 2d6+1d4+3" />
+                </div>
+                <div class="col">
+                  <label>&nbsp;</label>
+                  <button id="diceRollBtn" class="btn-primary">Roll</button>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col">
+                  <label>Quick rolls</label>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d4">d4</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d6">d6</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d8">d8</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d10">d10</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d12">d12</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d20">d20</button>
+                    <button class="btn-secondary btn-small dice-quick" data-exp="1d100">d100</button>
+                  </div>
+                </div>
+                <div class="col">
+                  <label>Advantage / Disadvantage (d20)</label>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <button class="btn-secondary btn-small dice-adv" data-mode="adv">Advantage</button>
+                    <button class="btn-secondary btn-small dice-adv" data-mode="dis">Disadvantage</button>
+                  </div>
+                </div>
+              </div>
+              <div id="diceResults" class="generated-list"></div>
+              <div id="copyMessage" class="copy-tip">Click any line to copy the text.</div>
+            </div>
+          </div>
+        `;
+
+        const toolCloseBtn = panel.querySelector("#toolCloseBtn");
+        const exprInput = panel.querySelector("#diceExprInput");
+        const rollBtn = panel.querySelector("#diceRollBtn");
+        const quickButtons = panel.querySelectorAll(".dice-quick");
+        const advButtons = panel.querySelectorAll(".dice-adv");
+        const resultsDiv = panel.querySelector("#diceResults");
+
+        function renderRollResult(expr, total, breakdown, labelSuffix = "") {
+          resultsDiv.innerHTML = "";
+          const header = document.createElement("div");
+          header.className = "muted";
+          header.textContent = `Roll${labelSuffix ? " – " + labelSuffix : ""}: ${expr}`;
+          resultsDiv.appendChild(header);
+
+          breakdown.forEach(line => {
+            const div = document.createElement("div");
+            div.className = "generated-item";
+            div.textContent = line;
+            resultsDiv.appendChild(div);
+          });
+
+          const totalDiv = document.createElement("div");
+          totalDiv.className = "generated-item";
+          totalDiv.textContent = `Total = ${total}`;
+          resultsDiv.appendChild(totalDiv);
+
+          resultsDiv.addEventListener("click", handleCopyClick);
+        }
+
+        function doExprRoll() {
+          const expr = exprInput.value || "";
+          if (!expr.trim()) return;
+          try {
+            const { total, breakdown } = rollDiceExpression(expr);
+            renderRollResult(expr, total, breakdown);
+          } catch (err) {
+            resultsDiv.innerHTML = `<div class="muted">Error: ${err.message || "Invalid expression."}</div>`;
+          }
+        }
+
+        rollBtn.addEventListener("click", doExprRoll);
+        exprInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            doExprRoll();
+          }
+        });
+
+        quickButtons.forEach(btn => {
+          btn.addEventListener("click", () => {
+            const exp = btn.dataset.exp;
+            if (!exp) return;
+            exprInput.value = exp;
+            doExprRoll();
+          });
+        });
+
+        advButtons.forEach(btn => {
+          btn.addEventListener("click", () => {
+            const mode = btn.dataset.mode;
+            const expr = "1d20";
+            try {
+              const first = rollDiceExpression(expr);
+              const second = rollDiceExpression(expr);
+              const rolls = [first.total, second.total];
+              const chosen = mode === "dis" ? Math.min(...rolls) : Math.max(...rolls);
+              const breakdown = [
+                `Rolls: [${rolls[0]}, ${rolls[1]}]`,
+                `Chosen (${mode === "dis" ? "disadvantage" : "advantage"}) = ${chosen}`
+              ];
+              renderRollResult("2 × 1d20", chosen, breakdown, mode === "dis" ? "Disadvantage" : "Advantage");
+            } catch (err) {
+              resultsDiv.innerHTML = `<div class="muted">Error: ${err.message || "Invalid expression."}</div>`;
+            }
+          });
+        });
 
         if (toolCloseBtn) {
           toolCloseBtn.addEventListener("click", () => {
@@ -2452,7 +2652,8 @@
       renderTokenMappingsAdvanced(allTokens, multiTokenMap);
       setAdvMode(savedMode);
 
-      advTabs.forEach(btn => {
+      const advTabsList = body.querySelectorAll(".adv-tab");
+      advTabsList.forEach(btn => {
         btn.addEventListener("click", () => {
           setAdvMode(btn.dataset.mode);
         });
