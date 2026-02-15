@@ -78,7 +78,7 @@
     .subtitle {
       font-size: 0.85rem;
       color: var(--muted);
-      margin-bottom: 16px;
+      margin-bottom: 6px;
     }
 
     label {
@@ -376,6 +376,14 @@
         Left: folders & generators (including lexicons). Right: generator controls & results.
       </div>
 
+      <!-- Database tools row -->
+      <div class="section-title" style="justify-content:flex-end; margin-bottom:4px;">
+        <span class="muted" style="font-size:0.78rem;">Database</span>
+        <button id="downloadDbBtn" class="btn-secondary btn-small">
+          Download database (JSON)
+        </button>
+      </div>
+
       <div class="hub-body">
         <!-- LEFT: NAV / FOLDERS -->
         <div class="nav-column">
@@ -663,15 +671,11 @@
       try {
         const raw = window.localStorage.getItem(GEN_STORAGE_KEY);
         if (!raw) {
-          const seeded = seedInitialGenerators();
-          saveGenerators(seeded);
-          return seeded;
+          return [];
         }
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed) || parsed.length === 0) {
-          const seeded = seedInitialGenerators();
-          saveGenerators(seeded);
-          return seeded;
+          return [];
         }
         return parsed.map(g => ({
           ...g,
@@ -679,9 +683,7 @@
           items: Array.isArray(g.items) ? g.items : []
         }));
       } catch {
-        const seeded = seedInitialGenerators();
-        saveGenerators(seeded);
-        return seeded;
+        return [];
       }
     }
 
@@ -771,7 +773,7 @@
     }
 
     // --------------------------------
-    // FOLDER SELECT (new behavior)
+    // FOLDER SELECT
     // --------------------------------
     function populateFolderSelect(selectedFolder) {
       const select = document.getElementById("genFolderSelect");
@@ -787,14 +789,12 @@
 
       const folderNames = Array.from(folderSet).sort((a, b) => a.localeCompare(b));
 
-      // if selected folder doesn't exist yet (e.g. editing), include it
       if (selectedFolder && selectedFolder !== "__new__" && !folderSet.has(selectedFolder)) {
         folderNames.push(selectedFolder);
       }
 
       select.innerHTML = "";
 
-      // add existing folders
       folderNames.forEach(f => {
         const opt = document.createElement("option");
         opt.value = f;
@@ -802,23 +802,20 @@
         select.appendChild(opt);
       });
 
-      // + new folder option
       const optNew = document.createElement("option");
       optNew.value = "__new__";
       optNew.textContent = "+ New folder…";
       select.appendChild(optNew);
 
-      // set selected value
       if (selectedFolder && selectedFolder !== "__new__" && folderNames.includes(selectedFolder)) {
         select.value = selectedFolder;
       } else if (folderNames.length > 0) {
         select.value = folderNames[0];
       } else {
-        // no existing folders: default to new
         select.value = "__new__";
       }
 
-      handleFolderSelectChange(); // ensure new-folder input visibility is correct
+      handleFolderSelectChange();
     }
 
     function handleFolderSelectChange() {
@@ -886,7 +883,7 @@
       const label = document.getElementById("activeGeneratorLabel");
       const panel = document.getElementById("generatorPanel");
       panel.innerHTML = "";
-      panel.removeEventListener("click", handleCopyClick); // safety
+      panel.removeEventListener("click", handleCopyClick);
 
       if (!activeGenerator) {
         label.textContent = "No generator selected";
@@ -904,7 +901,7 @@
 
       label.textContent = `${gen.name} (${gen.folder || "General"})`;
 
-      // ELF NAMES
+      // ELF
       if (gen.type === "elf") {
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -966,7 +963,7 @@
         return;
       }
 
-      // BOOK TITLES
+      // BOOK
       if (gen.type === "book") {
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -1018,7 +1015,7 @@
         return;
       }
 
-      // LEXICON TRANSLATOR
+      // LEXICON
       if (gen.type === "lexicon") {
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -1201,7 +1198,6 @@
             const text = ev.target.result;
             let imported = [];
 
-            // Try JSON first
             try {
               const parsed = JSON.parse(text);
               if (Array.isArray(parsed)) {
@@ -1229,7 +1225,6 @@
                 }
               }
             } catch {
-              // Not valid JSON; treat as raw text
               const { items } = parseLexiconText(text);
               imported = imported.concat(items);
             }
@@ -1272,17 +1267,16 @@
           URL.revokeObjectURL(url);
         });
 
-        // Open raw editor (left create box)
+        // Open raw editor
         lexOpenEditBtn.addEventListener("click", () => {
           openEditGeneratorBox(gen.id);
         });
 
-        // Initial list
         renderAllEntriesList(gen.items || []);
         return;
       }
 
-      // LIST-BASED GENERATOR
+      // LIST
       panel.innerHTML = `
         <div class="generator-title-main">
           ${gen.name}
@@ -1418,7 +1412,7 @@
       saveBtn.textContent = "Save changes";
 
       typeInput.disabled = true;
-      typeInput.value = gen.type === "lexicon" ? "lexicon" : (gen.type === "list" ? "list" : "list");
+      typeInput.value = gen.type === "lexicon" ? "lexicon" : "list";
       newFolderInput.value = "";
       newFolderInput.style.display = "none";
 
@@ -1554,6 +1548,23 @@
     }
 
     // --------------------------------
+    // DB DOWNLOAD (all generators)
+    // --------------------------------
+    function handleDownloadDatabase() {
+      const gens = loadGenerators();
+      const dataStr = JSON.stringify(gens, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vrahune_generators.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // --------------------------------
     // NAV CLICK HANDLER
     // --------------------------------
     function handleNavClick(event) {
@@ -1568,25 +1579,53 @@
     }
 
     // --------------------------------
+    // INITIAL LOAD: try GitHub JSON, then seed
+    // --------------------------------
+    async function initApp() {
+      const hasLocal = !!window.localStorage.getItem(GEN_STORAGE_KEY);
+
+      if (!hasLocal) {
+        // Try to load from /data/vrahune_generators.json (GitHub)
+        try {
+          const resp = await fetch("data/vrahune_generators.json", { cache: "no-store" });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (Array.isArray(json) && json.length > 0) {
+              saveGenerators(json);
+            } else {
+              saveGenerators(seedInitialGenerators());
+            }
+          } else {
+            saveGenerators(seedInitialGenerators());
+          }
+        } catch {
+          saveGenerators(seedInitialGenerators());
+        }
+      }
+
+      // Now we definitely have something in localStorage (either remote DB or seed)
+      renderGeneratorNav();
+      renderActiveGeneratorPanel();
+      populateFolderSelect("General");
+    }
+
+    // --------------------------------
     // INIT
     // --------------------------------
     document.addEventListener("DOMContentLoaded", () => {
-      renderGeneratorNav();
-      renderActiveGeneratorPanel();
-
       document.getElementById("generatorNav").addEventListener("click", handleNavClick);
       document.getElementById("addGeneratorBtn").addEventListener("click", openNewGeneratorBox);
       document.getElementById("cancelGeneratorBtn").addEventListener("click", hideGeneratorCreateBox);
       document.getElementById("saveGeneratorBtn").addEventListener("click", handleSaveGenerator);
       document.getElementById("expandItemsBtn").addEventListener("click", toggleItemsExpand);
+      document.getElementById("downloadDbBtn").addEventListener("click", handleDownloadDatabase);
 
       const folderSelect = document.getElementById("genFolderSelect");
       if (folderSelect) {
         folderSelect.addEventListener("change", handleFolderSelectChange);
       }
 
-      // Make sure folder dropdown has something even before first open
-      populateFolderSelect("General");
+      initApp();
     });
   </script>
 </body>
