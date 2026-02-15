@@ -29,7 +29,6 @@
       box-sizing: border-box;
     }
 
-    /* Always show vertical scrollbar so width doesn’t jump */
     html {
       height: 100%;
       overflow-y: scroll;
@@ -63,13 +62,14 @@
     }
 
     .app-shell {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  max-width: 1400px;
-  width: 100%;        /* 👈 add this line */
-  margin: 0 auto;
-  padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1400px;
+      width: 100%; /* keep outer width stable */
+      margin: 0 auto;
+      padding: 10px 12px;
+      gap: 8px;
     }
 
     header.app-header {
@@ -175,7 +175,6 @@
       border-color: #6d7584 !important;
     }
 
-    /* MAIN LAYOUT: fills remaining height below header */
     .layout-main {
       display: grid;
       grid-template-columns: 270px minmax(0, 1fr);
@@ -361,7 +360,6 @@
       border: 1px solid #6d7584;
     }
 
-    /* RIGHT SIDE: fixed-height main panel using flex */
     section.main-panel {
       background: var(--bg-panel);
       border-radius: var(--radius-lg);
@@ -374,11 +372,11 @@
     }
 
     .generator-panel-wrapper {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     #activeGeneratorLabel {
@@ -388,20 +386,17 @@
     }
 
     #generatorPanel {
-  border-radius: var(--radius-md);
-  border: 1px solid #222832;
-  background: radial-gradient(circle at top left, #10151f, #05070c 70%);
-  padding: 10px 10px;
-  font-size: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-height: 0;
-
-  /* 👇 key changes */
-  overflow-y: scroll;              /* always show scrollbar inside panel */
-  scrollbar-gutter: stable both-edges; /* keep layout width stable where supported */
+      border-radius: var(--radius-md);
+      border: 1px solid #222832;
+      background: radial-gradient(circle at top left, #10151f, #05070c 70%);
+      padding: 10px 10px;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .row {
@@ -643,10 +638,11 @@
     }
 
     .toolbox-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-top: 4px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 4px;
+      /* no flex:1 here so buttons sit under boxes */
     }
 
     .toolbox-col {
@@ -656,10 +652,10 @@
     }
 
     .toolbox-col textarea {
-  min-height: 80px;     /* or 60px if you prefer smaller */
-  max-height: 200px;
-  /* remove flex:1 so it doesn't force the row taller */
-  font-size: 0.78rem;
+      min-height: 80px;
+      max-height: 200px;
+      font-size: 0.78rem;
+      /* no flex:1 so row doesn't stretch to bottom */
     }
 
     .danger {
@@ -756,11 +752,23 @@
       </div>
       <div class="header-right">
         <span class="badge">Offline · Local Storage</span>
+
         <button id="downloadDbBtn" class="btn-secondary btn-small" type="button">
-          ⬇ Download current database
+          ⬇ Download database
+        </button>
+
+        <button id="uploadDbBtn" class="btn-secondary btn-small" type="button">
+          ⬆ Upload database
+        </button>
+
+        <button id="uploadDbHelpBtn" class="btn-secondary btn-small" type="button" title="What does upload do?">
+          ?
         </button>
       </div>
     </header>
+
+    <!-- Hidden file input for upload -->
+    <input id="uploadDbFileInput" type="file" accept=".json" style="display:none;" />
 
     <div class="layout-main">
       <!-- LEFT: Generators / Folders + Tools -->
@@ -787,7 +795,7 @@
           <div id="generatorNav" class="nav-scroll"></div>
         </div>
 
-        <!-- Tools box, directly under generators -->
+        <!-- Tools box -->
         <div id="sidebarToolsSection" class="sidebar-section">
           <div class="sidebar-header">
             <div>
@@ -1615,7 +1623,7 @@
         const disToggle = panel.querySelector("#diceDisToggle");
         const resultsDiv = panel.querySelector("#diceResults");
 
-        let advMode = null; // null, "adv", "dis"
+        let advMode = null;
         let history = [];
 
         function setAdvMode(mode) {
@@ -2875,6 +2883,67 @@
       URL.revokeObjectURL(url);
     }
 
+    function handleUploadDatabaseClick() {
+      const input = document.getElementById("uploadDbFileInput");
+      if (!input) return;
+      input.value = "";
+      input.click();
+    }
+
+    function handleUploadDatabaseFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const text = ev.target.result;
+          const data = JSON.parse(text);
+
+          if (!Array.isArray(data)) {
+            window.alert("This JSON doesn't look like a Vrahune toolbox database (expected an array).");
+            return;
+          }
+
+          const ok = window.confirm(
+            "Uploading this database will REPLACE all current generators, lexicons, " +
+            "and advanced templates stored in your browser.\n\n" +
+            "Are you sure you want to overwrite your current data?"
+          );
+          if (!ok) return;
+
+          window.localStorage.setItem(GEN_STORAGE_KEY, JSON.stringify(data));
+
+          activeGenerator = null;
+          activeToolId = null;
+
+          renderGeneratorNav();
+          renderToolsNav();
+          renderMainPanel();
+
+          window.alert("Database uploaded and applied successfully.");
+        } catch (err) {
+          console.error(err);
+          window.alert("Failed to load this JSON. Is it the correct vrahune_generators.json file?");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handleUploadDatabaseHelp() {
+      window.alert(
+        "Upload database:\n\n" +
+        "• Use this if you have a saved JSON database (for example, from GitHub) and want to restore it into this toolbox.\n" +
+        "• It reads the JSON file from your computer and loads it into your browser's local storage.\n" +
+        "• It does NOT touch GitHub or any online files.\n" +
+        "• It WILL overwrite all current generators, lexicons, and advanced templates in this browser.\n\n" +
+        "Typical workflow:\n" +
+        "1) Download database from this app and commit it to GitHub.\n" +
+        "2) On a new machine or after a reset, download that JSON from GitHub.\n" +
+        "3) Open this toolbox and use 'Upload database' to restore everything."
+      );
+    }
+
     function handleNavClick(event) {
       const renameBtn = event.target.closest(".folder-rename-btn");
       if (renameBtn) {
@@ -2972,6 +3041,21 @@
       document.getElementById("expandItemsBtn").addEventListener("click", toggleItemsExpand);
       document.getElementById("downloadDbBtn").addEventListener("click", handleDownloadDatabase);
 
+      const uploadDbBtn = document.getElementById("uploadDbBtn");
+      if (uploadDbBtn) {
+        uploadDbBtn.addEventListener("click", handleUploadDatabaseClick);
+      }
+
+      const uploadDbFileInput = document.getElementById("uploadDbFileInput");
+      if (uploadDbFileInput) {
+        uploadDbFileInput.addEventListener("change", handleUploadDatabaseFile);
+      }
+
+      const uploadDbHelpBtn = document.getElementById("uploadDbHelpBtn");
+      if (uploadDbHelpBtn) {
+        uploadDbHelpBtn.addEventListener("click", handleUploadDatabaseHelp);
+      }
+
       const folderSelect = document.getElementById("genFolderSelect");
       if (folderSelect) {
         folderSelect.addEventListener("change", handleFolderSelectChange);
@@ -2985,7 +3069,6 @@
         });
       }
 
-      // Tools nav
       const toolSearchInput = document.getElementById("toolSearchInput");
       if (toolSearchInput) {
         toolSearchInput.addEventListener("input", (e) => {
@@ -2999,13 +3082,11 @@
         toolsNavEl.addEventListener("click", handleToolsNavClick);
       }
 
-      // Lexicon manage close
       const lexManageCloseBtn = document.getElementById("lexManageCloseBtn");
       if (lexManageCloseBtn) {
         lexManageCloseBtn.addEventListener("click", closeLexManageBox);
       }
 
-      // Advanced template close
       const advTemplateCloseBtn = document.getElementById("advTemplateCloseBtn");
       if (advTemplateCloseBtn) {
         advTemplateCloseBtn.addEventListener("click", closeAdvTemplateBox);
@@ -3016,8 +3097,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
