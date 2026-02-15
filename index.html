@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Vrahune Tools Hub – Generators & Lexicon Library</title>
+  <title>Vrahune Generator Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
@@ -35,18 +35,9 @@
     }
 
     .app-shell {
-      max-width: 1200px;
+      max-width: 900px;
       width: 100%;
       padding: 24px;
-      display: grid;
-      grid-template-columns: 1.2fr 1.1fr; /* LEFT: generators, RIGHT: lexicons */
-      gap: 24px;
-    }
-
-    @media (max-width: 900px) {
-      .app-shell {
-        grid-template-columns: 1fr;
-      }
     }
 
     .card {
@@ -101,8 +92,8 @@
 
     input[type="text"],
     input[type="number"],
-    select,
-    textarea {
+    textarea,
+    select {
       width: 100%;
       padding: 8px 9px;
       border-radius: 10px;
@@ -116,8 +107,8 @@
 
     input[type="text"]:focus,
     input[type="number"]:focus,
-    select:focus,
-    textarea:focus {
+    textarea:focus,
+    select:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent-soft);
       background: rgba(18, 18, 18, 1);
@@ -198,50 +189,6 @@
       min-width: 140px;
     }
 
-    .result-box {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(255,255,255,0.08), rgba(10,10,10,0.98));
-      border: 1px solid rgba(160,160,160,0.35);
-    }
-
-    .result-word {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .result-meta {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-
-    .result-notes {
-      font-size: 0.9rem;
-      color: #e2e2e2;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(200,200,200,0.45);
-      color: var(--accent);
-      margin-left: 6px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 0.8rem;
-    }
-
     .section-title {
       font-size: 0.95rem;
       margin-bottom: 6px;
@@ -257,64 +204,9 @@
       gap: 6px;
     }
 
-    .lexicon-list {
-      margin-top: 10px;
-      max-height: 230px;
-      overflow-y: auto;
-      border-radius: 10px;
-      border: 1px solid rgba(50,50,50,0.95);
-      background: linear-gradient(180deg, rgba(10,10,10,0.98), rgba(5,5,5,0.98));
-    }
-
-    .lexicon-item {
-      padding: 8px 10px;
-      border-bottom: 1px solid rgba(40,40,40,0.9);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 0.85rem;
-    }
-
-    .lexicon-item:last-child {
-      border-bottom: none;
-    }
-
-    .lexicon-key {
+    .muted {
       color: var(--muted);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-    }
-
-    .lexicon-val {
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .lexicon-notes {
-      color: var(--muted);
-      font-size: 0.78rem;
-    }
-
-    .lexicon-type-pill {
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(30,30,30,0.95);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .tagline {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .danger {
-      color: var(--danger);
+      font-size: 0.8rem;
     }
 
     hr {
@@ -323,32 +215,106 @@
       margin: 16px 0;
     }
 
-    /* Generators */
-    .generator-block {
-      margin-bottom: 16px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(255,255,255,0.05), rgba(8,8,8,0.96));
-      border: 1px solid rgba(90,90,90,0.7);
+    .danger {
+      color: var(--danger);
     }
 
-    .generator-title-row {
+    /* NAV AREA (folders + generators) */
+    .nav-area {
+      border-radius: 12px;
+      border: 1px solid rgba(60,60,60,0.9);
+      background: linear-gradient(180deg, rgba(10,10,10,0.98), rgba(5,5,5,0.98));
+      padding: 6px 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .nav-folder-heading {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      margin: 6px 4px 2px;
+    }
+
+    .nav-generator {
+      font-size: 0.86rem;
+      padding: 5px 8px;
+      border-radius: 8px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 4px;
+      gap: 6px;
+      margin: 2px 2px;
+      border: 1px solid transparent;
     }
 
-    .generator-title {
-      font-size: 0.9rem;
-      font-weight: 600;
+    .nav-generator span.name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .generator-subtitle {
-      font-size: 0.78rem;
+    .nav-generator span.badge {
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(90,90,90,0.9);
       color: var(--muted);
-      margin-bottom: 8px;
+    }
+
+    .nav-generator:hover {
+      border-color: var(--border);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .nav-generator.active {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* Create / edit box */
+    .create-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(120,120,120,0.7);
+      background: rgba(10,10,10,0.95);
+    }
+
+    /* Active generator panel */
+    .generator-panel {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(70,70,70,0.9);
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.05), rgba(8,8,8,0.96));
+      min-height: 80px;
+      margin-top: 8px;
+    }
+
+    .generator-title-main {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(200,200,200,0.45);
+      color: var(--accent);
     }
 
     .generated-list {
@@ -357,7 +323,7 @@
       border-radius: 10px;
       border: 1px solid rgba(45,45,45,0.9);
       background: rgba(8,8,8,0.98);
-      max-height: 150px;
+      max-height: 160px;
       overflow-y: auto;
       font-size: 0.88rem;
     }
@@ -372,128 +338,37 @@
     }
 
     .copy-message {
-      margin-top: 4px;
+      margin-top: 6px;
       font-size: 0.78rem;
       color: var(--muted);
-    }
-
-    .create-box {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px dashed rgba(120,120,120,0.7);
-      background: rgba(10,10,10,0.95);
-    }
-
-    .folder-heading {
-      font-size: 0.82rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      margin: 10px 2px 4px;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <!-- LEFT: GENERATORS -->
     <div class="card">
       <h1>
         <span class="logo">V</span>
-        Vrahune – Generators Hub
+        Vrahune Generator Hub
       </h1>
       <div class="subtitle">
-        All your random generators in one place. Click results to copy.
+        Folder-based generators for names, lexicons, taverns, whatever you like. Click a generator to open it.
       </div>
 
-      <!-- Built-in generators header -->
+      <!-- GENERATOR NAV + CREATE -->
       <div class="section-title">
-        <span>Built-in Generators</span>
-      </div>
-
-      <!-- ELF NAME GENERATOR -->
-      <div class="generator-block">
-        <div class="generator-title-row">
-          <div class="generator-title">Elf Name Generator</div>
-        </div>
-        <div class="generator-subtitle">
-          Valathar-style names: classic Valathi or newer, mixed-region vibes.
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <label for="elfStyle">Style</label>
-            <select id="elfStyle">
-              <option value="valathi-classic">Valathi Classic</option>
-              <option value="new-gen">New Gen / Mixed</option>
-            </select>
-          </div>
-          <div class="col">
-            <label for="elfTone">Tone</label>
-            <select id="elfTone">
-              <option value="neutral">Neutral</option>
-              <option value="soft">Soft-leaning</option>
-              <option value="sharp">Sharp/edgy</option>
-            </select>
-          </div>
-          <div class="col">
-            <label for="elfCount">Count</label>
-            <input id="elfCount" type="number" min="1" max="30" value="10">
-          </div>
-        </div>
-
-        <button id="elfGenerateBtn" class="btn-primary">
-          Generate elf names
-        </button>
-
-        <div class="generated-list" id="elfResults"></div>
-      </div>
-
-      <!-- BOOK TITLE GENERATOR -->
-      <div class="generator-block">
-        <div class="generator-title-row">
-          <div class="generator-title">Book Title Generator</div>
-        </div>
-        <div class="generator-subtitle">
-          Titles for tomes, legends, grimoires. Common tongue or Valathi-flavored.
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <label for="bookFlavor">Flavor</label>
-            <select id="bookFlavor">
-              <option value="common">Common tongue</option>
-              <option value="valathi">Valathi-flavored</option>
-            </select>
-          </div>
-          <div class="col">
-            <label for="bookCount">Count</label>
-            <input id="bookCount" type="number" min="1" max="30" value="10">
-          </div>
-        </div>
-
-        <button id="bookGenerateBtn" class="btn-secondary">
-          Generate book titles
-        </button>
-
-        <div class="generated-list" id="bookResults"></div>
-      </div>
-
-      <hr>
-
-      <!-- CUSTOM GENERATORS -->
-      <div class="section-title">
-        <span>Custom Generators (Folders)</span>
-        <button id="addGeneratorToggle" class="btn-secondary btn-icon" title="Create new generator">
+        <span>Generators</span>
+        <button id="addGeneratorBtn" class="btn-secondary btn-icon" title="Create new generator">
           ＋
         </button>
       </div>
 
       <div id="generatorCreateBox" class="create-box" style="display:none;">
-        <div class="generator-subtitle">
-          Give your generator a folder and a name, then paste a list of items (one per line or comma-separated).
-          Duplicates are removed automatically (case-insensitive).
+        <div class="muted" style="margin-bottom:6px;">
+          Create or edit a generator. Items can be names, words, book titles, etc.
+          One per line or comma-separated. Duplicates are removed automatically.
         </div>
+
         <div class="row">
           <div class="col">
             <label for="genFolderInput">Folder name</label>
@@ -501,15 +376,17 @@
           </div>
           <div class="col">
             <label for="genNameInput">Generator name</label>
-            <input id="genNameInput" type="text" placeholder="e.g. Tavern Names, Ancient Relics">
+            <input id="genNameInput" type="text" placeholder="e.g. Valathi Lexicon, Tavern Names">
           </div>
         </div>
+
         <div class="row">
           <div class="col">
             <label for="genItemsInput">Items list</label>
             <textarea id="genItemsInput" placeholder="One item per line, or comma-separated..."></textarea>
           </div>
         </div>
+
         <div class="row">
           <button id="saveGeneratorBtn" class="btn-primary">
             Save generator
@@ -518,568 +395,44 @@
             Cancel
           </button>
         </div>
+
         <div id="generatorCreateMessage" class="muted"></div>
       </div>
 
-      <div id="customGenerators"></div>
+      <div id="generatorNav" class="nav-area"></div>
+
+      <hr>
+
+      <!-- ACTIVE GENERATOR PANEL -->
+      <div class="section-title">
+        <span id="activeGeneratorLabel">No generator selected</span>
+      </div>
+
+      <div id="generatorPanel" class="generator-panel">
+        <div class="muted">
+          Choose a generator from the list above, or click ＋ to create one.
+        </div>
+      </div>
 
       <div id="copyMessage" class="copy-message">
-        Click any generated name or title to copy it.
-      </div>
-    </div>
-
-    <!-- RIGHT: LEXICON LIBRARY -->
-    <div class="card">
-      <h2>Lexicon Library</h2>
-      <div class="subtitle">Switch between Valathi and future race lexicons; add or import new ones.</div>
-
-      <!-- Lexicon selector & manage -->
-      <div class="row">
-        <div class="col">
-          <label for="lexiconSelect">Active lexicon</label>
-          <select id="lexiconSelect"></select>
-        </div>
-        <div class="col">
-          <label>&nbsp;</label>
-          <button id="lexiconManageToggle" class="btn-secondary btn-small">
-            Manage / Add
-          </button>
-        </div>
-      </div>
-
-      <div id="lexiconManageBox" class="create-box" style="display:none;">
-        <div class="generator-subtitle">
-          Create a blank lexicon (for another race), or import one from a JSON file.
-          Imported JSON can be:
-          <ul style="margin:4px 0 0 18px; padding:0; font-size:0.75rem;">
-            <li>{ "name": "...", "entries": { "english": { "valathi": "...", "type": "...", "notes": "..." } } }</li>
-            <li>Or just { "english": { ... }, ... } (name taken from the field below).</li>
-          </ul>
-        </div>
-        <div class="row">
-          <div class="col">
-            <label for="lexiconNameInput">New lexicon name</label>
-            <input id="lexiconNameInput" type="text" placeholder="e.g. Dwarven, Draconic">
-          </div>
-          <div class="col">
-            <label>&nbsp;</label>
-            <button id="createLexiconBtn" class="btn-primary btn-small">
-              Create blank
-            </button>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col">
-            <label for="lexiconFileInput">Import lexicon from JSON file</label>
-            <input id="lexiconFileInput" type="file" accept=".json">
-          </div>
-        </div>
-        <div class="row">
-          <button id="lexiconManageClose" class="btn-secondary btn-small">
-            Close
-          </button>
-        </div>
-        <div id="lexiconManageMessage" class="muted"></div>
-      </div>
-
-      <hr>
-
-      <!-- Lookup -->
-      <div class="section-title">
-        <span>English → Lexicon Lookup</span>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="searchInput">English word</label>
-          <input id="searchInput" type="text" placeholder="e.g. silver, castle, river" autocomplete="off">
-        </div>
-        <button id="searchBtn" class="btn-primary">
-          Translate
-        </button>
-      </div>
-
-      <div id="searchResult"></div>
-
-      <hr>
-
-      <!-- Add / Edit -->
-      <div class="section-title">
-        <span>Add / Edit Entry</span>
-        <span class="muted">Entries are per-lexicon and saved in this browser only.</span>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="addEnglish">English</label>
-          <input id="addEnglish" type="text" placeholder="e.g. castle">
-        </div>
-        <div class="col">
-          <label for="addValathi">Lexicon word</label>
-          <input id="addValathi" type="text" placeholder="e.g. valdor">
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label for="addType">Type</label>
-          <select id="addType">
-            <option value="root">root</option>
-            <option value="noun" selected>noun</option>
-            <option value="place">place</option>
-            <option value="person-name">person-name</option>
-            <option value="title">title</option>
-            <option value="concept">concept</option>
-            <option value="other">other</option>
-          </select>
-        </div>
-        <div class="col">
-          <label for="addNotes">Notes (meaning, etymology)</label>
-          <input id="addNotes" type="text" placeholder="e.g. noble seat / fortress">
-        </div>
-        <button id="addBtn" class="btn-secondary">
-          Save word
-        </button>
-      </div>
-
-      <div id="addMessage" class="muted"></div>
-
-      <div class="tagline">
-        In Valathi, roots like val, ’ath, anna, dor, vor, mir, len, vrae, sel, thal, nor, ves, etc. are your builders. Other lexicons can follow their own rules.
-      </div>
-
-      <hr>
-
-      <div class="section-title">
-        <span>Lexicon Entries (Active)</span>
-        <button id="resetBtn" class="btn-secondary btn-small" title="Clear custom entries for the active lexicon (built-in roots remain for Valathi).">
-          Clear active
-        </button>
-      </div>
-      <div class="lexicon-list" id="lexiconList"></div>
-      <div class="tagline">
-        In Valathi, entries marked as <span class="pill">root</span> are your naming Lego bricks.
+        Click any generated item to copy it.
       </div>
     </div>
   </div>
 
   <script>
-    // ------------------------
-    // BASE VALATHI LEXICON
-    // ------------------------
-    const baseValathiLexicon = {
-      // Core nature & geography
-      "wind":      { valathi: "vrae",    type: "root",   notes: "wind, current of air" },
-      "world":     { valathi: "huneth",  type: "root",   notes: "wide expanse, world" },
-      "forest":    { valathi: "’ath",    type: "root",   notes: "living wood / forest" },
-      "land":      { valathi: "anna",    type: "root",   notes: "land, domain, region" },
-      "city":      { valathi: "dor",     type: "root",   notes: "seat, city, foundation" },
-      "mountain":  { valathi: "vor",     type: "root",   notes: "stone, mountain, cliff" },
-      "stone":     { valathi: "vor",     type: "root",   notes: "stone, mountain, cliff" },
-      "lake":      { valathi: "mir",     type: "root",   notes: "water, lake" },
-      "water":     { valathi: "mir",     type: "root",   notes: "water, lake" },
-      "river":     { valathi: "len",     type: "root",   notes: "river, flowing path" },
-      "sea":       { valathi: "thal",    type: "root",   notes: "sea, great water" },
-      "north":     { valathi: "nor",     type: "root",   notes: "north, cold lands" },
-      "field":     { valathi: "fal",     type: "root",   notes: "field, plain, open land" },
-      "island":    { valathi: "os",      type: "root",   notes: "island, isolated land" },
-      "depths":    { valathi: "drae",    type: "root",   notes: "deep chasm / sea-depths" },
+    // --------------------------------
+    // STORAGE & STATE
+    // --------------------------------
+    const GEN_STORAGE_KEY = "vrahuneCustomGenerators";
 
-      // Sky, light, color
-      "star":      { valathi: "sel",     type: "root",   notes: "star, light in the dark" },
-      "sun":       { valathi: "rael",    type: "root",   notes: "sun, daylight warmth" },
-      "moon":      { valathi: "lun",     type: "root",   notes: "moon, lunar light" },
-      "shadow":    { valathi: "mor",     type: "root",   notes: "shadow, gloom" },
-      "rain":      { valathi: "hael",    type: "root",   notes: "rain, falling water" },
-      "green":     { valathi: "lir",     type: "root",   notes: "green, verdant, new growth" },
+    // activeGenerator = { kind: "builtin" | "custom", id: string }
+    let activeGenerator = null;
+    let editingGeneratorId = null;
 
-      // Materials
-      "silver":    { valathi: "sael",    type: "root",   notes: "silver, pale radiant metal" },
-      "iron":      { valathi: "dras",    type: "root",   notes: "iron, hard metal" },
-      "crystal":   { valathi: "cyn",     type: "root",   notes: "crystal, gem, shining stone" },
-      "onyx":      { valathi: "vros",    type: "root",   notes: "black stone, onyx, obsidian" },
-
-      // Society & people
-      "noble":     { valathi: "val",     type: "root",   notes: "high, noble, elevated, bright" },
-      "guardian":  { valathi: "vel",     type: "root",   notes: "guardian, warden" },
-      "clan":      { valathi: "tar",     type: "root",   notes: "house, line, clan" },
-      "traveler":  { valathi: "rian",    type: "root",   notes: "wanderer, traveler" },
-      "court":     { valathi: "syl",     type: "root",   notes: "court, circle, noble company" },
-
-      // Abstract & magic
-      "peace":     { valathi: "ser",     type: "root",   notes: "peace, calm" },
-      "flame":     { valathi: "nar",     type: "root",   notes: "flame, passion" },
-      "song":      { valathi: "rin",     type: "root",   notes: "song, art, beautiful craft" },
-      "knowledge": { valathi: "ith",     type: "root",   notes: "lore, deep knowledge" },
-      "life":      { valathi: "lae",     type: "root",   notes: "life, breath, vitality" },
-      "hidden":    { valathi: "vyn",     type: "root",   notes: "hidden, veiled, secret" },
-      "fate":      { valathi: "feth",    type: "root",   notes: "fate, destined thread" },
-      "oath":      { valathi: "vos",     type: "root",   notes: "oath, vow, binding word" },
-      "dream":     { valathi: "sira",    type: "root",   notes: "dream, vision, trance" },
-      "ancient":   { valathi: "vaen",    type: "root",   notes: "old, ancient, elder days" },
-      "blessing":  { valathi: "raelis",  type: "root",   notes: "blessing, grace, favor" },
-      "blood":     { valathi: "saev",    type: "root",   notes: "blood, lifeblood, sacrifice" },
-      "wisdom":    { valathi: "maer",    type: "root",   notes: "wisdom, judgement, counsel" },
-
-      // Ready-made words
-      "castle":    { valathi: "valdor",  type: "place",  notes: "noble seat / fortress (val + dor)" },
-      "realm":     { valathi: "valanna", type: "place",  notes: "noble land / high realm (val + anna)" },
-      "fortress":  { valathi: "vordor",  type: "place",  notes: "stone seat / mountain-fort (vor + dor)" },
-      "isle":      { valathi: "os",      type: "root",   notes: "island, isolated land" },
-      "continent": { valathi: "Vrahune", type: "place",  notes: "Wind-wreathed expanse (vrae + huneth)" }
-    };
-
-    const LEXICONS_STORAGE_KEY = "vrahuneLexicons";
-    const ACTIVE_LEXICON_KEY   = "vrahuneActiveLexiconId";
-    const GEN_STORAGE_KEY      = "vrahuneCustomGenerators";
-
-    // ------------------------
-    // LEXICON STORAGE HELPERS
-    // ------------------------
-    function loadLexicons() {
-      try {
-        const raw = window.localStorage.getItem(LEXICONS_STORAGE_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return (parsed && typeof parsed === "object") ? parsed : {};
-      } catch {
-        return {};
-      }
-    }
-
-    function saveLexicons(obj) {
-      try {
-        window.localStorage.setItem(LEXICONS_STORAGE_KEY, JSON.stringify(obj));
-      } catch {}
-    }
-
-    function getActiveLexiconId() {
-      const custom = loadLexicons();
-      let active = window.localStorage.getItem(ACTIVE_LEXICON_KEY);
-      if (!active || (active !== "valathi" && !custom[active])) {
-        active = "valathi";
-      }
-      return active;
-    }
-
-    function setActiveLexiconId(id) {
-      window.localStorage.setItem(ACTIVE_LEXICON_KEY, id);
-    }
-
-    function getLexiconName(id) {
-      const custom = loadLexicons();
-      if (id === "valathi") {
-        return (custom["valathi"] && custom["valathi"].name) || "Valathi";
-      }
-      return (custom[id] && custom[id].name) || id;
-    }
-
-    function getLexiconEntries(id) {
-      const custom = loadLexicons();
-      const customEntries = (custom[id] && custom[id].entries) || {};
-      if (id === "valathi") {
-        return { ...baseValathiLexicon, ...customEntries };
-      }
-      return { ...customEntries };
-    }
-
-    function renderLexiconSelector() {
-      const select = document.getElementById("lexiconSelect");
-      if (!select) return;
-      const custom = loadLexicons();
-      const active = getActiveLexiconId();
-
-      select.innerHTML = "";
-      const valOption = document.createElement("option");
-      valOption.value = "valathi";
-      valOption.textContent = getLexiconName("valathi");
-      select.appendChild(valOption);
-
-      Object.keys(custom)
-        .filter(id => id !== "valathi")
-        .sort((a, b) => (custom[a].name || a).localeCompare(custom[b].name || b))
-        .forEach(id => {
-          const op = document.createElement("option");
-          op.value = id;
-          op.textContent = custom[id].name || id;
-          select.appendChild(op);
-        });
-
-      select.value = active;
-      renderLexiconList();
-    }
-
-    function renderLexiconList() {
-      const listElement = document.getElementById("lexiconList");
-      const activeId = getActiveLexiconId();
-      const entries = getLexiconEntries(activeId);
-      const keys = Object.keys(entries).sort((a, b) => a.localeCompare(b));
-      listElement.innerHTML = "";
-
-      if (!keys.length) {
-        listElement.innerHTML = `
-          <div class="lexicon-item">
-            <span class="muted">No entries yet. Add some words using the form above.</span>
-          </div>
-        `;
-        return;
-      }
-
-      keys.forEach(key => {
-        const entry = entries[key];
-        const div = document.createElement("div");
-        div.className = "lexicon-item";
-        div.innerHTML = `
-          <div>
-            <div class="lexicon-key">${key}</div>
-            <div class="lexicon-val">${entry.valathi}</div>
-            ${entry.notes ? `<div class="lexicon-notes">${entry.notes}</div>` : ""}
-          </div>
-          <div class="lexicon-type-pill">${entry.type || "word"}</div>
-        `;
-        listElement.appendChild(div);
-      });
-    }
-
-    function handleSearch() {
-      const input = document.getElementById("searchInput");
-      const term = (input.value || "").trim().toLowerCase();
-      const container = document.getElementById("searchResult");
-      container.innerHTML = "";
-      if (!term) return;
-
-      const activeId = getActiveLexiconId();
-      const entries = getLexiconEntries(activeId);
-      const entry = entries[term];
-
-      if (!entry) {
-        container.innerHTML = `
-          <div class="result-box">
-            <div class="result-word danger">No entry yet for “${term}”.</div>
-            <div class="result-notes">
-              You can add it below with your own word and meaning.
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const fromBase = (activeId === "valathi" && !!baseValathiLexicon[term]);
-      const sourceLabel = fromBase ? "built-in" : "custom";
-
-      container.innerHTML = `
-        <div class="result-box">
-          <div class="result-word">
-            ${entry.valathi}
-            <span class="pill">${entry.type || "word"}</span>
-          </div>
-          <div class="result-meta">
-            English: <strong>${term}</strong> · Source: ${sourceLabel}
-          </div>
-          <div class="result-notes">
-            ${entry.notes || "<span class='muted'>No notes yet.</span>"}
-          </div>
-        </div>
-      `;
-    }
-
-    function handleAddWord() {
-      const enInput = document.getElementById("addEnglish");
-      const vaInput = document.getElementById("addValathi");
-      const typeSelect = document.getElementById("addType");
-      const notesInput = document.getElementById("addNotes");
-      const msg = document.getElementById("addMessage");
-
-      const english = (enInput.value || "").trim().toLowerCase();
-      const word = (vaInput.value || "").trim();
-      const type = typeSelect.value;
-      const notes = notesInput.value.trim();
-
-      if (!english || !word) {
-        msg.textContent = "Please provide both an English word and a lexicon form.";
-        msg.classList.remove("danger");
-        msg.classList.add("muted");
-        return;
-      }
-
-      const activeId = getActiveLexiconId();
-      const all = loadLexicons();
-
-      if (!all[activeId]) {
-        all[activeId] = {
-          name: getLexiconName(activeId),
-          entries: {}
-        };
-      }
-
-      all[activeId].entries[english] = {
-        valathi: word,
-        type,
-        notes
-      };
-
-      saveLexicons(all);
-
-      msg.textContent = `Saved entry for “${english}” → ${word} in ${getLexiconName(activeId)}.`;
-      msg.classList.remove("danger");
-      msg.classList.add("muted");
-
-      renderLexiconList();
-
-      const currentSearch = (document.getElementById("searchInput").value || "").trim().toLowerCase();
-      if (currentSearch === english) {
-        handleSearch();
-      }
-    }
-
-    function handleResetActiveLexicon() {
-      const activeId = getActiveLexiconId();
-      const all = loadLexicons();
-      const msg = document.getElementById("addMessage");
-
-      if (activeId === "valathi") {
-        if (!all["valathi"]) {
-          // nothing custom yet
-          msg.textContent = "No custom entries to clear for Valathi.";
-          msg.classList.remove("danger");
-          msg.classList.add("muted");
-        } else {
-          all["valathi"].entries = {};
-          saveLexicons(all);
-          msg.textContent = "Cleared custom entries for Valathi (built-in roots remain).";
-          msg.classList.remove("danger");
-          msg.classList.add("muted");
-        }
-      } else {
-        if (all[activeId]) {
-          all[activeId].entries = {};
-          saveLexicons(all);
-          msg.textContent = `Cleared entries for lexicon “${getLexiconName(activeId)}”.`;
-          msg.classList.remove("danger");
-          msg.classList.add("muted");
-        } else {
-          msg.textContent = "No entries to clear.";
-        }
-      }
-
-      renderLexiconList();
-      document.getElementById("searchResult").innerHTML = "";
-    }
-
-    // ------------------------
-    // LEXICON MANAGE / ADD / IMPORT
-    // ------------------------
-    function toggleLexiconManageBox() {
-      const box = document.getElementById("lexiconManageBox");
-      const msg = document.getElementById("lexiconManageMessage");
-      if (box.style.display === "none" || box.style.display === "") {
-        box.style.display = "block";
-        msg.textContent = "";
-        msg.classList.remove("danger");
-      } else {
-        box.style.display = "none";
-      }
-    }
-
-    function closeLexiconManageBox() {
-      const box = document.getElementById("lexiconManageBox");
-      const msg = document.getElementById("lexiconManageMessage");
-      document.getElementById("lexiconNameInput").value = "";
-      document.getElementById("lexiconFileInput").value = "";
-      msg.textContent = "";
-      msg.classList.remove("danger");
-      box.style.display = "none";
-    }
-
-    function handleCreateLexicon() {
-      const nameInput = document.getElementById("lexiconNameInput");
-      const msg = document.getElementById("lexiconManageMessage");
-      const name = (nameInput.value || "").trim();
-
-      if (!name) {
-        msg.textContent = "Please enter a name for the new lexicon.";
-        msg.classList.add("danger");
-        return;
-      }
-
-      const all = loadLexicons();
-      const id = "lex-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
-      all[id] = { name, entries: {} };
-      saveLexicons(all);
-      setActiveLexiconId(id);
-
-      msg.classList.remove("danger");
-      msg.textContent = `Created lexicon “${name}”.`;
-      renderLexiconSelector();
-      document.getElementById("searchResult").innerHTML = "";
-      document.getElementById("addMessage").textContent = "";
-    }
-
-    function handleLexiconFileChange(event) {
-      const fileInput = event.target;
-      const file = fileInput.files && fileInput.files[0];
-      const msg = document.getElementById("lexiconManageMessage");
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          const text = ev.target.result;
-          const parsed = JSON.parse(text);
-          let name = (document.getElementById("lexiconNameInput").value || "").trim();
-          let rawEntries;
-
-          if (parsed && typeof parsed === "object" && parsed.entries) {
-            rawEntries = parsed.entries;
-            if (!name && parsed.name) name = parsed.name;
-          } else {
-            rawEntries = parsed;
-          }
-
-          if (!rawEntries || typeof rawEntries !== "object") {
-            msg.textContent = "File format not recognized. Expecting JSON object of entries.";
-            msg.classList.add("danger");
-            return;
-          }
-
-          if (!name) name = "Imported Lexicon";
-
-          const entries = {};
-          for (const [english, val] of Object.entries(rawEntries)) {
-            const key = english.toLowerCase();
-            if (typeof val === "string") {
-              entries[key] = { valathi: val, type: "noun", notes: "" };
-            } else if (val && typeof val === "object") {
-              entries[key] = {
-                valathi: val.valathi || "",
-                type: val.type || "noun",
-                notes: val.notes || ""
-              };
-            }
-          }
-
-          const all = loadLexicons();
-          const id = "lex-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
-          all[id] = { name, entries };
-          saveLexicons(all);
-          setActiveLexiconId(id);
-
-          msg.classList.remove("danger");
-          msg.textContent = `Imported lexicon “${name}” with ${Object.keys(entries).length} entries.`;
-          renderLexiconSelector();
-          document.getElementById("searchResult").innerHTML = "";
-          document.getElementById("addMessage").textContent = "";
-        } catch (e) {
-          msg.textContent = "Error reading file: " + e;
-          msg.classList.add("danger");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // ------------------------
-    // GENERATORS – UTILITIES
-    // ------------------------
+    // --------------------------------
+    // HELPERS
+    // --------------------------------
     function rand(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
@@ -1088,7 +441,7 @@
       const msg = document.getElementById("copyMessage");
       msg.textContent = `Copied: "${text}"`;
       setTimeout(() => {
-        msg.textContent = "Click any generated name or title to copy it.";
+        msg.textContent = "Click any generated item to copy it.";
       }, 2500);
     }
 
@@ -1106,9 +459,15 @@
       }
     }
 
-    // ------------------------
-    // BUILT-IN: ELF NAMES
-    // ------------------------
+    // --------------------------------
+    // BUILT-IN GENERATORS
+    // --------------------------------
+    const builtinGenerators = [
+      { id: "elf",  name: "Elf Names (Valathar)", folder: "Built-in" },
+      { id: "book", name: "Book Titles",          folder: "Built-in" }
+    ];
+
+    // Elf name parts
     const elfStartsClassic = [
       "Val", "Ves", "Vor", "Vrae", "Sel", "Thal", "Mir", "Nor", "Lae", "Vel", "Vyn", "Maer"
     ];
@@ -1155,28 +514,7 @@
       return raw.charAt(0).toUpperCase() + raw.slice(1);
     }
 
-    function handleElfGenerate() {
-      const style = document.getElementById("elfStyle").value;
-      const tone = document.getElementById("elfTone").value;
-      const count = Math.max(1, Math.min(30, parseInt(document.getElementById("elfCount").value || "1", 10)));
-
-      const container = document.getElementById("elfResults");
-      container.innerHTML = "";
-
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < count; i++) {
-        const name = generateSingleElfName(style, tone);
-        const div = document.createElement("div");
-        div.className = "generated-item";
-        div.textContent = name;
-        frag.appendChild(div);
-      }
-      container.appendChild(frag);
-    }
-
-    // ------------------------
-    // BUILT-IN: BOOK TITLES
-    // ------------------------
+    // Book title parts
     const bookAdjCommon = [
       "Silent", "Forgotten", "Gilded", "Broken", "Crimson", "Twilight", "Shattered",
       "Hidden", "Last", "Bound", "Whispering", "Silver", "Onyx", "Verdant", "Burning", "Veiled"
@@ -1231,27 +569,9 @@
       }
     }
 
-    function handleBookGenerate() {
-      const flavor = document.getElementById("bookFlavor").value;
-      const count = Math.max(1, Math.min(30, parseInt(document.getElementById("bookCount").value || "1", 10)));
-
-      const container = document.getElementById("bookResults");
-      container.innerHTML = "";
-
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < count; i++) {
-        const title = generateSingleBookTitle(flavor);
-        const div = document.createElement("div");
-        div.className = "generated-item";
-        div.textContent = title;
-        frag.appendChild(div);
-      }
-      container.appendChild(frag);
-    }
-
-    // ------------------------
-    // CUSTOM GENERATORS W/ FOLDERS
-    // ------------------------
+    // --------------------------------
+    // CUSTOM GENERATOR STORAGE
+    // --------------------------------
     function loadCustomGenerators() {
       try {
         const raw = window.localStorage.getItem(GEN_STORAGE_KEY);
@@ -1291,71 +611,334 @@
       return { items, duplicates };
     }
 
-    function renderCustomGenerators() {
-      const container = document.getElementById("customGenerators");
-      const gens = loadCustomGenerators();
-      container.innerHTML = "";
+    // --------------------------------
+    // NAV RENDERING
+    // --------------------------------
+    function renderGeneratorNav() {
+      const nav = document.getElementById("generatorNav");
+      nav.innerHTML = "";
 
-      if (!gens.length) {
-        container.innerHTML = `<div class="muted" style="font-size:0.8rem;">No custom generators yet. Click ＋ to create one.</div>`;
+      // Group built-ins by folder (Built-in)
+      const allCustom = loadCustomGenerators();
+      const folderMap = {};
+
+      // built-ins first
+      builtinGenerators.forEach(b => {
+        const folder = b.folder || "Built-in";
+        if (!folderMap[folder]) folderMap[folder] = [];
+        folderMap[folder].push({ kind: "builtin", id: b.id, name: b.name });
+      });
+
+      // custom
+      allCustom.forEach(gen => {
+        const folder = gen.folder || "General";
+        if (!folderMap[folder]) folderMap[folder] = [];
+        folderMap[folder].push({ kind: "custom", id: gen.id, name: gen.name });
+      });
+
+      const folderNames = Object.keys(folderMap).sort((a, b) => a.localeCompare(b));
+
+      if (!folderNames.length) {
+        nav.innerHTML = `<div class="muted" style="font-size:0.8rem; padding:4px 4px 8px;">No generators yet. Click ＋ to create one.</div>`;
         return;
       }
 
-      // Group by folder
-      const byFolder = {};
-      gens.forEach(gen => {
-        const folder = gen.folder || "General";
-        if (!byFolder[folder]) byFolder[folder] = [];
-        byFolder[folder].push(gen);
-      });
-
-      const folderNames = Object.keys(byFolder).sort((a, b) => a.localeCompare(b));
-
       folderNames.forEach(folder => {
         const heading = document.createElement("div");
-        heading.className = "folder-heading";
+        heading.className = "nav-folder-heading";
         heading.textContent = folder;
-        container.appendChild(heading);
+        nav.appendChild(heading);
 
-        byFolder[folder].forEach(gen => {
-          const block = document.createElement("div");
-          block.className = "generator-block";
-          block.dataset.genId = gen.id;
+        folderMap[folder]
+          .sort((a,b) => a.name.localeCompare(b.name))
+          .forEach(entry => {
+            const item = document.createElement("div");
+            item.className = "nav-generator";
+            item.dataset.kind = entry.kind;
+            item.dataset.id = entry.id;
 
-          block.innerHTML = `
-            <div class="generator-title-row">
-              <div class="generator-title">${gen.name}</div>
-              <button class="btn-secondary btn-small custom-gen-delete" title="Delete this generator">Delete</button>
-            </div>
-            <div class="generator-subtitle">
-              ${gen.items.length} items in pool.
-            </div>
-            <div class="row">
-              <div class="col">
-                <label>Count</label>
-                <input type="number" class="custom-gen-count" min="1" max="50" value="10">
-              </div>
-              <div class="col">
-                <label>&nbsp;</label>
-                <button class="btn-primary custom-gen-generate">Generate</button>
-              </div>
-            </div>
-            <div class="generated-list custom-gen-results"></div>
-          `;
-          container.appendChild(block);
-        });
+            const isActive = activeGenerator &&
+                             activeGenerator.kind === entry.kind &&
+                             activeGenerator.id === entry.id;
+            if (isActive) item.classList.add("active");
+
+            item.innerHTML = `
+              <span class="name">${entry.name}</span>
+              <span class="badge">${entry.kind === "builtin" ? "built-in" : "custom"}</span>
+            `;
+            nav.appendChild(item);
+          });
       });
+    }
+
+    // --------------------------------
+    // ACTIVE GENERATOR PANEL
+    // --------------------------------
+    function renderActiveGeneratorPanel() {
+      const label = document.getElementById("activeGeneratorLabel");
+      const panel = document.getElementById("generatorPanel");
+      panel.innerHTML = "";
+      panel.removeEventListener("click", handleCopyClick); // safety
+
+      if (!activeGenerator) {
+        label.textContent = "No generator selected";
+        panel.innerHTML = `<div class="muted">Choose a generator from the list above, or click ＋ to create one.</div>`;
+        return;
+      }
+
+      if (activeGenerator.kind === "builtin" && activeGenerator.id === "elf") {
+        label.textContent = "Elf Names (Valathar)";
+        panel.innerHTML = `
+          <div class="generator-title-main">
+            Elf Names <span class="pill">built-in</span>
+          </div>
+          <div class="muted" style="margin-bottom:8px;">
+            Generates Valathar-style names (classic Valathi or newer, mixed-region vibes).
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="elfStyle">Style</label>
+              <select id="elfStyle">
+                <option value="valathi-classic">Valathi Classic</option>
+                <option value="new-gen">New Gen / Mixed</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="elfTone">Tone</label>
+              <select id="elfTone">
+                <option value="neutral">Neutral</option>
+                <option value="soft">Soft-leaning</option>
+                <option value="sharp">Sharp/edgy</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="elfCount">Count</label>
+              <input id="elfCount" type="number" min="1" max="30" value="10">
+            </div>
+          </div>
+          <button id="elfGenerateBtn" class="btn-primary">Generate elf names</button>
+          <div id="elfResults" class="generated-list" style="margin-top:8px;"></div>
+        `;
+        const btn = panel.querySelector("#elfGenerateBtn");
+        const results = panel.querySelector("#elfResults");
+        const styleSel = panel.querySelector("#elfStyle");
+        const toneSel = panel.querySelector("#elfTone");
+        const countInput = panel.querySelector("#elfCount");
+
+        btn.addEventListener("click", () => {
+          const style = styleSel.value;
+          const tone = toneSel.value;
+          const count = Math.max(1, Math.min(30, parseInt(countInput.value || "1", 10)));
+          results.innerHTML = "";
+          const frag = document.createDocumentFragment();
+          for (let i = 0; i < count; i++) {
+            const name = generateSingleElfName(style, tone);
+            const div = document.createElement("div");
+            div.className = "generated-item";
+            div.textContent = name;
+            frag.appendChild(div);
+          }
+          results.appendChild(frag);
+        });
+
+        results.addEventListener("click", handleCopyClick);
+        return;
+      }
+
+      if (activeGenerator.kind === "builtin" && activeGenerator.id === "book") {
+        label.textContent = "Book Titles";
+        panel.innerHTML = `
+          <div class="generator-title-main">
+            Book Titles <span class="pill">built-in</span>
+          </div>
+          <div class="muted" style="margin-bottom:8px;">
+            Titles for tomes, legends, grimoires. Common tongue or Valathi-flavored.
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="bookFlavor">Flavor</label>
+              <select id="bookFlavor">
+                <option value="common">Common tongue</option>
+                <option value="valathi">Valathi-flavored</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="bookCount">Count</label>
+              <input id="bookCount" type="number" min="1" max="30" value="10">
+            </div>
+          </div>
+          <button id="bookGenerateBtn" class="btn-secondary">Generate book titles</button>
+          <div id="bookResults" class="generated-list" style="margin-top:8px;"></div>
+        `;
+        const btn = panel.querySelector("#bookGenerateBtn");
+        const results = panel.querySelector("#bookResults");
+        const flavorSel = panel.querySelector("#bookFlavor");
+        const countInput = panel.querySelector("#bookCount");
+
+        btn.addEventListener("click", () => {
+          const flavor = flavorSel.value;
+          const count = Math.max(1, Math.min(30, parseInt(countInput.value || "1", 10)));
+          results.innerHTML = "";
+          const frag = document.createDocumentFragment();
+          for (let i = 0; i < count; i++) {
+            const title = generateSingleBookTitle(flavor);
+            const div = document.createElement("div");
+            div.className = "generated-item";
+            div.textContent = title;
+            frag.appendChild(div);
+          }
+          results.appendChild(frag);
+        });
+
+        results.addEventListener("click", handleCopyClick);
+        return;
+      }
+
+      // Custom generator
+      const gens = loadCustomGenerators();
+      const gen = gens.find(g => g.id === activeGenerator.id);
+      if (!gen) {
+        label.textContent = "Generator not found";
+        panel.innerHTML = `<div class="muted">This generator no longer exists. Choose another one.</div>`;
+        return;
+      }
+
+      label.textContent = `${gen.name} (${gen.folder || "General"})`;
+
+      panel.innerHTML = `
+        <div class="generator-title-main">
+          ${gen.name}
+          <span class="pill">custom</span>
+        </div>
+        <div class="muted" style="margin-bottom:8px;">
+          Folder: ${gen.folder || "General"} · ${gen.items.length} items in pool.
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="customCountInput">Count</label>
+            <input id="customCountInput" type="number" min="1" max="50" value="10">
+          </div>
+          <div class="col">
+            <label>&nbsp;</label>
+            <button id="customGenerateBtn" class="btn-primary">Generate</button>
+          </div>
+        </div>
+        <div class="row">
+          <button id="customEditBtn" class="btn-secondary btn-small">Edit items</button>
+          <button id="customDeleteBtn" class="btn-secondary btn-small">Delete generator</button>
+        </div>
+        <div id="customResults" class="generated-list"></div>
+      `;
+
+      const countInput = panel.querySelector("#customCountInput");
+      const genBtn = panel.querySelector("#customGenerateBtn");
+      const editBtn = panel.querySelector("#customEditBtn");
+      const delBtn  = panel.querySelector("#customDeleteBtn");
+      const results = panel.querySelector("#customResults");
+
+      genBtn.addEventListener("click", () => {
+        const pool = [...gen.items];
+        const count = Math.max(1, Math.min(50, parseInt(countInput.value || "1", 10)));
+        results.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        if (!pool.length) return;
+        for (let i = 0; i < count; i++) {
+          if (!pool.length) break;
+          const idx = Math.floor(Math.random() * pool.length);
+          const value = pool.splice(idx, 1)[0];
+          const div = document.createElement("div");
+          div.className = "generated-item";
+          div.textContent = value;
+          frag.appendChild(div);
+        }
+        results.appendChild(frag);
+      });
+
+      results.addEventListener("click", handleCopyClick);
+
+      editBtn.addEventListener("click", () => {
+        openEditGeneratorBox(gen.id);
+      });
+
+      delBtn.addEventListener("click", () => {
+        const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
+        if (!ok) return;
+        const newList = gens.filter(g => g.id !== gen.id);
+        saveCustomGenerators(newList);
+        if (activeGenerator && activeGenerator.kind === "custom" && activeGenerator.id === gen.id) {
+          activeGenerator = null;
+        }
+        renderGeneratorNav();
+        renderActiveGeneratorPanel();
+      });
+    }
+
+    // --------------------------------
+    // CREATE / EDIT GENERATOR BOX
+    // --------------------------------
+    function openNewGeneratorBox() {
+      editingGeneratorId = null;
+      const box = document.getElementById("generatorCreateBox");
+      const msg = document.getElementById("generatorCreateMessage");
+      const folderInput = document.getElementById("genFolderInput");
+      const nameInput   = document.getElementById("genNameInput");
+      const itemsInput  = document.getElementById("genItemsInput");
+      const saveBtn     = document.getElementById("saveGeneratorBtn");
+
+      folderInput.value = "General";
+      nameInput.value = "";
+      itemsInput.value = "";
+      msg.textContent = "";
+      msg.classList.remove("danger");
+      saveBtn.textContent = "Save generator";
+
+      box.style.display = "block";
+    }
+
+    function openEditGeneratorBox(genId) {
+      const gens = loadCustomGenerators();
+      const gen = gens.find(g => g.id === genId);
+      if (!gen) return;
+
+      editingGeneratorId = genId;
+      const box = document.getElementById("generatorCreateBox");
+      const msg = document.getElementById("generatorCreateMessage");
+      const folderInput = document.getElementById("genFolderInput");
+      const nameInput   = document.getElementById("genNameInput");
+      const itemsInput  = document.getElementById("genItemsInput");
+      const saveBtn     = document.getElementById("saveGeneratorBtn");
+
+      folderInput.value = gen.folder || "General";
+      nameInput.value   = gen.name || "";
+      itemsInput.value  = gen.items.join("\n");
+
+      msg.textContent = `Editing generator “${gen.name}”.`;
+      msg.classList.remove("danger");
+      saveBtn.textContent = "Save changes";
+
+      box.style.display = "block";
+    }
+
+    function hideGeneratorCreateBox() {
+      const box = document.getElementById("generatorCreateBox");
+      const msg = document.getElementById("generatorCreateMessage");
+      document.getElementById("genNameInput").value = "";
+      document.getElementById("genItemsInput").value = "";
+      msg.textContent = "";
+      msg.classList.remove("danger");
+      editingGeneratorId = null;
+      box.style.display = "none";
     }
 
     function handleSaveGenerator() {
       const folderInput = document.getElementById("genFolderInput");
-      const nameInput = document.getElementById("genNameInput");
-      const itemsInput = document.getElementById("genItemsInput");
-      const msg = document.getElementById("generatorCreateMessage");
+      const nameInput   = document.getElementById("genNameInput");
+      const itemsInput  = document.getElementById("genItemsInput");
+      const msg         = document.getElementById("generatorCreateMessage");
 
       const folder = (folderInput.value || "").trim() || "General";
-      const name = (nameInput.value || "").trim();
-      const raw = itemsInput.value || "";
+      const name   = (nameInput.value || "").trim();
+      const raw    = itemsInput.value || "";
 
       if (!name) {
         msg.textContent = "Please enter a name for the generator.";
@@ -1371,136 +954,67 @@
       }
 
       const gens = loadCustomGenerators();
-      const id = "gen-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
-      gens.push({ id, folder, name, items });
-      saveCustomGenerators(gens);
+      if (editingGeneratorId) {
+        // update existing
+        const idx = gens.findIndex(g => g.id === editingGeneratorId);
+        if (idx !== -1) {
+          gens[idx].folder = folder;
+          gens[idx].name   = name;
+          gens[idx].items  = items;
+        }
+        saveCustomGenerators(gens);
+        msg.classList.remove("danger");
+        msg.textContent = `Updated generator “${name}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+        activeGenerator = { kind: "custom", id: editingGeneratorId };
+        editingGeneratorId = null;
+      } else {
+        const id = "gen-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+        gens.push({ id, folder, name, items });
+        saveCustomGenerators(gens);
+        msg.classList.remove("danger");
+        msg.textContent = `Saved generator “${name}” in folder “${folder}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+        activeGenerator = { kind: "custom", id };
+      }
 
-      msg.classList.remove("danger");
-      msg.textContent = `Saved generator “${name}” in folder “${folder}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+      renderGeneratorNav();
+      renderActiveGeneratorPanel();
 
-      // Clear inputs
-      nameInput.value = "";
-      itemsInput.value = "";
-
-      renderCustomGenerators();
       setTimeout(() => {
-        document.getElementById("generatorCreateBox").style.display = "none";
-        msg.textContent = "";
+        hideGeneratorCreateBox();
       }, 1200);
     }
 
-    function handleCustomGeneratorsClick(event) {
-      const target = event.target;
-      const container = document.getElementById("customGenerators");
-      if (!container.contains(target)) return;
+    // --------------------------------
+    // NAV CLICK HANDLER
+    // --------------------------------
+    function handleNavClick(event) {
+      const target = event.target.closest(".nav-generator");
+      if (!target) return;
 
-      const block = target.closest(".generator-block");
-      if (!block) return;
-      const genId = block.dataset.genId;
-      if (!genId) return;
+      const kind = target.dataset.kind;
+      const id   = target.dataset.id;
+      if (!kind || !id) return;
 
-      const gens = loadCustomGenerators();
-      const gen = gens.find(g => g.id === genId);
-      if (!gen) return;
-
-      if (target.classList.contains("custom-gen-delete")) {
-        const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
-        if (!ok) return;
-        const newList = gens.filter(g => g.id !== genId);
-        saveCustomGenerators(newList);
-        renderCustomGenerators();
-        return;
-      }
-
-      if (target.classList.contains("custom-gen-generate")) {
-        const countInput = block.querySelector(".custom-gen-count");
-        const resultsBox = block.querySelector(".custom-gen-results");
-        const count = Math.max(1, Math.min(50, parseInt(countInput.value || "1", 10)));
-
-        const pool = [...gen.items];
-        const frag = document.createDocumentFragment();
-
-        resultsBox.innerHTML = "";
-        if (!pool.length) return;
-
-        for (let i = 0; i < count; i++) {
-          if (!pool.length) break;
-          const idx = Math.floor(Math.random() * pool.length);
-          const value = pool.splice(idx, 1)[0];
-          const div = document.createElement("div");
-          div.className = "generated-item";
-          div.textContent = value;
-          frag.appendChild(div);
-        }
-        resultsBox.appendChild(frag);
-        return;
-      }
-
-      if (target.classList.contains("generated-item")) {
-        handleCopyClick(event);
-      }
+      activeGenerator = { kind, id };
+      renderGeneratorNav();
+      renderActiveGeneratorPanel();
     }
 
-    function toggleGeneratorCreateBox() {
-      const box = document.getElementById("generatorCreateBox");
-      const msg = document.getElementById("generatorCreateMessage");
-      if (box.style.display === "none" || box.style.display === "") {
-        box.style.display = "block";
-        msg.textContent = "";
-        msg.classList.remove("danger");
-      } else {
-        box.style.display = "none";
-      }
-    }
-
-    function cancelGeneratorCreateBox() {
-      const box = document.getElementById("generatorCreateBox");
-      const msg = document.getElementById("generatorCreateMessage");
-      document.getElementById("genNameInput").value = "";
-      document.getElementById("genItemsInput").value = "";
-      msg.textContent = "";
-      msg.classList.remove("danger");
-      box.style.display = "none";
-    }
-
-    // ------------------------
+    // --------------------------------
     // INIT
-    // ------------------------
+    // --------------------------------
     document.addEventListener("DOMContentLoaded", () => {
-      // Lexicon init
-      renderLexiconSelector();
+      // Initial render
+      renderGeneratorNav();
+      renderActiveGeneratorPanel();
 
-      document.getElementById("lexiconSelect").addEventListener("change", () => {
-        setActiveLexiconId(document.getElementById("lexiconSelect").value);
-        document.getElementById("searchResult").innerHTML = "";
-        document.getElementById("addMessage").textContent = "";
-        renderLexiconList();
-      });
+      // Nav click
+      document.getElementById("generatorNav").addEventListener("click", handleNavClick);
 
-      document.getElementById("searchBtn").addEventListener("click", handleSearch);
-      document.getElementById("searchInput").addEventListener("keydown", e => {
-        if (e.key === "Enter") handleSearch();
-      });
-      document.getElementById("addBtn").addEventListener("click", handleAddWord);
-      document.getElementById("resetBtn").addEventListener("click", handleResetActiveLexicon);
-
-      document.getElementById("lexiconManageToggle").addEventListener("click", toggleLexiconManageBox);
-      document.getElementById("lexiconManageClose").addEventListener("click", closeLexiconManageBox);
-      document.getElementById("createLexiconBtn").addEventListener("click", handleCreateLexicon);
-      document.getElementById("lexiconFileInput").addEventListener("change", handleLexiconFileChange);
-
-      // Built-in generators
-      document.getElementById("elfGenerateBtn").addEventListener("click", handleElfGenerate);
-      document.getElementById("bookGenerateBtn").addEventListener("click", handleBookGenerate);
-      document.getElementById("elfResults").addEventListener("click", handleCopyClick);
-      document.getElementById("bookResults").addEventListener("click", handleCopyClick);
-
-      // Custom generators
-      renderCustomGenerators();
-      document.getElementById("addGeneratorToggle").addEventListener("click", toggleGeneratorCreateBox);
+      // Create / edit
+      document.getElementById("addGeneratorBtn").addEventListener("click", openNewGeneratorBox);
+      document.getElementById("cancelGeneratorBtn").addEventListener("click", hideGeneratorCreateBox);
       document.getElementById("saveGeneratorBtn").addEventListener("click", handleSaveGenerator);
-      document.getElementById("cancelGeneratorBtn").addEventListener("click", cancelGeneratorCreateBox);
-      document.getElementById("customGenerators").addEventListener("click", handleCustomGeneratorsClick);
     });
   </script>
 </body>
