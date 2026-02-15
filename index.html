@@ -388,17 +388,20 @@
     }
 
     #generatorPanel {
-      border-radius: var(--radius-md);
-      border: 1px solid #222832;
-      background: radial-gradient(circle at top left, #10151f, #05070c 70%);
-      padding: 10px 10px;
-      font-size: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid #222832;
+  background: radial-gradient(circle at top left, #10151f, #05070c 70%);
+  padding: 10px 10px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  /* 👇 key changes */
+  overflow-y: scroll;              /* always show scrollbar inside panel */
+  scrollbar-gutter: stable both-edges; /* keep layout width stable where supported */
     }
 
     .row {
@@ -3015,3 +3018,4 @@
   </script>
 </body>
 </html>
+
