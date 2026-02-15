@@ -29,7 +29,7 @@
       box-sizing: border-box;
     }
 
-    /* Always show a vertical scrollbar so the layout doesn’t shift width */
+    /* Always show vertical scrollbar so width doesn’t jump */
     html {
       height: 100%;
       overflow-y: scroll;
@@ -82,6 +82,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      flex: 0 0 auto;
     }
 
     .header-left {
@@ -132,7 +133,11 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      transition: background var(--transition-fast), border-color var(--transition-fast), transform 0.06s ease-out, box-shadow 0.06s ease-out;
+      transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        transform 0.06s ease-out,
+        box-shadow 0.06s ease-out;
     }
 
     .btn-primary {
@@ -170,12 +175,14 @@
       border-color: #6d7584 !important;
     }
 
+    /* MAIN LAYOUT: fills remaining height below header */
     .layout-main {
       display: grid;
       grid-template-columns: 270px minmax(0, 1fr);
       gap: 10px;
+      flex: 1 1 auto;
       min-height: 0;
-      flex: 1;
+      align-items: stretch;
     }
 
     aside.sidebar {
@@ -354,31 +361,32 @@
       border: 1px solid #6d7584;
     }
 
+    /* RIGHT SIDE: fixed-height main panel using flex */
     section.main-panel {
       background: var(--bg-panel);
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-subtle);
       box-shadow: var(--shadow-soft);
       padding: 10px 12px;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-      gap: 8px;
+      display: flex;
+      flex-direction: column;
       min-height: 0;
     }
 
     .generator-panel-wrapper {
+      flex: 1 1 auto;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      min-height: 0;
     }
 
     #activeGeneratorLabel {
       font-size: 0.9rem;
       color: var(--accent-strong);
+      flex: 0 0 auto;
     }
 
-    /* Fixed-size main panel so tools & generators don’t resize the layout */
     #generatorPanel {
       border-radius: var(--radius-md);
       border: 1px solid #222832;
@@ -388,9 +396,8 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      height: 340px;
-      min-height: 340px;
-      max-height: 340px;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
     }
 
@@ -724,11 +731,6 @@
       }
       .toolbox-row {
         grid-template-columns: 1fr;
-      }
-      #generatorPanel {
-        height: 360px;
-        min-height: 360px;
-        max-height: 360px;
       }
     }
 
@@ -2002,33 +2004,33 @@
             frag.appendChild(div);
           }
 
-        advResults.appendChild(frag);
-        advResults.addEventListener("click", handleCopyClick);
-      });
+          advResults.appendChild(frag);
+          advResults.addEventListener("click", handleCopyClick);
+        });
 
-      advMetaEditBtn.addEventListener("click", () => {
-        openEditGeneratorBox(gen.id);
-      });
+        advMetaEditBtn.addEventListener("click", () => {
+          openEditGeneratorBox(gen.id);
+        });
 
-      advTemplateBtn.addEventListener("click", () => {
-        openAdvTemplateBox(gen.id, patternsText, simpleTokenMap, multiTokenMap);
-      });
+        advTemplateBtn.addEventListener("click", () => {
+          openAdvTemplateBox(gen.id, patternsText, simpleTokenMap, multiTokenMap);
+        });
 
-      advDeleteBtn.addEventListener("click", () => {
-        const gensCurrent = loadGenerators();
-        const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
-        if (!ok) return;
-        const newList = gensCurrent.filter(gx => gx.id !== gen.id);
-        saveGenerators(newList);
-        if (activeGenerator && activeGenerator.id === gen.id) {
-          activeGenerator = null;
-        }
-        renderGeneratorNav();
-        renderMainPanel();
-      });
+        advDeleteBtn.addEventListener("click", () => {
+          const gensCurrent = loadGenerators();
+          const ok = window.confirm(`Delete generator “${gen.name}” from folder “${gen.folder || "General"}”?`);
+          if (!ok) return;
+          const newList = gensCurrent.filter(gx => gx.id !== gen.id);
+          saveGenerators(newList);
+          if (activeGenerator && activeGenerator.id === gen.id) {
+            activeGenerator = null;
+          }
+          renderGeneratorNav();
+          renderMainPanel();
+        });
 
-      return;
-    }
+        return;
+      }
 
       panel.innerHTML = `<div class="muted">Unknown generator type.</div>`;
     }
