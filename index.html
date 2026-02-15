@@ -255,7 +255,7 @@
       max-height: 360px;
       overflow-y: auto;
       margin-top: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .nav-folder-heading {
@@ -503,26 +503,29 @@
             <div id="generatorCreateMessage" class="muted"></div>
           </div>
 
-          <!-- TEXT CLEANER TOOL -->
+          <!-- GENERATOR NAV -->
+          <div id="generatorNav" class="nav-area"></div>
+
+          <!-- TEXT CLEANER TOOL (MINIMIZED) -->
           <div id="textCleanerBox" class="create-box">
             <div class="section-title" style="margin-bottom:4px;">
               <span>Text cleaner</span>
+              <button id="toggleTextCleanerBtn" class="btn-secondary btn-small">Show</button>
             </div>
-            <div class="muted" style="margin-bottom:6px;">
-              Paste messy lists (1. text, 2) text, - bullets). Click Clean and paste the result into a generator.
-            </div>
-            <label for="cleanInput">Raw text</label>
-            <textarea id="cleanInput" placeholder="e.g. 1. Alya, 2. Voren, 3) Maelis"></textarea>
-            <label for="cleanOutput" style="margin-top:6px;">Cleaned text</label>
-            <textarea id="cleanOutput" readonly placeholder="Result will appear here..."></textarea>
-            <div class="row" style="margin-top:6px;">
-              <button id="cleanRunBtn" class="btn-secondary btn-small">Clean text</button>
-              <button id="cleanCopyBtn" class="btn-secondary btn-small">Copy cleaned</button>
+            <div id="textCleanerBody" style="display:none;">
+              <div class="muted" style="margin-bottom:6px;">
+                Paste messy lists (1. text, 2) text, - bullets). Click Clean and paste the result into a generator.
+              </div>
+              <label for="cleanInput">Raw text</label>
+              <textarea id="cleanInput" placeholder="e.g. 1. Alya, 2. Voren, 3) Maelis"></textarea>
+              <label for="cleanOutput" style="margin-top:6px;">Cleaned text</label>
+              <textarea id="cleanOutput" readonly placeholder="Result will appear here..."></textarea>
+              <div class="row" style="margin-top:6px;">
+                <button id="cleanRunBtn" class="btn-secondary btn-small">Clean text</button>
+                <button id="cleanCopyBtn" class="btn-secondary btn-small">Copy cleaned</button>
+              </div>
             </div>
           </div>
-
-          <!-- GENERATOR NAV -->
-          <div id="generatorNav" class="nav-area"></div>
         </div>
 
         <!-- RIGHT COLUMN -->
@@ -707,14 +710,19 @@
       return Array.from(tokenSet);
     }
 
-    // Text cleaner: remove numbering/bullets and inline numbered lists.
+    // Improved text cleaner: handles inline numbers like "4 Arrogant 54 Logical" and "60Morbid"
     function cleanTextForGenerator(raw) {
       if (!raw) return "";
 
-      // Break inline "1. text 2. text" into new lines
-      let replaced = raw.replace(/(\d+[\.\)]\s*)/g, "\n");
+      // Normalize newlines
+      let replaced = raw.replace(/\r\n/g, "\n");
 
-      const lines = replaced.split(/\r?\n/);
+      // Insert newlines before numbers that start words:
+      // 4 Arrogant 54 Logical  -> \n4 Arrogant \n54 Logical
+      // 10 Chatterbox 60Morbid -> \n10 Chatterbox \n60Morbid
+      replaced = replaced.replace(/(^|\s)(\d+)(?=[\.\)]?\s*[A-Za-z])/g, "\n$2");
+
+      const lines = replaced.split(/\n+/);
       const cleaned = [];
 
       for (let line of lines) {
@@ -724,10 +732,13 @@
         // Strip leading bullets like "-", "*", "•"
         t = t.replace(/^[\-\*\u2022]+\s*/, "");
 
-        // Strip leading numbering like "1." or "2)"
-        t = t.replace(/^\d+[\.\)]\s*/, "");
+        // Strip leading numbering like "4", "4.", "4)"
+        t = t.replace(/^\d+[\.\)]?\s*/, "");
 
-        // Trim again, remove trailing commas/extra spaces
+        // Collapse multiple spaces into one
+        t = t.replace(/\s{2,}/g, " ");
+
+        // Remove trailing commas / extra spaces
         t = t.trim().replace(/[,\s]+$/, "").trim();
 
         if (t) cleaned.push(t);
@@ -2025,6 +2036,17 @@
         searchInput.addEventListener("input", (e) => {
           generatorSearchTerm = e.target.value || "";
           renderGeneratorNav();
+        });
+      }
+
+      // Text cleaner toggle
+      const toggleCleanerBtn = document.getElementById("toggleTextCleanerBtn");
+      const cleanerBody = document.getElementById("textCleanerBody");
+      if (toggleCleanerBtn && cleanerBody) {
+        toggleCleanerBtn.addEventListener("click", () => {
+          const isHidden = cleanerBody.style.display === "none";
+          cleanerBody.style.display = isHidden ? "block" : "none";
+          toggleCleanerBtn.textContent = isHidden ? "Hide" : "Show";
         });
       }
 
