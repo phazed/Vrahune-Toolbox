@@ -373,7 +373,7 @@
         Vrahune Generator Hub
       </h1>
       <div class="subtitle">
-        Left: folders & generators (including your lexicons). Right: controls & results for the selected generator.
+        Left: folders & generators (including lexicons). Right: generator controls & results.
       </div>
 
       <div class="hub-body">
@@ -389,7 +389,7 @@
           <div id="generatorCreateBox" class="create-box" style="display:none;">
             <div class="muted" style="margin-bottom:6px;">
               Create or edit a generator. Items can be names, lexicon entries, book titles, etc.
-              One per line or comma-separated. Duplicates are removed automatically.
+              One per line. Duplicates are removed automatically.
             </div>
 
             <div class="row">
@@ -401,12 +401,19 @@
                 <label for="genNameInput">Generator name</label>
                 <input id="genNameInput" type="text" placeholder="e.g. Valathi Lexicon, Tavern Names">
               </div>
+              <div class="col">
+                <label for="genTypeInput">Type</label>
+                <select id="genTypeInput">
+                  <option value="list">Random list</option>
+                  <option value="lexicon">Lexicon translator</option>
+                </select>
+              </div>
             </div>
 
             <div class="row">
               <div class="col">
                 <label for="genItemsInput">Items list</label>
-                <textarea id="genItemsInput" placeholder="One item per line, or comma-separated..."></textarea>
+                <textarea id="genItemsInput" placeholder="For list: one item per line&#10;For lexicon: english = valathi"></textarea>
                 <button type="button" id="expandItemsBtn" class="btn-secondary btn-small" style="margin-top:4px;">
                   Expand list editor
                 </button>
@@ -441,7 +448,7 @@
           </div>
 
           <div id="copyMessage" class="copy-message">
-            Click any generated item to copy it.
+            Click any generated item or lexicon entry to copy.
           </div>
         </div>
       </div>
@@ -452,14 +459,43 @@
     // --------------------------------
     // STORAGE & STATE
     // --------------------------------
-    const GEN_STORAGE_KEY = "vrahuneGeneratorsV2"; // new key so this version is clean
+    const GEN_STORAGE_KEY = "vrahuneGeneratorsV3";
 
-    // generator object: { id, folder, name, type, items[] }
-    // type: "elf", "book", "list" (default list)
+    // generator: { id, folder, name, type: "list"|"elf"|"book"|"lexicon", items }
+    // list:  items = [ "string", ... ]
+    // lexicon: items = [ { english, valathi }, ... ]
 
     let activeGenerator = null;
     let editingGeneratorId = null;
     let itemsExpanded = false;
+
+    // --------------------------------
+    // VALATHI LEXICON SEED (for default translator)
+    // --------------------------------
+    const valathiLexiconSeed = [
+      { english: "high, noble, elevated, bright", valathi: "val" },
+      { english: "forest, wooded land", valathi: "’ath" },
+      { english: "land, domain", valathi: "anna" },
+      { english: "seat, city, foundation", valathi: "dor" },
+      { english: "stone, mountain, cliff", valathi: "vor" },
+      { english: "water, lake", valathi: "mir" },
+      { english: "river, flowing path", valathi: "len" },
+      { english: "wind, air current", valathi: "vrae" },
+      { english: "star, light in the dark", valathi: "sel" },
+      { english: "sea, great water", valathi: "thal" },
+      { english: "north, cold lands", valathi: "nor" },
+      { english: "dusk, evening star", valathi: "ves" },
+      { english: "guardian, warden", valathi: "vel" },
+      { english: "song, art, beautiful craft", valathi: "rin" },
+      { english: "lore, deep knowledge", valathi: "ith" },
+      { english: "peace, calm", valathi: "ser" },
+      { english: "flame, passion, drive", valathi: "nar" },
+      { english: "life, breath, vitality", valathi: "laen" },
+      { english: "hidden, secret, veiled", valathi: "vyn" },
+      { english: "world, the continent", valathi: "Vrahune" },
+      { english: "noble-forest land (realm)", valathi: "Val’athanna" },
+      { english: "high seat, noble city", valathi: "Valdora" }
+    ];
 
     // --------------------------------
     // HELPERS
@@ -472,7 +508,7 @@
       const msg = document.getElementById("copyMessage");
       msg.textContent = `Copied: "${text}"`;
       setTimeout(() => {
-        msg.textContent = "Click any generated item to copy it.";
+        msg.textContent = "Click any generated item or lexicon entry to copy.";
       }, 2500);
     }
 
@@ -491,9 +527,8 @@
     }
 
     // --------------------------------
-    // BUILT-IN LOGIC (not labeled as built-in in UI)
+    // BUILT-IN LOGIC (elf names & book titles) - UI treats them as normal generators
     // --------------------------------
-    // Elf name parts
     const elfStartsClassic = [
       "Val", "Ves", "Vor", "Vrae", "Sel", "Thal", "Mir", "Nor", "Lae", "Vel", "Vyn", "Maer"
     ];
@@ -540,7 +575,6 @@
       return raw.charAt(0).toUpperCase() + raw.slice(1);
     }
 
-    // Book title parts
     const bookAdjCommon = [
       "Silent", "Forgotten", "Gilded", "Broken", "Crimson", "Twilight", "Shattered",
       "Hidden", "Last", "Bound", "Whispering", "Silver", "Onyx", "Verdant", "Burning", "Veiled"
@@ -599,7 +633,6 @@
     // GENERATOR STORAGE
     // --------------------------------
     function seedInitialGenerators() {
-      // Only called if storage empty
       return [
         {
           id: "gen-elf",
@@ -619,12 +652,8 @@
           id: "gen-lex-valathi",
           folder: "Lexicons",
           name: "Valathi Lexicon",
-          type: "list",
-          items: [
-            "val", "’ath", "anna", "dor", "vor", "mir", "len", "vrae",
-            "sel", "thal", "nor", "sael", "cyn", "Vrahune",
-            "Val’athanna", "Valdora"
-          ]
+          type: "lexicon",
+          items: valathiLexiconSeed
         }
       ];
     }
@@ -643,11 +672,12 @@
           saveGenerators(seeded);
           return seeded;
         }
-        // Ensure type defaults to "list" if missing (old data)
         return parsed.map(g => ({
           ...g,
           type: g.type || "list",
-          items: Array.isArray(g.items) ? g.items : []
+          items: g.type === "lexicon"
+            ? (Array.isArray(g.items) ? g.items : [])
+            : (Array.isArray(g.items) ? g.items : [])
         }));
       } catch {
         const seeded = seedInitialGenerators();
@@ -664,8 +694,7 @@
 
     function parseGeneratorItems(rawText) {
       if (!rawText) return { items: [], duplicates: 0 };
-      const normalized = rawText.replace(/,/g, "\n");
-      const lines = normalized.split(/\r?\n/);
+      const lines = rawText.split(/\r?\n/);
       const set = new Set();
       const items = [];
       let total = 0;
@@ -682,6 +711,66 @@
       }
       const duplicates = Math.max(0, total - items.length);
       return { items, duplicates };
+    }
+
+    function parseLexiconText(rawText) {
+      if (!rawText) return { items: [], duplicates: 0 };
+      const lines = rawText.split(/\r?\n/);
+      const map = new Map();
+      let total = 0;
+
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        total++;
+        let english = "";
+        let valathi = "";
+
+        // support "english = valathi" or "english - valathi"
+        const eqIdx = t.indexOf("=");
+        const dashIdx = (eqIdx === -1) ? t.indexOf("-") : -1;
+
+        if (eqIdx !== -1) {
+          english = t.slice(0, eqIdx).trim();
+          valathi = t.slice(eqIdx + 1).trim();
+        } else if (dashIdx !== -1) {
+          english = t.slice(0, dashIdx).trim();
+          valathi = t.slice(dashIdx + 1).trim();
+        } else {
+          // if only one word, treat as english and valathi the same
+          english = t;
+          valathi = t;
+        }
+
+        if (!english || !valathi) continue;
+        const key = `${english.toLowerCase()}|${valathi.toLowerCase()}`;
+        if (!map.has(key)) {
+          map.set(key, { english, valathi });
+        }
+      }
+
+      const items = Array.from(map.values());
+      const duplicates = Math.max(0, total - items.length);
+      return { items, duplicates };
+    }
+
+    function mergeLexiconEntries(existing, incoming) {
+      const map = new Map();
+      if (Array.isArray(existing)) {
+        for (const e of existing) {
+          if (!e || !e.english || !e.valathi) continue;
+          const key = `${String(e.english).toLowerCase()}|${String(e.valathi).toLowerCase()}`;
+          map.set(key, { english: e.english, valathi: e.valathi });
+        }
+      }
+      if (Array.isArray(incoming)) {
+        for (const e of incoming) {
+          if (!e || !e.english || !e.valathi) continue;
+          const key = `${String(e.english).toLowerCase()}|${String(e.valathi).toLowerCase()}`;
+          map.set(key, { english: e.english, valathi: e.valathi });
+        }
+      }
+      return Array.from(map.values());
     }
 
     // --------------------------------
@@ -754,7 +843,7 @@
 
       label.textContent = `${gen.name} (${gen.folder || "General"})`;
 
-      // Pattern-based: elf
+      // ELF NAMES
       if (gen.type === "elf") {
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -786,7 +875,6 @@
           </div>
           <div class="row">
             <button id="elfGenerateBtn" class="btn-primary">Generate</button>
-            <button id="elfEditBtn" class="btn-secondary btn-small">Edit generator meta</button>
           </div>
           <div id="elfResults" class="generated-list" style="margin-top:8px;"></div>
         `;
@@ -796,7 +884,6 @@
         const styleSel = panel.querySelector("#elfStyle");
         const toneSel = panel.querySelector("#elfTone");
         const countInput = panel.querySelector("#elfCount");
-        const editBtn = panel.querySelector("#elfEditBtn");
 
         btn.addEventListener("click", () => {
           const style = styleSel.value;
@@ -815,15 +902,10 @@
         });
 
         results.addEventListener("click", handleCopyClick);
-
-        editBtn.addEventListener("click", () => {
-          openEditGeneratorBox(gen.id);
-        });
-
         return;
       }
 
-      // Pattern-based: book
+      // BOOK TITLES
       if (gen.type === "book") {
         panel.innerHTML = `
           <div class="generator-title-main">
@@ -847,7 +929,6 @@
           </div>
           <div class="row">
             <button id="bookGenerateBtn" class="btn-primary">Generate</button>
-            <button id="bookEditBtn" class="btn-secondary btn-small">Edit generator meta</button>
           </div>
           <div id="bookResults" class="generated-list" style="margin-top:8px;"></div>
         `;
@@ -856,7 +937,6 @@
         const results = panel.querySelector("#bookResults");
         const flavorSel = panel.querySelector("#bookFlavor");
         const countInput = panel.querySelector("#bookCount");
-        const editBtn = panel.querySelector("#bookEditBtn");
 
         btn.addEventListener("click", () => {
           const flavor = flavorSel.value;
@@ -874,15 +954,274 @@
         });
 
         results.addEventListener("click", handleCopyClick);
-
-        editBtn.addEventListener("click", () => {
-          openEditGeneratorBox(gen.id);
-        });
-
         return;
       }
 
-      // List-based (including Lexicon folder)
+      // LEXICON TRANSLATOR (Valathi-style, default lexicon UI)
+      if (gen.type === "lexicon") {
+        panel.innerHTML = `
+          <div class="generator-title-main">
+            ${gen.name}
+          </div>
+          <div class="muted" style="margin-bottom:8px;">
+            Folder: ${gen.folder || "General"} · ${gen.items.length} lexicon entries.
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label for="lexMode">Direction</label>
+              <select id="lexMode">
+                <option value="en-to-va">Common → Valathi</option>
+                <option value="va-to-en">Valathi → Common</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="lexQuery">Word</label>
+              <input id="lexQuery" type="text" placeholder="Type a word to look up">
+            </div>
+            <div class="col">
+              <label>&nbsp;</label>
+              <button id="lexSearchBtn" class="btn-primary">Translate</button>
+            </div>
+          </div>
+
+          <div id="lexResult" class="generated-list"></div>
+
+          <hr>
+
+          <div class="section-title">
+            <span>Manage entries</span>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="lexiconAddInput">Add entries (english = valathi)</label>
+              <textarea id="lexiconAddInput" placeholder="high = val&#10;forest = ’ath"></textarea>
+            </div>
+          </div>
+          <div class="row">
+            <button id="lexAppendBtn" class="btn-secondary btn-small">Append from text</button>
+            <button id="lexImportBtn" class="btn-secondary btn-small">Import from JSON/HTML</button>
+            <button id="lexDownloadBtn" class="btn-secondary btn-small">Download JSON</button>
+            <button id="lexOpenEditBtn" class="btn-secondary btn-small">Edit as raw</button>
+          </div>
+          <input type="file" id="lexFileInput" accept=".json,.txt,.html" style="display:none;">
+          <div id="lexMessage" class="muted" style="margin-top:4px;"></div>
+
+          <div class="section-title" style="margin-top:10px;">
+            <span>All entries</span>
+            <span class="muted" style="font-size:0.75rem;">Click to copy "english = valathi"</span>
+          </div>
+          <div id="lexAllEntries" class="generated-list"></div>
+        `;
+
+        const lexMode = panel.querySelector("#lexMode");
+        const lexQuery = panel.querySelector("#lexQuery");
+        const lexSearchBtn = panel.querySelector("#lexSearchBtn");
+        const lexResult = panel.querySelector("#lexResult");
+        const lexAllEntries = panel.querySelector("#lexAllEntries");
+        const lexAddInput = panel.querySelector("#lexiconAddInput");
+        const lexAppendBtn = panel.querySelector("#lexAppendBtn");
+        const lexImportBtn = panel.querySelector("#lexImportBtn");
+        const lexDownloadBtn = panel.querySelector("#lexDownloadBtn");
+        const lexFileInput = panel.querySelector("#lexFileInput");
+        const lexMessage = panel.querySelector("#lexMessage");
+        const lexOpenEditBtn = panel.querySelector("#lexOpenEditBtn");
+
+        function renderAllEntriesList(items) {
+          lexAllEntries.innerHTML = "";
+          const sorted = [...items].sort((a, b) =>
+            String(a.english).localeCompare(String(b.english))
+          );
+          const frag = document.createDocumentFragment();
+          for (const e of sorted) {
+            const div = document.createElement("div");
+            div.className = "generated-item";
+            div.textContent = `${e.english} = ${e.valathi}`;
+            frag.appendChild(div);
+          }
+          lexAllEntries.appendChild(frag);
+        }
+
+        function searchLexicon(items, query, mode) {
+          const q = query.trim().toLowerCase();
+          if (!q) return [];
+          if (mode === "en-to-va") {
+            return items.filter(e => String(e.english).toLowerCase().includes(q));
+          } else {
+            return items.filter(e => String(e.valathi).toLowerCase().includes(q));
+          }
+        }
+
+        function doSearch() {
+          const gensCurrent = loadGenerators();
+          const g = gensCurrent.find(x => x.id === gen.id);
+          if (!g) return;
+
+          const items = Array.isArray(g.items) ? g.items : [];
+          const mode = lexMode.value;
+          const q = lexQuery.value;
+          const matches = searchLexicon(items, q, mode);
+          lexResult.innerHTML = "";
+
+          if (!q.trim()) {
+            lexResult.innerHTML = `<div class="muted">Type a word and click Translate.</div>`;
+            return;
+          }
+
+          if (!matches.length) {
+            lexResult.innerHTML = `<div class="muted">No entries found for "${q}".</div>`;
+            return;
+          }
+
+          const frag = document.createDocumentFragment();
+          for (const e of matches) {
+            const div = document.createElement("div");
+            div.className = "generated-item";
+            if (mode === "en-to-va") {
+              div.textContent = `${e.english} → ${e.valathi}`;
+            } else {
+              div.textContent = `${e.valathi} → ${e.english}`;
+            }
+            frag.appendChild(div);
+          }
+          lexResult.appendChild(frag);
+        }
+
+        lexSearchBtn.addEventListener("click", doSearch);
+        lexQuery.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            doSearch();
+          }
+        });
+
+        lexResult.addEventListener("click", handleCopyClick);
+        lexAllEntries.addEventListener("click", handleCopyClick);
+
+        // Append from text
+        lexAppendBtn.addEventListener("click", () => {
+          const raw = lexAddInput.value || "";
+          if (!raw.trim()) {
+            lexMessage.textContent = "No text to append.";
+            return;
+          }
+          const { items: newItems, duplicates } = parseLexiconText(raw);
+          if (!newItems.length) {
+            lexMessage.textContent = "No valid entries found. Use 'english = valathi'.";
+            return;
+          }
+          const gensCurrent = loadGenerators();
+          const idx = gensCurrent.findIndex(x => x.id === gen.id);
+          if (idx === -1) return;
+          const before = Array.isArray(gensCurrent[idx].items) ? gensCurrent[idx].items : [];
+          const merged = mergeLexiconEntries(before, newItems);
+          const added = merged.length - before.length;
+
+          gensCurrent[idx].items = merged;
+          saveGenerators(gensCurrent);
+          lexAddInput.value = "";
+
+          lexMessage.textContent =
+            `Appended ${added} entries. ${duplicates > 0 ? duplicates + " duplicate lines removed." : "No duplicates in input."}`;
+          renderAllEntriesList(merged);
+        });
+
+        // Import from JSON/HTML
+        lexImportBtn.addEventListener("click", () => {
+          lexFileInput.value = "";
+          lexFileInput.click();
+        });
+
+        lexFileInput.addEventListener("change", (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const text = ev.target.result;
+            let imported = [];
+
+            // Try JSON first
+            try {
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed)) {
+                for (const item of parsed) {
+                  if (!item) continue;
+                  if (typeof item === "string") {
+                    const { items } = parseLexiconText(item);
+                    imported = imported.concat(items);
+                  } else if (typeof item === "object") {
+                    const english = item.english || item.en || item.word || item.key || "";
+                    const valathi = item.valathi || item.va || item.value || "";
+                    if (english && valathi) {
+                      imported.push({ english, valathi });
+                    }
+                  }
+                }
+              } else if (typeof parsed === "object") {
+                for (const key in parsed) {
+                  if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
+                  const english = key;
+                  const valathi = parsed[key];
+                  if (english && valathi) {
+                    imported.push({ english, valathi });
+                  }
+                }
+              }
+            } catch {
+              // Not valid JSON; treat as raw text
+              const { items } = parseLexiconText(text);
+              imported = imported.concat(items);
+            }
+
+            if (!imported.length) {
+              lexMessage.textContent = "No valid entries found in file.";
+              return;
+            }
+
+            const gensCurrent = loadGenerators();
+            const idx = gensCurrent.findIndex(x => x.id === gen.id);
+            if (idx === -1) return;
+
+            const before = Array.isArray(gensCurrent[idx].items) ? gensCurrent[idx].items : [];
+            const merged = mergeLexiconEntries(before, imported);
+            const added = merged.length - before.length;
+
+            gensCurrent[idx].items = merged;
+            saveGenerators(gensCurrent);
+            lexMessage.textContent = `Imported ${added} new entries from file.`;
+            renderAllEntriesList(merged);
+          };
+          reader.readAsText(file);
+        });
+
+        // Download JSON
+        lexDownloadBtn.addEventListener("click", () => {
+          const gensCurrent = loadGenerators();
+          const g = gensCurrent.find(x => x.id === gen.id);
+          if (!g) return;
+          const dataStr = JSON.stringify(g.items || [], null, 2);
+          const blob = new Blob([dataStr], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${g.name.replace(/\s+/g, "_")}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+
+        // Open raw editor (uses the left-side create box)
+        lexOpenEditBtn.addEventListener("click", () => {
+          openEditGeneratorBox(gen.id);
+        });
+
+        // Initial list
+        renderAllEntriesList(gen.items || []);
+        return;
+      }
+
+      // LIST-BASED GENERATOR
       panel.innerHTML = `
         <div class="generator-title-main">
           ${gen.name}
@@ -962,6 +1301,7 @@
       const itemsInput  = document.getElementById("genItemsInput");
       const saveBtn     = document.getElementById("saveGeneratorBtn");
       const expandBtn   = document.getElementById("expandItemsBtn");
+      const typeInput   = document.getElementById("genTypeInput");
 
       folderInput.value = "General";
       nameInput.value = "";
@@ -972,6 +1312,8 @@
       msg.textContent = "";
       msg.classList.remove("danger");
       saveBtn.textContent = "Save generator";
+      typeInput.disabled = false;
+      typeInput.value = "list";
 
       box.style.display = "block";
     }
@@ -989,17 +1331,30 @@
       const itemsInput  = document.getElementById("genItemsInput");
       const saveBtn     = document.getElementById("saveGeneratorBtn");
       const expandBtn   = document.getElementById("expandItemsBtn");
+      const typeInput   = document.getElementById("genTypeInput");
 
       folderInput.value = gen.folder || "General";
       nameInput.value   = gen.name || "";
-      itemsInput.value  = Array.isArray(gen.items) ? gen.items.join("\n") : "";
+
+      // For lexicon, show "english = valathi" lines
+      if (gen.type === "lexicon") {
+        const arr = Array.isArray(gen.items) ? gen.items : [];
+        itemsInput.value = arr.map(e => `${e.english} = ${e.valathi}`).join("\n");
+      } else {
+        const arr = Array.isArray(gen.items) ? gen.items : [];
+        itemsInput.value = arr.join("\n");
+      }
+
       itemsInput.classList.remove("items-expanded");
       itemsExpanded = false;
       expandBtn.textContent = "Expand list editor";
 
-      msg.textContent = `Editing “${gen.name}”. Items edit only, generator type stays the same.`;
+      msg.textContent = `Editing “${gen.name}”. Type: ${gen.type === "lexicon" ? "Lexicon translator" : "Random list"}.`;
       msg.classList.remove("danger");
       saveBtn.textContent = "Save changes";
+
+      typeInput.disabled = true;
+      typeInput.value = gen.type === "lexicon" ? "lexicon" : "list";
 
       box.style.display = "block";
     }
@@ -1025,6 +1380,7 @@
       const nameInput   = document.getElementById("genNameInput");
       const itemsInput  = document.getElementById("genItemsInput");
       const msg         = document.getElementById("generatorCreateMessage");
+      const typeInput   = document.getElementById("genTypeInput");
 
       const folder = (folderInput.value || "").trim() || "General";
       const name   = (nameInput.value || "").trim();
@@ -1036,34 +1392,64 @@
         return;
       }
 
-      const { items, duplicates } = parseGeneratorItems(raw);
-      if (!items.length) {
-        msg.textContent = "Please provide at least one non-empty item.";
-        msg.classList.add("danger");
-        return;
-      }
-
       const gens = loadGenerators();
+
       if (editingGeneratorId) {
         const idx = gens.findIndex(g => g.id === editingGeneratorId);
-        if (idx !== -1) {
-          const existingType = gens[idx].type || "list";
-          gens[idx].folder = folder;
-          gens[idx].name   = name;
-          gens[idx].items  = items;
-          gens[idx].type   = existingType; // keep elf/book/list as-is
+        if (idx === -1) return;
+
+        const existingType = gens[idx].type || "list";
+        let parsed;
+        if (existingType === "lexicon") {
+          parsed = parseLexiconText(raw);
+        } else {
+          parsed = parseGeneratorItems(raw);
         }
+
+        if (!parsed.items.length) {
+          msg.textContent = existingType === "lexicon"
+            ? "Please provide at least one valid 'english = valathi' entry."
+            : "Please provide at least one non-empty item.";
+          msg.classList.add("danger");
+          return;
+        }
+
+        gens[idx].folder = folder;
+        gens[idx].name   = name;
+        gens[idx].items  = parsed.items;
+        gens[idx].type   = existingType;
+
         saveGenerators(gens);
         msg.classList.remove("danger");
-        msg.textContent = `Updated “${name}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+        msg.textContent = `Updated “${name}” with ${parsed.items.length} entries. ${
+          parsed.duplicates > 0 ? parsed.duplicates + " duplicates removed." : "No duplicates detected."
+        }`;
         activeGenerator = { id: editingGeneratorId };
         editingGeneratorId = null;
       } else {
+        const requestedType = (typeInput.value || "list");
+        let parsed;
+        if (requestedType === "lexicon") {
+          parsed = parseLexiconText(raw);
+        } else {
+          parsed = parseGeneratorItems(raw);
+        }
+
+        if (!parsed.items.length) {
+          msg.textContent = requestedType === "lexicon"
+            ? "Please provide at least one valid 'english = valathi' entry."
+            : "Please provide at least one non-empty item.";
+          msg.classList.add("danger");
+          return;
+        }
+
         const id = "gen-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
-        gens.push({ id, folder, name, type: "list", items });
+        gens.push({ id, folder, name, type: requestedType, items: parsed.items });
         saveGenerators(gens);
         msg.classList.remove("danger");
-        msg.textContent = `Saved “${name}” in folder “${folder}” with ${items.length} items. ${duplicates > 0 ? duplicates + " duplicates removed." : "No duplicates detected."}`;
+        msg.textContent = `Saved “${name}” in folder “${folder}” with ${parsed.items.length} entries. ${
+          parsed.duplicates > 0 ? parsed.duplicates + " duplicates removed." : "No duplicates detected."
+        }`;
         activeGenerator = { id };
       }
 
