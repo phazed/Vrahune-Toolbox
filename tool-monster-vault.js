@@ -1668,9 +1668,22 @@
     const search = panel.querySelector("#mvSearch");
     if (search) {
       search.addEventListener("input", () => {
+        const caretStart = search.selectionStart;
+        const caretEnd = search.selectionEnd;
         state.search = search.value || "";
         saveState(state);
         renderMonsterVaultTool();
+
+        const freshSearch = document.getElementById("generatorPanel")?.querySelector("#mvSearch");
+        if (freshSearch) {
+          try {
+            freshSearch.focus({ preventScroll: true });
+            const len = (freshSearch.value || "").length;
+            const start = Number.isFinite(caretStart) ? Math.min(caretStart, len) : len;
+            const end = Number.isFinite(caretEnd) ? Math.min(caretEnd, len) : start;
+            freshSearch.setSelectionRange(start, end);
+          } catch (_) {}
+        }
       });
     }
 
