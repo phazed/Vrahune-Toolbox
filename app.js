@@ -1621,13 +1621,417 @@ function closeLexManageBox() {
   if (box) box.style.display = "none";
 }
 
-// Advanced template modal (patterns & mappings) – unchanged from your inline script, just with safe catch
-// (Leaving the rest of this as-is for brevity; logic is identical and doesn’t use bare catch{} anymore.)
+// ========== Advanced template modal (patterns & mappings) ==========
 
-// ... (The rest of your advanced template modal, save logic, download/upload DB, nav handlers, etc.)
-// Because this answer is already huge, I’ve kept the core fixes here.
-// If you want, I can paste the remaining ~800 lines too, but structurally they are exactly what you had,
-// just with "catch (err) { ... }" instead of "catch { }".
+function openAdvTemplateBox(genId) {
+  const gens = loadGenerators();
+  const gen = gens.find((g) => g.id === genId);
+  if (!gen || gen.type !== "advanced") return;
+
+  advTemplateGenId = genId;
+
+  const box = document.getElementById("advTemplateBox");
+  const title = document.getElementById("advTemplateTitle");
+  const msg = document.getElementById("advTemplateMessage");
+  const body = document.getElementById("advTemplateBody");
+  const helpBtn = document.getElementById("advTemplateHelpBtn");
+
+  if (!box || !title || !msg || !body) return;
+
+  const items = gen.items || {};
+  const patterns = Array.isArray(items.patterns) ? items.patterns : [];
+  const simpleTokenMap =
+    items.tokenMap && typeof items.tokenMap === "object" ? items.tokenMap : {};
+  const multiTokenMap =
+    items.multiTokenMap && typeof items.multiTokenMap === "object"
+      ? items.multiTokenMap
+      : {};
+  const savedMode = items.advancedMode === "advanced" ? "advanced" : "simple";
+  const patternsText = patterns.join("\n");
+  const allTokens = extractTokensFromPatterns(patterns);
+
+  title.textContent = `Edit Template – ${gen.name}`;
+  msg.textContent =
+    "Configure patterns and which generators each token pulls from.";
+  msg.classList.remove("danger");
+
+  body.innerHTML = `
+    <div id="advTemplateHelpBlock" class="muted" style="display:none; font-size:0.78rem; margin-bottom:6px; border:1px solid #232a33; border-radius:8px; padding:6px 8px; background:#05070c;">
+      <b>How this works:</b><br/>
+      • <b>Patterns</b> are sentence-like strings using <code>{Tokens}</code>, e.g. <code>{Name} is a {Race} from {Hometown}</code>.<br/>
+      • Each <code>{Token}</code> pulls from one or more <b>list generators</b> you’ve already created.<br/>
+      • <b>Simple</b> mode: each token is mapped to exactly one list generator.<br/>
+      • <b>Advanced</b> mode: each token can have multiple list generators; on use, one of them is chosen at random.<br/>
+      • You can mix both: use Simple for most tokens, Advanced only where you need variety.
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label for="advPatternsInput">Patterns (one per line)</label>
+        <textarea id="advPatternsInput" placeholder="{Name} is a {Race} from {Hometown}, known for {Trait}.">${patternsText}</textarea>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:4px;">
+      <span>Token mappings</span>
+    </div>
+    <div class="muted" style="font-size:0.78rem; margin-bottom:4px;">
+      <b>Simple tab:</b> one generator per token. <b>Advanced tab:</b> for each token, search and click to add multiple generators.  
+      On use, one of those generators is chosen at random.
+    </div>
+
+    <div class="adv-tab-bar">
+      <button type="button" class="adv-tab" data-mode="simple">Simple</button>
+      <button type="button" class="adv-tab" data-mode="advanced">Advanced</button>
+    </div>
+
+    <div id="advTokensSimpleContainer"></div>
+    <div id="advTokensAdvancedContainer" style="display:none; margin-top:4px;"></div>
+
+    <div class="muted" style="font-size:0.75rem; margin-top:4px;">
+      <b>Advanced mode tips:</b><br/>
+      • Start typing to search your list generators.<br/>
+      • Click a result to add it as a chip.<br/>
+      • Click ✕ on a chip to remove it.
+    </div>
+
+    <div class="row" style="margin-top:6px;">
+      <button id="advTemplateSaveBtn" class="btn-primary btn-small">Save template & mappings</button>
+    </div>
+  `;
+
+  const advPatternsInput = body.querySelector("#advPatternsInput");
+  const advTokensSimpleContainer = body.querySelector(
+    "#advTokensSimpleContainer"
+  );
+  const advTokensAdvancedContainer = body.querySelector(
+    "#advTokensAdvancedContainer"
+  );
+  const advTemplateSaveBtn = body.querySelector("#advTemplateSaveBtn");
+  const advTabs = body.querySelectorAll(".adv-tab");
+  const helpBlock = body.querySelector("#advTemplateHelpBlock");
+
+  let advMode = savedMode;
+
+  function setAdvMode(mode) {
+    advMode = mode === "advanced" ? "advanced" : "simple";
+    advTabs.forEach((btn) => {
+      if (btn.dataset.mode === advMode) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+    if (advMode === "simple") {
+      advTokensSimpleContainer.style.display = "block";
+      advTokensAdvancedContainer.style.display = "none";
+    } else {
+      advTokensSimpleContainer.style.display = "none";
+      advTokensAdvancedContainer.style.display = "block";
+    }
+  }
+
+  function renderTokenMappingsSimple(tokens, map) {
+    if (!tokens.length) {
+      advTokensSimpleContainer.innerHTML = `<div class="muted" style="margin-top:4px;">No tokens found yet. Add <code>{Token}</code> placeholders to your patterns above, then save.</div>`;
+      return;
+    }
+    const gensAll = loadGenerators();
+    const listGenerators = gensAll.filter((g) => g.type === "list");
+    const table = document.createElement("table");
+    table.className = "token-table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="width:20%;">Token</th>
+          <th>Source generator (list)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
+
+    tokens.forEach((token) => {
+      const tr = document.createElement("tr");
+      const optionsHtml = [
+        `<option value="">— none —</option>`,
+        ...listGenerators.map(
+          (g) => `<option value="${g.id}">${g.name}</option>`
+        ),
+      ].join("");
+      tr.innerHTML = `
+        <td>{${token}}</td>
+        <td>
+          <select class="adv-token-select" data-token="${token}">
+            ${optionsHtml}
+          </select>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    advTokensSimpleContainer.innerHTML = "";
+    advTokensSimpleContainer.appendChild(table);
+
+    const selects = advTokensSimpleContainer.querySelectorAll(
+      ".adv-token-select"
+    );
+    selects.forEach((sel) => {
+      const tok = sel.dataset.token;
+      const mappedId = map[tok] || "";
+      if (mappedId) sel.value = mappedId;
+    });
+  }
+
+  function refreshAdvancedSelectedChips(wrapper, selectedIds, listGenerators) {
+    const chipsContainer = wrapper.querySelector(".adv-selected-chips");
+    chipsContainer.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    selectedIds.forEach((id) => {
+      const g = listGenerators.find((x) => x.id === id);
+      if (!g) return;
+      const span = document.createElement("span");
+      span.className = "adv-chip";
+      span.dataset.id = id;
+      span.textContent = g.name;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "adv-chip-remove";
+      btn.textContent = "✕";
+      span.appendChild(btn);
+      frag.appendChild(span);
+    });
+
+    chipsContainer.appendChild(frag);
+  }
+
+  function renderTokenMappingsAdvanced(tokens, map) {
+    if (!tokens.length) {
+      advTokensAdvancedContainer.innerHTML = `<div class="muted" style="margin-top:4px;">No tokens to configure yet. Once you add <code>{Token}</code> placeholders and save, you can assign multiple generators per token here.</div>`;
+      return;
+    }
+    const gensAll = loadGenerators();
+    const listGenerators = gensAll.filter((g) => g.type === "list");
+    advTokensAdvancedContainer.__listGenerators = listGenerators;
+
+    const table = document.createElement("table");
+    table.className = "token-table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="width:20%;">Token</th>
+          <th>Allowed generators (search & click)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
+
+    tokens.forEach((token) => {
+      const tr = document.createElement("tr");
+      const tdToken = document.createElement("td");
+      tdToken.textContent = `{${token}}`;
+      const tdUi = document.createElement("td");
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "adv-token-advanced";
+      wrapper.dataset.token = token;
+
+      wrapper.innerHTML = `
+        <div class="adv-selected-chips"></div>
+        <input type="text" class="adv-search-input" placeholder="Search generators...">
+        <div class="adv-search-results muted">Type to search your list generators…</div>
+      `;
+
+      tdUi.appendChild(wrapper);
+      tr.appendChild(tdToken);
+      tr.appendChild(tdUi);
+      tbody.appendChild(tr);
+    });
+
+    advTokensAdvancedContainer.innerHTML = "";
+    advTokensAdvancedContainer.appendChild(table);
+
+    tokens.forEach((token) => {
+      const wrapper = advTokensAdvancedContainer.querySelector(
+        `.adv-token-advanced[data-token="${token}"]`
+      );
+      if (!wrapper) return;
+      const selectedIds = Array.isArray(map[token]) ? map[token] : [];
+      refreshAdvancedSelectedChips(wrapper, selectedIds, listGenerators);
+    });
+  }
+
+  function handleAdvancedSearchInput(e) {
+    const input = e.target;
+    if (!input.classList.contains("adv-search-input")) return;
+    const wrapper = input.closest(".adv-token-advanced");
+    if (!wrapper) return;
+
+    const listGenerators = advTokensAdvancedContainer.__listGenerators || [];
+    const resultsDiv = wrapper.querySelector(".adv-search-results");
+    const q = (input.value || "").trim().toLowerCase();
+
+    const selectedIds = Array.from(wrapper.querySelectorAll(".adv-chip")).map(
+      (chip) => chip.dataset.id
+    );
+
+    if (!q) {
+      resultsDiv.textContent = "Type to search your list generators…";
+      return;
+    }
+
+    const matches = listGenerators
+      .filter(
+        (g) => g.name.toLowerCase().includes(q) && !selectedIds.includes(g.id)
+      )
+      .slice(0, 10);
+
+    if (!matches.length) {
+      resultsDiv.textContent = "No matches.";
+      return;
+    }
+
+    resultsDiv.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    matches.forEach((g) => {
+      const div = document.createElement("div");
+      div.className = "adv-search-item";
+      div.dataset.id = g.id;
+      div.textContent = g.name;
+      frag.appendChild(div);
+    });
+    resultsDiv.appendChild(frag);
+  }
+
+  function handleAdvancedClick(e) {
+    const listGenerators = advTokensAdvancedContainer.__listGenerators || [];
+
+    const removeBtn = e.target.closest(".adv-chip-remove");
+    if (removeBtn) {
+      const chip = removeBtn.closest(".adv-chip");
+      const wrapper = removeBtn.closest(".adv-token-advanced");
+      if (!chip || !wrapper) return;
+      chip.remove();
+      return;
+    }
+
+    const searchItem = e.target.closest(".adv-search-item");
+    if (searchItem) {
+      const wrapper = searchItem.closest(".adv-token-advanced");
+      if (!wrapper) return;
+      const id = searchItem.dataset.id;
+      const selectedIds = Array.from(
+        wrapper.querySelectorAll(".adv-chip")
+      ).map((chip) => chip.dataset.id);
+      if (!selectedIds.includes(id)) {
+        selectedIds.push(id);
+      }
+      refreshAdvancedSelectedChips(wrapper, selectedIds, listGenerators);
+
+      const input = wrapper.querySelector(".adv-search-input");
+      const resultsDiv = wrapper.querySelector(".adv-search-results");
+      if (input) input.value = "";
+      if (resultsDiv)
+        resultsDiv.textContent = "Type to search your list generators…";
+      return;
+    }
+  }
+
+  renderTokenMappingsSimple(allTokens, simpleTokenMap);
+  renderTokenMappingsAdvanced(allTokens, multiTokenMap);
+  setAdvMode(savedMode);
+
+  advTabs.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setAdvMode(btn.dataset.mode);
+    });
+  });
+
+  advTokensAdvancedContainer.addEventListener("input", handleAdvancedSearchInput);
+  advTokensAdvancedContainer.addEventListener("click", handleAdvancedClick);
+
+  advTemplateSaveBtn.addEventListener("click", () => {
+    const rawPatterns = (advPatternsInput.value || "")
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const newTokens = extractTokensFromPatterns(rawPatterns);
+
+    const gensCurrent = loadGenerators();
+    const idx = gensCurrent.findIndex((x) => x.id === gen.id);
+    if (idx === -1) return;
+
+    const simpleMapNew = {};
+    const simpleSelects =
+      advTokensSimpleContainer.querySelectorAll(".adv-token-select");
+    simpleSelects.forEach((sel) => {
+      const tok = sel.dataset.token;
+      const val = sel.value || "";
+      if (tok && val) {
+        simpleMapNew[tok] = val;
+      }
+    });
+
+    const multiMapNew = {};
+    const wrappers =
+      advTokensAdvancedContainer.querySelectorAll(".adv-token-advanced");
+    wrappers.forEach((wrapper) => {
+      const tok = wrapper.dataset.token;
+      const chips = wrapper.querySelectorAll(".adv-chip");
+      const ids = Array.from(chips)
+        .map((chip) => chip.dataset.id)
+        .filter(Boolean);
+      if (tok && ids.length) {
+        multiMapNew[tok] = ids;
+      }
+    });
+
+    gensCurrent[idx].items = gensCurrent[idx].items || {};
+    gensCurrent[idx].items.patterns = rawPatterns;
+    gensCurrent[idx].items.tokenMap = simpleMapNew;
+    gensCurrent[idx].items.multiTokenMap = multiMapNew;
+    gensCurrent[idx].items.advancedMode = advMode;
+
+    saveGenerators(gensCurrent);
+
+    renderTokenMappingsSimple(newTokens, simpleMapNew);
+    renderTokenMappingsAdvanced(newTokens, multiMapNew);
+
+    msg.classList.remove("danger");
+    msg.textContent = `Saved ${rawPatterns.length} pattern(s), ${
+      Object.keys(simpleMapNew).length
+    } simple mapping(s), ${Object.keys(multiMapNew).length} advanced mapping(s), mode: ${
+      advMode
+    }.`;
+
+    renderMainPanel();
+  });
+
+  if (helpBtn && helpBlock) {
+    helpBtn.onclick = () => {
+      const visible = helpBlock.style.display === "block";
+      helpBlock.style.display = visible ? "none" : "block";
+    };
+  }
+
+  box.style.display = "flex";
+}
+
+function closeAdvTemplateBox() {
+  const box = document.getElementById("advTemplateBox");
+  const body = document.getElementById("advTemplateBody");
+  const msg = document.getElementById("advTemplateMessage");
+  if (body) body.innerHTML = "";
+  if (msg) {
+    msg.textContent = "";
+    msg.classList.remove("danger");
+  }
+  advTemplateGenId = null;
+  if (box) box.style.display = "none";
+}
+
 
 // ============== DB download / upload ==============
 function handleDownloadDatabase() {
