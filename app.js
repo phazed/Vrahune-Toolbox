@@ -4,22 +4,41 @@
 const GEN_STORAGE_KEY = "vrahuneGeneratorsV4";
 const FOLDER_STATE_KEY = "vrahuneFolderStateV1";
 
-// Tools registered here. Additional tools can be pushed from separate files.
-window.toolsConfig = [
-  {
-    id: "textCleaner",
-    name: "Text Cleaner",
-    description: "Clean numbered / multi-column lists into one-entry-per-line."
-  },
-  {
-    id: "diceRoller",
-    name: "Dice Roller",
-    description: "Roll D&D-style dice (1d20, 4d6+2, etc.)."
-  }
-];
+// --- Modular tools setup ------------------------------------------
 
+// Shared list of tools used by the left sidebar
+window.toolsConfig = window.toolsConfig || [];
+window.toolRenderers = window.toolRenderers || {};
+
+const toolsConfig = window.toolsConfig; // used by renderToolsNav
 let activeToolId = null;
 let toolSearchTerm = "";
+
+// Helper to register tools from tool-*.js files
+window.registerTool = function registerTool(def) {
+  if (!def || !def.id || !def.name || typeof def.render !== "function") {
+    console.warn("registerTool: invalid tool definition", def);
+    return;
+  }
+
+  const base = {
+    id: def.id,
+    name: def.name,
+    description: def.description || ""
+  };
+
+  const existingIndex = toolsConfig.findIndex(t => t.id === def.id);
+  if (existingIndex >= 0) {
+    toolsConfig[existingIndex] = base;
+  } else {
+    toolsConfig.push(base);
+  }
+
+  window.toolRenderers[def.id] = def.render;
+};
+
+// --------------------------------------------------------------
+
 
 let activeGenerator = null;
 let editingGeneratorId = null;
