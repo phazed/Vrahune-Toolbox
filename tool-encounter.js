@@ -1747,19 +1747,17 @@
       return badges;
     }
 
-    function renderConditionInline(c) {
+    function renderConditionColumn(c) {
       const badges = getConditionBadges(c);
-      if (!badges.length) return "";
+      const chips = badges.length
+        ? badges.map((text) => `<span class="enc-cond-chip">${esc(text)}</span>`).join("")
+        : `<span class="enc-cond-none">None</span>`;
 
       return `
-        <span class="enc-cond-inline" style="display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:8px;vertical-align:middle;">
-          ${badges
-            .map(
-              (text) =>
-                `<span class="enc-cond-chip" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;border:1px solid var(--vt-line, rgba(255,255,255,.25));font-size:12px;line-height:1.6;">${esc(text)}</span>`
-            )
-            .join("")}
-        </span>
+        <div class="condition-column" aria-label="Conditions">
+          <span class="condition-title">Conditions</span>
+          <div class="condition-chip-wrap">${chips}</div>
+        </div>
       `;
     }
 
@@ -2126,10 +2124,12 @@
                     <div class="hp-buttons">
                       <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
                       <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
-                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>${renderConditionInline(c)}
+                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
                       ${hasMonsterDetails(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="active">${c.showMonsterDetails ? "Hide" : "Info"}</button>` : ""}
                     </div>
                   </div>
+
+                  ${renderConditionColumn(c)}
 
                   ${renderMonsterDetailsPanel(c)}
 
@@ -2814,8 +2814,8 @@ function renderEditorModal() {
         .card-content {
           flex: 1;
           display: grid;
-          grid-template-columns: minmax(220px,1.55fr) minmax(290px,1.1fr) minmax(136px,0.9fr);
-          grid-template-areas: "name hp meta";
+          grid-template-columns: minmax(220px,1.45fr) minmax(300px,1.1fr) minmax(180px,0.95fr) minmax(136px,0.9fr);
+          grid-template-areas: "name hp cond meta";
           align-items: center;
           column-gap: 8px;
           row-gap: 3px;
@@ -2984,6 +2984,56 @@ function renderEditorModal() {
           align-items: center;
           gap: 4px;
           margin-left: 2px;
+          white-space: nowrap;
+        }
+
+        .condition-column {
+          grid-area: cond;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 4px;
+          min-width: 0;
+          justify-self: start;
+        }
+
+        .condition-title {
+          font-size: 0.62rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .condition-chip-wrap {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+          align-items: center;
+          max-width: 100%;
+          min-height: 20px;
+        }
+
+        .enc-cond-chip {
+          display: inline-flex;
+          align-items: center;
+          padding: 1px 8px;
+          border-radius: 999px;
+          border: 1px solid #35445a;
+          background: #0a1018;
+          color: #dbe8ff;
+          font-size: 0.72rem;
+          line-height: 1.55;
+          white-space: nowrap;
+        }
+
+        .enc-cond-none {
+          color: var(--text-muted);
+          font-size: 0.72rem;
+          line-height: 1.4;
+          opacity: 0.9;
           white-space: nowrap;
         }
 
@@ -3624,6 +3674,7 @@ function renderEditorModal() {
             grid-template-areas:
               "name"
               "hp"
+              "cond"
               "meta";
             row-gap: 6px;
           }
@@ -3634,6 +3685,7 @@ function renderEditorModal() {
           .name-row { justify-content: flex-start; }
           .card-meta { justify-self: flex-start; align-items: flex-start; }
           .hp-block { justify-self: flex-start; }
+          .condition-column { justify-self: flex-start; }
           .monster-picker-filters { grid-template-columns: 1fr; }
         }
 
