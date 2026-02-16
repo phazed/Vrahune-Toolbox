@@ -1068,7 +1068,7 @@
           `;
 
         return `
-          <div class="mv-row-wrap ${isOpen ? "open" : ""}">
+          <div class="mv-row-wrap ${isOpen ? "open" : ""}" data-monster-id="${esc(m.id)}">
             <div class="mv-row">
               <div class="mv-main">
                 <div class="mv-name">${esc(m.name)}</div>
@@ -1095,6 +1095,45 @@
 
   let state = loadState();
   const srdLoadInFlight = new Set();
+
+  function captureVaultView() {
+    const panel = document.getElementById("generatorPanel");
+    return {
+      panelScrollTop: panel ? panel.scrollTop : 0,
+      windowScrollY:
+        typeof window.scrollY === "number"
+          ? window.scrollY
+          : (typeof window.pageYOffset === "number" ? window.pageYOffset : 0)
+    };
+  }
+
+  function restoreVaultView(snapshot, anchorId = "") {
+    const panel = document.getElementById("generatorPanel");
+    if (panel && snapshot && Number.isFinite(snapshot.panelScrollTop)) {
+      panel.scrollTop = snapshot.panelScrollTop;
+    }
+    if (snapshot && Number.isFinite(snapshot.windowScrollY)) {
+      try {
+        window.scrollTo(0, snapshot.windowScrollY);
+      } catch (_) {}
+    }
+
+    if (anchorId && panel) {
+      const safe = String(anchorId).replace(/\\/g, "\\\\").replace(/"/g, '\\\"');
+      const row = panel.querySelector(`[data-monster-id="${safe}"]`);
+      if (row) {
+        try {
+          row.scrollIntoView({ block: "nearest", inline: "nearest" });
+        } catch (_) {}
+      }
+    }
+  }
+
+  function rerenderVaultPreserveView(anchorId = "") {
+    const snapshot = captureVaultView();
+    renderMonsterVaultTool();
+    restoreVaultView(snapshot, anchorId);
+  }
 
   function renderMonsterVaultTool() {
     const panel = document.getElementById("generatorPanel");
@@ -1737,23 +1776,23 @@
         const alreadyOpen = state.expandedIds.includes(id);
         if (alreadyOpen) {
           toggleExpanded(id);
-          renderMonsterVaultTool();
+          rerenderVaultPreserveView(id);
           return;
         }
 
         toggleExpanded(id);
-        renderMonsterVaultTool();
+        rerenderVaultPreserveView(id);
 
         const mon = allMonsters().find((m) => m.id === id);
         if (mon && !mon.isHomebrew && !hasDetails(mon)) {
           srdLoadInFlight.add(id);
-          renderMonsterVaultTool();
+          rerenderVaultPreserveView(id);
           try {
             await hydrateSrdDetailsById(id);
           } finally {
             srdLoadInFlight.delete(id);
           }
-          renderMonsterVaultTool();
+          rerenderVaultPreserveView(id);
         }
       });
     });
