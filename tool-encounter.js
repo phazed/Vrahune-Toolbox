@@ -456,6 +456,13 @@ function exhaustionEffects(level) {
       state.activeLibraryId = null;
     }
 
+    // Heal stale "active" flags created by older quick-create behavior.
+    // If no active cards exist and we still have the default encounter name,
+    // this is not a truly activated encounter.
+    if (state.activeLibraryId && state.activeCombatants.length === 0 && state.activeEncounterName === "Current Encounter") {
+      state.activeLibraryId = null;
+    }
+
     state.createName = String(state.createName || "");
     state.createTags = String(state.createTags || "");
     state.createLocation = String(state.createLocation || "");
@@ -3669,7 +3676,8 @@ function renderEditorModal() {
       const location = String(state.createLocation || "").trim();
       const encounter = { id: uid("e"), name, location, combatants: [] };
       state.library.push(encounter);
-      state.activeLibraryId = encounter.id;
+      // Quick-create should NOT auto-mark an encounter as active.
+      // Activation is an explicit action from the library row button.
       state.libraryEditId = encounter.id;
       state.tab = "library";
       state.createName = "";
