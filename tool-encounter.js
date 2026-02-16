@@ -1,8 +1,8 @@
 // tool-encounter.js
 // Encounter / Initiative tool for Vrahune Toolbox
 (function () {
-  if (window.__vrahuneEncounterToolLoaded) return;
-  window.__vrahuneEncounterToolLoaded = true;
+  if (window.__vrahuneEncounterToolActive) return;
+  window.__vrahuneEncounterToolActive = true;
 
   const TOOL_ID = "encounterTool";
   const TOOL_NAME = "Encounter / Initiative";
@@ -637,24 +637,30 @@
       `;
     }
 
+    
     function renderLibraryTab() {
       const rows = state.library
         .map((enc) => {
           const isActive = enc.id === state.activeLibraryId;
-          const namesPreview = enc.combatants.slice(0, 5).map((c) => c.name).join(", ");
-          const more = enc.combatants.length > 5 ? ` +${enc.combatants.length - 5} more` : "";
+          const namesList = enc.combatants.length
+            ? enc.combatants.map((c) => c.name).join(" · ")
+            : "No combatants saved";
+
           return `
-            <div class="encounter-row ${isActive ? "encounter-row-active" : ""}" data-library-id="${esc(enc.id)}">
+            <div class="encounter-row" data-library-id="${esc(enc.id)}">
               <div class="encounter-row-header">
                 <div>
-                  <div class="encounter-name">${esc(enc.name)} ${isActive ? `<span class="active-pill">LOADED</span>` : ""}</div>
-                  <div class="encounter-tags">${esc(summarizeEncounter(enc))}${enc.tags ? ` · ${esc(enc.tags)}` : ""}</div>
+                  <div class="encounter-name">${esc(enc.name)}</div>
                   <div class="hint-text">${enc.location ? esc(enc.location) : "No location set"}</div>
-                  <div class="hint-text">${enc.combatants.length ? esc(namesPreview + more) : "No combatants saved"}</div>
+                  <div class="encounter-members">${esc(namesList)}</div>
                 </div>
               </div>
               <div class="encounter-actions">
-                <button class="btn btn-xs" data-make-active="${esc(enc.id)}">${isActive ? "Loaded" : "Load to active"}</button>
+                ${
+                  isActive
+                    ? `<button class="btn btn-xs btn-active-status" type="button">Active</button>`
+                    : `<button class="btn btn-secondary btn-xs" data-set-active="${esc(enc.id)}">Set active</button>`
+                }
                 <button class="btn btn-secondary btn-xs" data-edit-library="${esc(enc.id)}">Edit</button>
                 <button class="btn btn-secondary btn-xs" data-delete-library="${esc(enc.id)}">Delete</button>
               </div>
@@ -666,7 +672,7 @@
       return `
         <div class="section-heading-row">
           <div class="section-title">Encounter Library</div>
-          <div class="hint-text">Build, save, activate, and revise encounters.</div>
+          <div class="hint-text">Build, save, set active, and revise encounters.</div>
         </div>
 
         <div class="boxed-subsection">
@@ -676,11 +682,8 @@
           </div>
           <div class="row">
             <div class="col"><label>Name</label><input type="text" id="createName" placeholder="Ruined Tower Ambush" value="${esc(state.createName)}"></div>
-            <div class="col"><label>Tags</label><input type="text" id="createTags" placeholder="CR~4, undead" value="${esc(state.createTags)}"></div>
-          </div>
-          <div class="row">
             <div class="col"><label>Location</label><input type="text" id="createLocation" placeholder="Onyx frontier road" value="${esc(state.createLocation)}"></div>
-            <div class="col" style="max-width:230px; display:flex; gap:6px; align-items:flex-end;">
+            <div class="col" style="max-width:260px; display:flex; gap:6px; align-items:flex-end;">
               <button class="btn btn-xs" id="createFromActiveBtn">Create from active</button>
               <button class="btn btn-secondary btn-xs" id="createBlankAndEditBtn">Blank + edit popup</button>
             </div>
@@ -690,7 +693,7 @@
         <div class="party-strip">
           <div class="party-row">
             <span class="party-name">Current active: ${esc(state.activeEncounterName || "Current Encounter")}</span>
-            <span class="hint-text">${state.activeCombatants.length} combatant(s) · Loading a library encounter replaces the active tracker.</span>
+            <span class="hint-text">${state.activeCombatants.length} combatant(s) · Setting a library encounter active replaces the active tracker.</span>
           </div>
           <div class="party-row">
             <button class="btn btn-secondary btn-xs" id="openNewEditorBtn">Open editor popup (new)</button>
@@ -702,6 +705,7 @@
         </div>
       `;
     }
+
 
     function renderEditorModal() {
       if (!state.editorOpen) return "";
@@ -769,9 +773,6 @@
           <div class="modal-body">
             <div class="row">
               <div class="col"><label>Name</label><input type="text" id="editorName" value="${esc(state.editor.name)}"></div>
-              <div class="col"><label>Tags</label><input type="text" id="editorTags" value="${esc(state.editor.tags)}"></div>
-            </div>
-            <div class="row">
               <div class="col"><label>Location</label><input type="text" id="editorLocation" value="${esc(state.editor.location)}"></div>
             </div>
 
@@ -1138,25 +1139,28 @@
         .name-block { min-width: 0; }
         .name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
-        .card-name-input {
+                .card-name-input {
           min-width: 0;
           font-weight: 640;
           font-size: 0.87rem;
           letter-spacing: 0.01em;
-          padding: 2px 6px;
-          background: transparent;
-          border: 1px solid transparent;
+          padding: 3px 8px;
+          border-radius: 8px;
+          background: rgba(8, 12, 18, 0.7) !important;
+          border: 1px solid #2f3746;
           color: #eef3ff;
+          appearance: none;
+          -webkit-appearance: none;
         }
 
         .card-name-input:hover {
-          background: rgba(255,255,255,0.03);
-          border-color: #2f3643;
+          background: #0d121a !important;
+          border-color: #3c4658;
         }
 
         .card-name-input:focus {
-          background: #0b0f16;
-          border-color: #68748a;
+          background: #0f1520 !important;
+          border-color: #7281a0;
           box-shadow: 0 0 0 1px rgba(140,155,180,0.25);
         }
 
@@ -1259,12 +1263,7 @@
           gap: 3px;
         }
 
-        .encounter-row-active {
-          border-color: #5a6376;
-          box-shadow: 0 0 0 1px rgba(192,192,192,0.2);
-        }
-
-        .encounter-row-header {
+                .encounter-row-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -1273,17 +1272,21 @@
 
         .encounter-name { font-weight: 600; }
 
-        .active-pill {
-          display: inline-block;
-          margin-left: 6px;
-          font-size: 0.66rem;
-          padding: 1px 6px;
-          border-radius: 999px;
-          border: 1px solid #4b5465;
-          color: #d6def3;
+        .encounter-members {
+          margin-top: 2px;
+          font-size: 0.76rem;
+          color: #cfd5e2;
+          word-break: break-word;
         }
 
-        .encounter-tags { font-size: 0.72rem; color: var(--text-muted); }
+        .btn-active-status {
+          background: linear-gradient(120deg, #2d374b, #20293a);
+          border: 1px solid #7385ab;
+          color: #eef4ff;
+          box-shadow: 0 0 0 1px rgba(128, 150, 210, 0.35), 0 0 14px rgba(128, 150, 210, 0.2);
+          cursor: default;
+          font-weight: 650;
+        }
 
         .encounter-actions {
           display: flex;
@@ -1711,17 +1714,10 @@
 
       // library creation and actions
       const createName = shadow.getElementById("createName");
-      const createTags = shadow.getElementById("createTags");
       const createLocation = shadow.getElementById("createLocation");
       if (createName) {
         createName.addEventListener("input", () => {
           state.createName = createName.value;
-          saveState(state);
-        });
-      }
-      if (createTags) {
-        createTags.addEventListener("input", () => {
-          state.createTags = createTags.value;
           saveState(state);
         });
       }
@@ -1737,12 +1733,11 @@
         createFromActiveBtn.addEventListener("click", () => {
           const e = serializeActiveAsEncounter();
           e.name = (state.createName || state.activeEncounterName || "New Encounter").trim() || "New Encounter";
-          e.tags = (state.createTags || "").trim();
+          e.tags = "";
           e.location = (state.createLocation || "").trim();
           state.library.unshift(e);
           state.activeLibraryId = e.id;
           state.createName = "";
-          state.createTags = "";
           state.createLocation = "";
           persistAndRender();
         });
@@ -1754,13 +1749,12 @@
           const blank = {
             id: uid("enc"),
             name: (state.createName || "Untitled Encounter").trim() || "Untitled Encounter",
-            tags: (state.createTags || "").trim(),
+            tags: "",
             location: (state.createLocation || "").trim(),
             combatants: []
           };
           state.library.unshift(blank);
           state.createName = "";
-          state.createTags = "";
           state.createLocation = "";
           openEditor(blank);
         });
@@ -1769,13 +1763,13 @@
       const openNewEditorBtn = shadow.getElementById("openNewEditorBtn");
       if (openNewEditorBtn) {
         openNewEditorBtn.addEventListener("click", () => {
-          openEditor({ id: null, name: "", tags: "", location: "", combatants: [] });
+          openEditor({ id: null, name: "", location: "", combatants: [] });
         });
       }
 
-      shadow.querySelectorAll("[data-make-active]").forEach((btn) => {
+      shadow.querySelectorAll("[data-set-active]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-make-active");
+          const id = btn.getAttribute("data-set-active");
           const enc = state.library.find((e) => e.id === id);
           if (!enc) return;
           state.activeLibraryId = enc.id;
@@ -1825,7 +1819,6 @@
 
       const editorFieldMap = [
         ["editorName", "name"],
-        ["editorTags", "tags"],
         ["editorLocation", "location"]
       ];
 
@@ -2001,7 +1994,7 @@
       if (saveBtn) {
         saveBtn.addEventListener("click", () => {
           const name = (state.editor.name || "Untitled Encounter").trim() || "Untitled Encounter";
-          const tags = (state.editor.tags || "").trim();
+          const tags = "";
           const location = (state.editor.location || "").trim();
           const combatants = state.editor.combatants.map((c) => cloneCombatant(c, true));
 
