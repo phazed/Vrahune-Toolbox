@@ -2237,7 +2237,7 @@ function renderEditorModal() {
         }
 
         .card-content.active-card-content {
-          grid-template-columns: minmax(175px,1.2fr) minmax(260px,1.02fr) minmax(150px,0.82fr) minmax(148px,0.9fr);
+          grid-template-columns: minmax(165px,1.08fr) minmax(258px,1.05fr) minmax(176px,0.92fr) minmax(148px,0.9fr);
           grid-template-areas: "name hp cond meta";
           column-gap: 8px;
         }
@@ -2250,6 +2250,7 @@ function renderEditorModal() {
           justify-content: center;
           justify-self: center;
           width: 100%;
+          max-width: 194px;
         }
 
         .name-block {
@@ -2257,14 +2258,16 @@ function renderEditorModal() {
           grid-area: name;
           display: flex;
           justify-content: flex-start;
+          align-items: center;
         }
         .name-row {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: flex-start;
           gap: 6px;
           min-width: 0;
-          width: 100%;
+          width: auto;
+          max-width: 100%;
         }
 
         .card-name {
@@ -2277,7 +2280,7 @@ function renderEditorModal() {
           overflow: hidden;
           text-overflow: ellipsis;
           display: inline-block;
-          max-width: 100%;
+          max-width: min(300px, 100%);
           text-align: left;
         }
 
@@ -2328,13 +2331,13 @@ function renderEditorModal() {
         }
 
         .inline-edit-name {
-          flex: 1 1 auto;
+          flex: 0 1 auto;
           min-width: 0;
-          max-width: none;
+          max-width: min(300px, 100%);
         }
 
         .inline-input-name {
-          width: min(260px, 100%);
+          width: min(240px, 100%);
           font-size: 0.86rem;
           line-height: 1.2;
           padding: 3px 7px;
@@ -2682,12 +2685,12 @@ function renderEditorModal() {
           margin: 0;
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 3px 4px;
+          gap: 4px 6px;
           align-content: center;
           justify-items: stretch;
           width: 100%;
-          max-width: 156px;
-          max-height: 56px;
+          max-width: 186px;
+          max-height: 66px;
           overflow-x: hidden;
           overflow-y: auto;
           padding-right: 1px;
@@ -2696,11 +2699,11 @@ function renderEditorModal() {
         .condition-row.condition-row-inline .condition-chip {
           width: 100%;
           justify-content: center;
-          padding: 2px 6px;
+          padding: 3px 7px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 0.64rem;
+          font-size: 0.71rem;
         }
 
         .card-meta .condition-row {
@@ -2715,7 +2718,7 @@ function renderEditorModal() {
           border: 1px solid #2f3845;
           background: #0a1018;
           color: #d6e2f8;
-          font-size: 0.68rem;
+          font-size: 0.7rem;
           line-height: 1;
           padding: 3px 7px;
           white-space: nowrap;
