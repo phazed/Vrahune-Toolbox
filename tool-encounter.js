@@ -6,8 +6,8 @@
 
   const TOOL_ID = "encounterTool";
   const TOOL_NAME = "Encounter / Initiative";
-  const STORAGE_KEY = "vrahuneEncounterToolStateV4";
-  const LEGACY_KEYS = ["vrahuneEncounterToolStateV3", "vrahuneEncounterToolStateV2"];
+  const STORAGE_KEY = "vrahuneEncounterToolStateV5";
+  const LEGACY_KEYS = ["vrahuneEncounterToolStateV4", "vrahuneEncounterToolStateV3", "vrahuneEncounterToolStateV2"];
 
   function uid(prefix = "id") {
     return `${prefix}_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
@@ -647,15 +647,14 @@
             <div class="encounter-row ${isActive ? "encounter-row-active" : ""}" data-library-id="${esc(enc.id)}">
               <div class="encounter-row-header">
                 <div>
-                  <div class="encounter-name">${esc(enc.name)} ${isActive ? `<span class="active-pill">ACTIVE</span>` : ""}</div>
+                  <div class="encounter-name">${esc(enc.name)} ${isActive ? `<span class="active-pill">LOADED</span>` : ""}</div>
                   <div class="encounter-tags">${esc(summarizeEncounter(enc))}${enc.tags ? ` · ${esc(enc.tags)}` : ""}</div>
                   <div class="hint-text">${enc.location ? esc(enc.location) : "No location set"}</div>
                   <div class="hint-text">${enc.combatants.length ? esc(namesPreview + more) : "No combatants saved"}</div>
                 </div>
               </div>
               <div class="encounter-actions">
-                <button class="btn btn-xs" data-make-active="${esc(enc.id)}">${isActive ? "Active" : "Make active"}</button>
-                <button class="btn btn-secondary btn-xs" data-return-active="${esc(enc.id)}">Return active here</button>
+                <button class="btn btn-xs" data-make-active="${esc(enc.id)}">${isActive ? "Loaded" : "Load to active"}</button>
                 <button class="btn btn-secondary btn-xs" data-edit-library="${esc(enc.id)}">Edit</button>
                 <button class="btn btn-secondary btn-xs" data-delete-library="${esc(enc.id)}">Delete</button>
               </div>
@@ -691,10 +690,9 @@
         <div class="party-strip">
           <div class="party-row">
             <span class="party-name">Current active: ${esc(state.activeEncounterName || "Current Encounter")}</span>
-            <span class="hint-text">${state.activeCombatants.length} combatant(s)</span>
+            <span class="hint-text">${state.activeCombatants.length} combatant(s) · Loading a library encounter replaces the active tracker.</span>
           </div>
           <div class="party-row">
-            <button class="btn btn-xs" id="returnActiveBtn">Return active to library</button>
             <button class="btn btn-secondary btn-xs" id="openNewEditorBtn">Open editor popup (new)</button>
           </div>
         </div>
@@ -1142,9 +1140,32 @@
 
         .card-name-input {
           min-width: 0;
-          font-weight: 600;
-          font-size: 0.86rem;
-          padding: 3px 6px;
+          font-weight: 640;
+          font-size: 0.87rem;
+          letter-spacing: 0.01em;
+          padding: 2px 6px;
+          background: transparent;
+          border: 1px solid transparent;
+          color: #eef3ff;
+        }
+
+        .card-name-input:hover {
+          background: rgba(255,255,255,0.03);
+          border-color: #2f3643;
+        }
+
+        .card-name-input:focus {
+          background: #0b0f16;
+          border-color: #68748a;
+          box-shadow: 0 0 0 1px rgba(140,155,180,0.25);
+        }
+
+        .card-name-input:-webkit-autofill,
+        .card-name-input:-webkit-autofill:hover,
+        .card-name-input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #eef3ff;
+          -webkit-box-shadow: 0 0 0px 1000px #0b0f16 inset;
+          transition: background-color 9999s ease-out 0s;
         }
 
         .card-type-input {
@@ -1152,6 +1173,9 @@
           min-width: 78px;
           font-size: 0.72rem;
           padding: 3px 6px;
+          background: #0c1118;
+          border-color: #2a3240;
+          color: #dbe3f3;
         }
 
         .hp-block {
@@ -1742,25 +1766,6 @@
         });
       }
 
-      const returnActiveBtn = shadow.getElementById("returnActiveBtn");
-      if (returnActiveBtn) {
-        returnActiveBtn.addEventListener("click", () => {
-          if (state.activeLibraryId) {
-            const target = state.library.find((e) => e.id === state.activeLibraryId);
-            if (target) {
-              target.combatants = state.activeCombatants.map((c) => cloneCombatant(c, true));
-              if (!target.name) target.name = state.activeEncounterName || "Current Encounter";
-            }
-          } else {
-            const created = serializeActiveAsEncounter();
-            created.name = state.activeEncounterName || "Current Encounter";
-            state.library.unshift(created);
-            state.activeLibraryId = created.id;
-          }
-          persistAndRender();
-        });
-      }
-
       const openNewEditorBtn = shadow.getElementById("openNewEditorBtn");
       if (openNewEditorBtn) {
         openNewEditorBtn.addEventListener("click", () => {
@@ -1779,17 +1784,6 @@
           state.turnIndex = 0;
           state.round = 1;
           state.tab = "active";
-          persistAndRender();
-        });
-      });
-
-      shadow.querySelectorAll("[data-return-active]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-return-active");
-          const enc = state.library.find((e) => e.id === id);
-          if (!enc) return;
-          enc.combatants = state.activeCombatants.map((c) => cloneCombatant(c, true));
-          if (!enc.name) enc.name = state.activeEncounterName || "Current Encounter";
           persistAndRender();
         });
       });
