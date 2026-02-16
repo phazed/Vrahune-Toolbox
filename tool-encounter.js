@@ -643,13 +643,14 @@
       if ((c.exhaustionLevel || 0) > 0) {
         chips.push(`<span class="condition-chip exhaustion">Exhaustion ${c.exhaustionLevel}</span>`);
       }
-      if (!chips.length) return `<div class="condition-row"><span class="hint-text">No conditions</span></div>`;
+      if (!chips.length) return "";
       return `<div class="condition-row">${chips.join("")}</div>`;
     }
 
-    function getEncounterDifficulty() {
-      const allies = state.activeCombatants.filter((c) => c.type !== "Enemy");
-      const enemies = state.activeCombatants.filter((c) => c.type === "Enemy");
+    function getEncounterDifficulty(combatants = state.activeCombatants) {
+      const roster = Array.isArray(combatants) ? combatants : [];
+      const allies = roster.filter((c) => c.type !== "Enemy");
+      const enemies = roster.filter((c) => c.type === "Enemy");
 
       const partyLevels = allies.map((c) => normalizeLevel(c.level, 1));
       const partyCount = partyLevels.length;
@@ -1306,7 +1307,6 @@
     function renderActiveTab() {
       const party = getSelectedParty();
       const addExpanded = !!state.addExpanded;
-      const difficulty = getEncounterDifficulty();
 
       const addSectionBody = addExpanded
         ? `
@@ -1488,33 +1488,7 @@
           </div>
         </div>
 
-        <div class="boxed-subsection">
-          <div class="boxed-subsection-header">
-            <div class="boxed-subsection-title">Encounter Difficulty Meter (2024)</div>
-            <span class="hint-text">Uses party levels + enemy CR XP budgets.</span>
-          </div>
-          <div class="difficulty-summary">
-            <div class="difficulty-line">
-              <span><b>Party:</b> ${difficulty.partyCount} combatant${difficulty.partyCount === 1 ? "" : "s"}</span>
-              <span><b>Enemies:</b> ${difficulty.enemyCount}</span>
-              <span><b>Enemy XP:</b> ${difficulty.enemyXP.toLocaleString()}</span>
-              <span class="difficulty-pill ${difficulty.tierClass}">${difficulty.tier}</span>
-            </div>
-            <div class="difficulty-track">
-              <div class="difficulty-threshold low" style="left:${difficulty.lowPct}%"></div>
-              <div class="difficulty-threshold moderate" style="left:${difficulty.moderatePct}%"></div>
-              <div class="difficulty-fill ${difficulty.tierClass}" style="width:${Math.min(100, difficulty.pctOfHigh)}%"></div>
-            </div>
-            <div class="difficulty-legend">
-              <span>Low ${difficulty.budget.low.toLocaleString()}</span>
-              <span>Moderate ${difficulty.budget.moderate.toLocaleString()}</span>
-              <span>High ${difficulty.budget.high.toLocaleString()}</span>
-              <span>${difficulty.pctOfHigh}% of High</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="boxed-subsection">
+                <div class="boxed-subsection">
           <div class="boxed-subsection-header">
             <button class="btn btn-secondary btn-xs" id="toggleAddSectionBtn" style="gap:8px; border-radius:8px;">
               <span class="chevron">${addExpanded ? "▾" : "▸"}</span>
@@ -1548,6 +1522,7 @@ function renderLibraryTab() {
       const namesList = enc.combatants.length
         ? enc.combatants.map((c) => c.name).join(" · ")
         : "No combatants saved";
+      const builderDifficulty = getEncounterDifficulty(enc.combatants);
 
       const editorCards = isEditing
         ? enc.combatants
@@ -1627,6 +1602,32 @@ function renderLibraryTab() {
             <div class="row">
               <div class="col"><label>Name</label><input type="text" data-lib-enc-field="name" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.name)}"></div>
               <div class="col"><label>Location</label><input type="text" data-lib-enc-field="location" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.location || "")}"></div>
+            </div>
+
+            <div class="boxed-subsection" style="margin-top:6px;">
+              <div class="boxed-subsection-header">
+                <div class="boxed-subsection-title">Builder Difficulty Meter (2024)</div>
+                <span class="hint-text">Prep balance here before activating this encounter.</span>
+              </div>
+              <div class="difficulty-summary">
+                <div class="difficulty-line">
+                  <span><b>Party:</b> ${builderDifficulty.partyCount} combatant${builderDifficulty.partyCount === 1 ? "" : "s"}</span>
+                  <span><b>Enemies:</b> ${builderDifficulty.enemyCount}</span>
+                  <span><b>Enemy XP:</b> ${builderDifficulty.enemyXP.toLocaleString()}</span>
+                  <span class="difficulty-pill ${builderDifficulty.tierClass}">${builderDifficulty.tier}</span>
+                </div>
+                <div class="difficulty-track">
+                  <div class="difficulty-threshold low" style="left:${builderDifficulty.lowPct}%"></div>
+                  <div class="difficulty-threshold moderate" style="left:${builderDifficulty.moderatePct}%"></div>
+                  <div class="difficulty-fill ${builderDifficulty.tierClass}" style="width:${Math.min(100, builderDifficulty.pctOfHigh)}%"></div>
+                </div>
+                <div class="difficulty-legend">
+                  <span>Low ${builderDifficulty.budget.low.toLocaleString()}</span>
+                  <span>Moderate ${builderDifficulty.budget.moderate.toLocaleString()}</span>
+                  <span>High ${builderDifficulty.budget.high.toLocaleString()}</span>
+                  <span>${builderDifficulty.pctOfHigh}% of High</span>
+                </div>
+              </div>
             </div>
 
             <div class="boxed-subsection">
@@ -2086,24 +2087,34 @@ function renderEditorModal() {
         .card-content {
           flex: 1;
           display: grid;
-          grid-template-columns: minmax(150px,1.7fr) auto minmax(106px,0.95fr);
+          grid-template-columns: minmax(170px,1.65fr) minmax(290px,1.1fr) minmax(112px,0.85fr);
+          grid-template-areas:
+            "name hp meta"
+            "conds conds conds";
           align-items: center;
           column-gap: 8px;
+          row-gap: 3px;
         }
 
-        .name-block { min-width: 0; }
+        .name-block {
+          min-width: 0;
+          grid-area: name;
+          display: flex;
+          justify-content: center;
+        }
         .name-row {
           display: flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           gap: 6px;
           min-width: 0;
+          width: 100%;
         }
 
         .card-name {
           min-width: 0;
-          font-weight: 640;
-          font-size: 0.9rem;
+          font-weight: 680;
+          font-size: 0.98rem;
           letter-spacing: 0.01em;
           color: #eef3ff;
           white-space: nowrap;
@@ -2111,6 +2122,7 @@ function renderEditorModal() {
           text-overflow: ellipsis;
           display: inline-block;
           max-width: 100%;
+          text-align: center;
         }
 
         .inline-edit {
@@ -2200,13 +2212,15 @@ function renderEditorModal() {
         .enemy-card .card-tag { border-color: #6b2c38; color: #ffb8c0; background: #190b10; }
 
         .hp-block {
+          grid-area: hp;
           display: inline-flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           gap: 4px;
-          justify-self: start;
+          justify-self: center;
           min-width: 0;
           flex-wrap: wrap;
+          margin: 0 auto;
         }
 
         .hp-label { font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
@@ -2236,6 +2250,7 @@ function renderEditorModal() {
         }
 
         .card-meta {
+          grid-area: meta;
           display: flex;
           flex-direction: column;
           align-items: flex-end;
@@ -2280,15 +2295,15 @@ function renderEditorModal() {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          min-width: 64px;
+          min-width: 68px;
         }
 
         .meta-read-line {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-end;
           gap: 8px;
-          min-width: 64px;
+          min-width: 68px;
         }
 
         .card-meta-top .btn-icon {
@@ -2494,11 +2509,14 @@ function renderEditorModal() {
         }
 
         .condition-row {
-          margin-top: 2px;
+          grid-area: conds;
+          margin-top: 0;
           display: flex;
           flex-wrap: wrap;
           align-items: center;
+          justify-content: center;
           gap: 4px;
+          min-height: 0;
         }
 
         .condition-chip {
@@ -2695,9 +2713,20 @@ function renderEditorModal() {
         }
 
         @media (max-width: 860px) {
-          .card-content { grid-template-columns: 1fr; row-gap: 4px; }
-          .card-meta { justify-self: start; align-items: flex-start; }
-          .hp-block { justify-self: start; }
+          .card-content {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+              "name"
+              "hp"
+              "meta"
+              "conds";
+            row-gap: 4px;
+          }
+          .name-block,
+          .name-row { justify-content: center; }
+          .card-meta { justify-self: center; align-items: center; }
+          .hp-block { justify-self: center; }
+          .condition-row { justify-content: center; }
         }
 
         .encounter-row.editing {
