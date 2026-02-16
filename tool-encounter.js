@@ -209,7 +209,7 @@
   function monsterVaultApi() {
     const api = window.VrahuneMonsterVault;
     if (!api || typeof api !== "object") return null;
-    if (typeof api.getAllMonsters !== "function" || typeof api.toEncounterCombatant !== "function") return null;
+    if (typeof api.getAllMonsters !== "function" && typeof api.getMonsterIndex !== "function") return null;
     return api;
   }
 
@@ -217,58 +217,82 @@
     return !!monsterVaultApi();
   }
 
-  const monsterVaultIndexCache = {
-    list: [],
-    crValues: [],
-    ready: false
-  };
-
-  function resetMonsterVaultCache() {
-    monsterVaultIndexCache.list = [];
-    monsterVaultIndexCache.crValues = [];
-    monsterVaultIndexCache.ready = false;
-  }
-
   function monsterVaultMonsters(forceRefresh = false) {
     const api = monsterVaultApi();
     if (!api) {
-      resetMonsterVaultCache();
+      resetMonsterVaultCache?.();
       return [];
     }
 
-    if (!forceRefresh && monsterVaultIndexCache.ready) {
-      return monsterVaultIndexCache.list;
+    if (!forceRefresh && typeof monsterVaultIndexCache === "object" && monsterVaultIndexCache.ready) {
+      return monsterVaultIndexCache.list || [];
     }
 
     try {
-      const raw = typeof api.getMonsterIndex === "function" ? api.getMonsterIndex() : api.getAllMonsters();
-      const list = (raw || []).map((m) => ({
-        id: String(m.id || ""),
-        name: String(m.name || "Unnamed Monster"),
-        type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
-        cr: normalizeCR(m.cr, "1/8"),
-        ac: Math.max(0, intOr(m.ac, 10)),
-        hp: Math.max(1, intOr(m.hp ?? m.hpMax, 1)),
-        speed: Math.max(0, intOr(m.speed, 30)),
-        initiative: Math.max(0, intOr(m.initiative, 10)),
-        source: m.isHomebrew ? "Homebrew" : "SRD 2024",
-        sourceType: m.isHomebrew ? "homebrew" : "srd",
-        sizeType: String(m.sizeType || ""),
-        actionsCount: Math.max(0, intOr(m.actionsCount, 0))
-      }));
+      const indexRaw = typeof api.getMonsterIndex === "function" ? api.getMonsterIndex() : null;
+      const allRaw = typeof api.getAllMonsters === "function" ? api.getAllMonsters() : null;
+
+      const pickArray = (value) => {
+        if (Array.isArray(value)) return value;
+        if (value && typeof value === "object") {
+          if (Array.isArray(value.monsters)) return value.monsters;
+          if (Array.isArray(value.items)) return value.items;
+        }
+        return [];
+      };
+
+      let rawList = pickArray(indexRaw);
+      if (!rawList.length) rawList = pickArray(allRaw);
+
+      const list = rawList
+        .filter(Boolean)
+        .map((m) => {
+          const sourceLabelRaw = String(m.source || m.sourceLabel || "").toLowerCase();
+          const sourceTypeRaw = String(m.sourceType || "").toLowerCase();
+          const isHomebrew = sourceTypeRaw === "homebrew" || !!m.isHomebrew || sourceLabelRaw.includes("homebrew");
+          const actionsCount =
+            intOr(m.actionsCount, -1) >= 0
+              ? Math.max(0, intOr(m.actionsCount, 0))
+              : Math.max(
+                  0,
+                  intOr(Array.isArray(m.actions) ? m.actions.length : 0, 0) +
+                    intOr(Array.isArray(m.bonusActions) ? m.bonusActions.length : 0, 0) +
+                    intOr(Array.isArray(m.reactions) ? m.reactions.length : 0, 0) +
+                    intOr(Array.isArray(m.legendaryActions) ? m.legendaryActions.length : 0, 0)
+                );
+
+          return {
+            id: String(m.id || ""),
+            name: String(m.name || "Unnamed Monster"),
+            type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
+            cr: normalizeCR(m.cr, "1/8"),
+            ac: Math.max(0, intOr(m.ac, 10)),
+            hp: Math.max(1, intOr(m.hp ?? m.hpMax, 1)),
+            speed: Math.max(0, intOr(m.speed, 30)),
+            initiative: Math.max(0, intOr(m.initiative, 10)),
+            source: isHomebrew ? "Homebrew" : "SRD 2024",
+            sourceType: isHomebrew ? "homebrew" : "srd",
+            sizeType: String(m.sizeType || m.size || ""),
+            actionsCount
+          };
+        })
+        .filter((m) => m.id && m.name);
 
       const crValues = [...new Set(list.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
-      monsterVaultIndexCache.list = list;
-      monsterVaultIndexCache.crValues = crValues;
-      monsterVaultIndexCache.ready = true;
+      if (typeof monsterVaultIndexCache === "object") {
+        monsterVaultIndexCache.list = list;
+        monsterVaultIndexCache.crValues = crValues;
+        monsterVaultIndexCache.ready = true;
+      }
       return list;
     } catch (_) {
-      resetMonsterVaultCache();
+      resetMonsterVaultCache?.();
       return [];
     }
   }
 
   function hasMonsterDetails(c) {
+
     if (!c || c.type !== "Enemy") return false;
     return [c.traits, c.actions, c.bonusActions, c.reactions, c.legendaryActions].some((arr) => Array.isArray(arr) && arr.length);
   }
@@ -705,12 +729,58 @@
     function addMonsterFromVault(monsterId) {
       const api = monsterVaultApi();
       if (!api || !monsterId) return;
+
+      const normalizeFromRaw = (raw) => {
+        if (!raw || typeof raw !== "object") return null;
+        return {
+          id: String(raw.id || monsterId),
+          name: String(raw.name || "Unnamed Monster"),
+          type: ["PC", "NPC", "Enemy"].includes(raw.type) ? raw.type : "Enemy",
+          initiative: Math.max(0, intOr(raw.initiative, 10)),
+          ac: Math.max(0, intOr(raw.ac, 10)),
+          speed: Math.max(0, intOr(raw.speed, 30)),
+          hpMax: Math.max(1, intOr(raw.hpMax ?? raw.hp, 1)),
+          hpCurrent: Math.max(0, intOr(raw.hpCurrent ?? raw.hpMax ?? raw.hp, 1)),
+          level: intOr(raw.level, 1),
+          cr: normalizeCR(raw.cr, "1"),
+          conditions: Array.isArray(raw.conditions) ? raw.conditions : [],
+          sourceMonsterId: String(raw.id || monsterId),
+          sourceMonsterName: String(raw.name || "Unnamed Monster"),
+          source: String(raw.source || ""),
+          xp: Math.max(0, intOr(raw.xp, raw.cr ? crToXP(raw.cr) : 0)),
+          sizeType: String(raw.sizeType || raw.size || ""),
+          details: raw.details && typeof raw.details === "object" ? JSON.parse(JSON.stringify(raw.details)) : null,
+          traits: Array.isArray(raw.traits) ? JSON.parse(JSON.stringify(raw.traits)) : [],
+          actions: Array.isArray(raw.actions) ? JSON.parse(JSON.stringify(raw.actions)) : [],
+          bonusActions: Array.isArray(raw.bonusActions) ? JSON.parse(JSON.stringify(raw.bonusActions)) : [],
+          reactions: Array.isArray(raw.reactions) ? JSON.parse(JSON.stringify(raw.reactions)) : [],
+          legendaryActions: Array.isArray(raw.legendaryActions) ? JSON.parse(JSON.stringify(raw.legendaryActions)) : []
+        };
+      };
+
       let created = null;
       try {
-        created = api.toEncounterCombatant(monsterId);
+        if (typeof api.toEncounterCombatant === "function") {
+          created = api.toEncounterCombatant(monsterId);
+        }
       } catch (_) {
         created = null;
       }
+
+      if (!created) {
+        try {
+          if (typeof api.getMonsterById === "function") {
+            created = normalizeFromRaw(api.getMonsterById(monsterId));
+          }
+          if (!created && typeof api.getAllMonsters === "function") {
+            const fromList = (api.getAllMonsters() || []).find((m) => String(m?.id || "") === String(monsterId));
+            created = normalizeFromRaw(fromList);
+          }
+        } catch (_) {
+          created = null;
+        }
+      }
+
       if (!created) {
         monsterVaultMonsters(true);
         render();
@@ -737,8 +807,8 @@
       persistAndRender();
     }
 
-
     function getActiveCombatantById(cardId) {
+
       return state.activeCombatants.find((c) => c.id === cardId) || null;
     }
 
@@ -1549,7 +1619,7 @@
                         `
                       )
                       .join("")
-                  : `<div class="hint-text" style="padding:8px;">${hasMonsterVaultApi() ? "No monsters match your filters." : "Monster Vault tool is not loaded."}</div>`
+                  : `<div class="hint-text" style="padding:8px;">${hasMonsterVaultApi() ? "No monsters match your filters." : "Monster Vault API not found. Open the Monster Vault tab once, then reopen this picker."}</div>`
               }
             </div>
 
