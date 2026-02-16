@@ -206,37 +206,6 @@
     return /^data:image\//i.test(s) ? s : "";
   }
 
-  let monsterVaultIndexCache = [];
-
-  function monsterTextValue(value, depth = 0) {
-    if (value == null) return "";
-    if (depth > 5) return "";
-    if (typeof value === "string") {
-      const s = value.trim();
-      if (!s || /^\[object Object\]$/i.test(s)) return "";
-      return s;
-    }
-    if (typeof value === "number" || typeof value === "boolean") return String(value);
-    if (Array.isArray(value)) {
-      return value
-        .map((v) => monsterTextValue(v, depth + 1))
-        .filter(Boolean)
-        .join(", ");
-    }
-    if (typeof value === "object") {
-      const parts = Object.entries(value)
-        .map(([k, v]) => {
-          const inner = monsterTextValue(v, depth + 1);
-          if (!inner) return "";
-          const key = String(k || "").replace(/_/g, " ").trim();
-          return key ? `${key}: ${inner}` : inner;
-        })
-        .filter(Boolean);
-      return parts.join(", ");
-    }
-    return String(value).trim();
-  }
-
   function monsterVaultApi() {
     const api = window.VrahuneMonsterVault;
     if (!api || typeof api !== "object") return null;
@@ -248,46 +217,55 @@
     return !!monsterVaultApi();
   }
 
+  const monsterVaultIndexCache = {
+    list: [],
+    crValues: [],
+    ready: false
+  };
+
+  function resetMonsterVaultCache() {
+    monsterVaultIndexCache.list = [];
+    monsterVaultIndexCache.crValues = [];
+    monsterVaultIndexCache.ready = false;
+  }
+
   function monsterVaultMonsters(forceRefresh = false) {
     const api = monsterVaultApi();
-    if (!api) return [];
-
-    if (!forceRefresh && Array.isArray(monsterVaultIndexCache) && monsterVaultIndexCache.length) {
-      return monsterVaultIndexCache;
+    if (!api) {
+      resetMonsterVaultCache();
+      return [];
     }
 
-    let mons = [];
+    if (!forceRefresh && monsterVaultIndexCache.ready) {
+      return monsterVaultIndexCache.list;
+    }
+
     try {
-      if (typeof api.getMonsterIndex === "function") {
-        mons = api.getMonsterIndex();
-      } else if (typeof api.getAllMonsters === "function") {
-        mons = api.getAllMonsters();
-      }
+      const raw = typeof api.getMonsterIndex === "function" ? api.getMonsterIndex() : api.getAllMonsters();
+      const list = (raw || []).map((m) => ({
+        id: String(m.id || ""),
+        name: String(m.name || "Unnamed Monster"),
+        type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
+        cr: normalizeCR(m.cr, "1/8"),
+        ac: Math.max(0, intOr(m.ac, 10)),
+        hp: Math.max(1, intOr(m.hp ?? m.hpMax, 1)),
+        speed: Math.max(0, intOr(m.speed, 30)),
+        initiative: Math.max(0, intOr(m.initiative, 10)),
+        source: m.isHomebrew ? "Homebrew" : "SRD 2024",
+        sourceType: m.isHomebrew ? "homebrew" : "srd",
+        sizeType: String(m.sizeType || ""),
+        actionsCount: Math.max(0, intOr(m.actionsCount, 0))
+      }));
+
+      const crValues = [...new Set(list.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
+      monsterVaultIndexCache.list = list;
+      monsterVaultIndexCache.crValues = crValues;
+      monsterVaultIndexCache.ready = true;
+      return list;
     } catch (_) {
-      mons = [];
+      resetMonsterVaultCache();
+      return [];
     }
-
-    const normalized = (Array.isArray(mons) ? mons : [])
-      .map((m) => ({
-        id: String(m?.id || "").trim(),
-        name: String(m?.name || "Unnamed Monster").trim() || "Unnamed Monster",
-        type: ["PC", "NPC", "Enemy"].includes(m?.type) ? m.type : "Enemy",
-        cr: normalizeCR(m?.cr, "0"),
-        ac: Math.max(0, intOr(m?.ac, 10)),
-        hp: Math.max(1, intOr(m?.hp, 1)),
-        speed: Math.max(0, intOr(m?.speed, 30)),
-        initiative: Math.max(0, intOr(m?.initiative, 10)),
-        source: String(m?.source || (m?.isHomebrew ? "Homebrew" : "SRD 2024")).trim() || "SRD 2024",
-        sourceType: m?.isHomebrew ? "homebrew" : "srd",
-        sizeType: String(m?.sizeType || ""),
-        level: normalizeLevel(m?.level, 3),
-        xp: Math.max(0, intOr(m?.xp, crToXP(m?.cr))),
-        isHomebrew: !!m?.isHomebrew
-      }))
-      .filter((m) => m.id);
-
-    monsterVaultIndexCache = normalized;
-    return normalized;
   }
 
   function hasMonsterDetails(c) {
@@ -295,6 +273,10 @@
     return [c.traits, c.actions, c.bonusActions, c.reactions, c.legendaryActions].some((arr) => Array.isArray(arr) && arr.length);
   }
 
+  window.addEventListener("vrahune-monster-vault-updated", () => {
+    resetMonsterVaultCache();
+    if (monsterPicker.open) render();
+  });
 
   function initialParties() {
     return [
@@ -322,12 +304,8 @@
     const normalizeFeatures = (list) =>
       (Array.isArray(list) ? list : [])
         .map((entry) => {
-          if (typeof entry === "string") {
-            const textOnly = monsterTextValue(entry);
-            return textOnly ? { name: "Feature", text: textOnly } : null;
-          }
-          const name = monsterTextValue(entry?.name).trim();
-          const text = monsterTextValue(entry?.text ?? entry?.description).trim();
+          const name = String(entry?.name || "").trim();
+          const text = String(entry?.text || entry?.description || "").trim();
           if (!name && !text) return null;
           return { name: name || "Feature", text };
         })
@@ -704,8 +682,7 @@
       encounterId: null,
       query: "",
       cr: "all",
-      source: "all",
-      cachedList: []
+      source: "all"
     };
 
     function openMonsterPicker(scope, encounterId = null) {
@@ -715,7 +692,7 @@
       monsterPicker.query = "";
       monsterPicker.cr = "all";
       monsterPicker.source = "all";
-      monsterPicker.cachedList = monsterVaultMonsters(true);
+      monsterVaultMonsters(true);
       render();
     }
 
@@ -734,38 +711,17 @@
       } catch (_) {
         created = null;
       }
-      if (!created) return;
+      if (!created) {
+        monsterVaultMonsters(true);
+        render();
+        return;
+      }
 
       if (created.hp != null && created.hpMax == null) created.hpMax = created.hp;
       if (created.hpMax != null && created.hpCurrent == null) created.hpCurrent = created.hpMax;
       if (created.initiative == null) created.initiative = 10;
 
-      const safeCreated = {
-        name: String(created.name || "Unnamed Monster").trim() || "Unnamed Monster",
-        type: ["PC", "NPC", "Enemy"].includes(created.type) ? created.type : "Enemy",
-        initiative: Math.max(0, intOr(created.initiative, 10)),
-        ac: Math.max(0, intOr(created.ac, 10)),
-        speed: Math.max(0, intOr(created.speed, 30)),
-        hpCurrent: Math.max(0, intOr(created.hpCurrent, intOr(created.hpMax, 1))),
-        hpMax: Math.max(1, intOr(created.hpMax, 1)),
-        level: normalizeLevel(created.level, 3),
-        cr: normalizeCR(created.cr, "0"),
-        sourceMonsterId: created.sourceMonsterId || monsterId,
-        sourceMonsterName: created.sourceMonsterName || created.name || "",
-        source: String(created.source || "").trim(),
-        xp: Math.max(0, intOr(created.xp, crToXP(created.cr))),
-        sizeType: String(created.sizeType || "").trim(),
-        details: safeJsonClone(created.details || {}),
-        traits: safeJsonClone(created.traits || []),
-        actions: safeJsonClone(created.actions || []),
-        bonusActions: safeJsonClone(created.bonusActions || []),
-        reactions: safeJsonClone(created.reactions || []),
-        legendaryActions: safeJsonClone(created.legendaryActions || []),
-        conditions: []
-      };
-      safeCreated.hpCurrent = clamp(safeCreated.hpCurrent, 0, safeCreated.hpMax);
-
-      const next = mkCombatant(safeCreated);
+      const next = mkCombatant(created);
       if (monsterPicker.scope === "library") {
         const enc = state.library.find((e) => e.id === monsterPicker.encounterId);
         if (!enc) return;
@@ -1393,7 +1349,7 @@
       }
     }
 
-    function renderConditionBadges(c) {
+    function renderConditionPopover(c) {
       const chips = [];
       (c.conditions || []).forEach((cond) => {
         const label = cond.duration ? `${cond.name} · ${cond.duration}r` : cond.name;
@@ -1404,7 +1360,12 @@
         chips.push(`<span class="condition-chip exhaustion" title="${esc(CONDITION_INFO_2024.Exhaustion)}">Exhaustion ${c.exhaustionLevel}</span>`);
       }
       if (!chips.length) return "";
-      return `<div class="condition-row">${chips.join("")}</div>`;
+      return `
+        <div class="condition-pop-wrap" title="Active conditions">
+          <span class="condition-pop-trigger">Cond ${chips.length}</span>
+          <div class="condition-pop-panel">${chips.join("")}</div>
+        </div>
+      `;
     }
 
     function renderMonsterDetailsPanel(c) {
@@ -1519,7 +1480,9 @@
       const query = String(monsterPicker.query || "").trim().toLowerCase();
       const crFilter = String(monsterPicker.cr || "all");
       const sourceFilter = String(monsterPicker.source || "all");
-      const crValues = [...new Set(allMonsters.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
+      const crValues = monsterVaultIndexCache.crValues.length
+        ? monsterVaultIndexCache.crValues
+        : [...new Set(allMonsters.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
 
       const filtered = allMonsters.filter((m) => {
         if (crFilter !== "all" && m.cr !== crFilter) return false;
@@ -1579,7 +1542,7 @@
                           <div class="monster-picker-row">
                             <div class="monster-picker-main">
                               <div class="monster-picker-name">${esc(m.name)}</div>
-                              <div class="monster-picker-meta">CR ${esc(m.cr)} · AC ${m.ac} · HP ${m.hp} · Spd ${m.speed} · Init ${m.initiative} · ${esc(m.source)}</div>
+                              <div class="monster-picker-meta">CR ${esc(m.cr)} · AC ${m.ac} · HP ${m.hp} · Spd ${m.speed} · Init ${m.initiative} · ${esc(m.source)}${m.actionsCount ? ` · Details ${m.actionsCount}` : ""}</div>
                             </div>
                             <button class="btn btn-xs" data-picker-add-monster="${esc(m.id)}">Add</button>
                           </div>
@@ -1750,6 +1713,7 @@
                       </span>
                       <span class="card-tag">${esc(c.type)}</span>
                     </div>
+                    <div class="card-submeta">${esc(c.sizeType || "—")} · ${esc(c.source || (c.type === "Enemy" ? "Monster Vault" : c.type))}${hasMonsterDetails(c) ? ` · Details ${(c.actions?.length || 0) + (c.bonusActions?.length || 0) + (c.reactions?.length || 0) + (c.legendaryActions?.length || 0)}` : ""}</div>
                   </div>
 
                   <div class="hp-block">
@@ -1767,7 +1731,6 @@
                     </div>
                   </div>
 
-                  ${renderConditionBadges(c)}
                   ${renderMonsterDetailsPanel(c)}
 
                   <div class="card-meta">
@@ -1802,6 +1765,7 @@
                           </span>
                         </div>
                       </div>
+                      ${renderConditionPopover(c)}
                       <button class="btn-icon" title="Remove" data-remove-card="${esc(c.id)}">×</button>
                     </div>
                   </div>
@@ -1899,6 +1863,7 @@ function renderLibraryTab() {
                           </span>
                           <span class="card-tag">${esc(c.type)}</span>
                         </div>
+                        <div class="card-submeta">${esc(c.sizeType || "—")} · ${esc(c.source || (c.type === "Enemy" ? "Monster Vault" : c.type))}${hasMonsterDetails(c) ? ` · Details ${(c.actions?.length || 0) + (c.bonusActions?.length || 0) + (c.reactions?.length || 0) + (c.legendaryActions?.length || 0)}` : ""}</div>
                       </div>
                       <div class="hp-block">
                         <span class="hp-label">HP:</span>
@@ -1941,6 +1906,7 @@ function renderLibraryTab() {
                               </span>
                             </div>
                           </div>
+                          ${renderConditionPopover(c)}
                           <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
                         </div>
                       </div>
@@ -2448,8 +2414,8 @@ function renderEditorModal() {
         .card-content {
           flex: 1;
           display: grid;
-          grid-template-columns: minmax(170px,1.4fr) minmax(290px,1.2fr) minmax(160px,0.95fr) minmax(112px,0.85fr);
-          grid-template-areas: "name hp conds meta";
+          grid-template-columns: minmax(220px,1.55fr) minmax(290px,1.1fr) minmax(136px,0.9fr);
+          grid-template-areas: "name hp meta";
           align-items: center;
           column-gap: 8px;
           row-gap: 3px;
@@ -2459,7 +2425,10 @@ function renderEditorModal() {
           min-width: 0;
           grid-area: name;
           display: flex;
-          justify-content: flex-start;
+          flex-direction: column;
+          justify-content: center;
+          align-items: flex-start;
+          gap: 2px;
         }
         .name-row {
           display: flex;
@@ -2482,6 +2451,16 @@ function renderEditorModal() {
           display: inline-block;
           max-width: 100%;
           text-align: left;
+        }
+
+        .card-submeta {
+          font-size: 0.68rem;
+          color: #9aa9c3;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
         }
 
         .inline-edit {
@@ -2531,9 +2510,9 @@ function renderEditorModal() {
         }
 
         .inline-edit-name {
-          flex: 1 1 auto;
+          flex: 0 1 auto;
           min-width: 0;
-          max-width: 100%;
+          max-width: calc(100% - 58px);
         }
 
         .inline-input-name {
@@ -2565,7 +2544,6 @@ function renderEditorModal() {
           background: #0a0f15;
           white-space: nowrap;
           flex-shrink: 0;
-          margin-left: 2px;
         }
 
         .pc-card .card-tag { border-color: #3b5678; color: #b8c8ff; background: #0b1420; }
@@ -2577,10 +2555,10 @@ function renderEditorModal() {
           align-items: center;
           justify-content: center;
           gap: 4px;
-          justify-self: center;
+          justify-self: start;
           min-width: 0;
           flex-wrap: wrap;
-          margin: 0 auto;
+          margin: 0;
         }
 
         .hp-label { font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
@@ -2624,6 +2602,48 @@ function renderEditorModal() {
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+
+        .condition-pop-wrap {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .condition-pop-trigger {
+          font-size: 0.64rem;
+          line-height: 1;
+          padding: 4px 6px;
+          border-radius: 999px;
+          border: 1px solid #3a4760;
+          color: #dce6f7;
+          background: #0b1018;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+          cursor: default;
+          white-space: nowrap;
+        }
+
+        .condition-pop-panel {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 6px);
+          z-index: 12;
+          min-width: 170px;
+          max-width: 260px;
+          border-radius: 10px;
+          border: 1px solid #354055;
+          background: #070c15;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+          padding: 7px;
+          display: none;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+
+        .condition-pop-wrap:hover .condition-pop-panel,
+        .condition-pop-wrap:focus-within .condition-pop-panel {
+          display: flex;
         }
 
         .meta-k {
@@ -2693,8 +2713,8 @@ function renderEditorModal() {
         }
 
         .monster-detail-group {
-          border: 1px solid #263242;
-          background: #0c121b;
+          border: 1px solid #2a3648;
+          background: #080f17;
           border-radius: 8px;
           padding: 6px 8px;
         }
@@ -2703,7 +2723,7 @@ function renderEditorModal() {
           font-size: 0.68rem;
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          color: #9ec1ec;
+          color: #84b4f1;
           margin-bottom: 4px;
           font-weight: 700;
         }
@@ -3002,34 +3022,21 @@ function renderEditorModal() {
         }
 
         .condition-row {
-          grid-area: conds;
-          margin-top: 0;
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          align-items: center;
-          gap: 4px;
-          min-height: 0;
-          width: 100%;
-          max-width: 190px;
-          max-height: 86px;
-          overflow: auto;
-          padding-right: 2px;
+          display: none;
         }
 
         .condition-chip {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 5px;
+          gap: 4px;
           border-radius: 999px;
           border: 1px solid #2f3845;
           background: #0a1018;
           color: #d6e2f8;
-          font-size: 0.73rem;
+          font-size: 0.68rem;
           line-height: 1;
-          padding: 4px 9px;
+          padding: 3px 7px;
           white-space: nowrap;
-          width: 100%;
         }
 
         .condition-chip.exhaustion {
@@ -3211,25 +3218,22 @@ function renderEditorModal() {
           color: var(--text-muted);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
           .card-content {
             grid-template-columns: 1fr;
             grid-template-areas:
               "name"
               "hp"
-              "conds"
               "meta";
-            row-gap: 4px;
+            row-gap: 6px;
           }
-          .name-block,
-          .name-row { justify-content: center; }
-          .card-meta { justify-self: center; align-items: center; }
-          .hp-block,
-          .condition-row { justify-self: center; }
-          .condition-row {
-            max-width: 100%;
-            grid-template-columns: repeat(2, minmax(120px, 1fr));
+          .name-block {
+            justify-content: flex-start;
+            align-items: flex-start;
           }
+          .name-row { justify-content: flex-start; }
+          .card-meta { justify-self: flex-start; align-items: flex-start; }
+          .hp-block { justify-self: flex-start; }
           .monster-picker-filters { grid-template-columns: 1fr; }
         }
 
@@ -4306,7 +4310,6 @@ function bindEditorEvents() {
 
   registerEncounterTool();
   injectPanelOverrideCss();
-
 
   if (typeof window.renderToolsNav === "function") {
     window.renderToolsNav();
