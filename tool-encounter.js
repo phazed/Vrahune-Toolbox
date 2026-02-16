@@ -364,7 +364,27 @@
     const state = initial;
     let dragActiveId = null;
     let dragEditorId = null;
-    let pendingPortraitTarget = null;
+
+    const PORTRAIT_EDITOR_PREVIEW_SIZE = 220;
+    const PORTRAIT_EDITOR_EXPORT_SIZE = 256;
+    const PORTRAIT_EDITOR_MIN_ZOOM = 1;
+    const PORTRAIT_EDITOR_MAX_ZOOM = 3.6;
+
+    const portraitEditor = {
+      open: false,
+      target: null,
+      source: "",
+      image: null,
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+      dragging: false,
+      pointerId: null,
+      pointerStartX: 0,
+      pointerStartY: 0,
+      startOffsetX: 0,
+      startOffsetY: 0
+    };
 
     function getSelectedParty() {
       return state.parties.find((p) => p.id === state.selectedPartyId) || null;
@@ -389,19 +409,21 @@
       return parts.map((p) => p.charAt(0).toUpperCase()).join("");
     }
 
-    function portraitMarkup(c, scope, encId = null) {
+    function portraitMarkup(c, scope, refId = null) {
       const hasPortrait = !!c.portrait;
       const style = hasPortrait ? ` style="background-image:url('${esc(c.portrait)}')"` : "";
-      const encAttr = encId ? ` data-lib-enc-id="${esc(encId)}"` : "";
+      const encAttr = scope === "library" && refId ? ` data-lib-enc-id="${esc(refId)}"` : "";
+      const partyAttr = scope === "party" && refId ? ` data-party-id="${esc(refId)}"` : "";
       return `
         <button
           type="button"
           class="card-portrait ${hasPortrait ? "has-image" : ""}"
-          title="Click to upload portrait"
+          title="Edit portrait"
           data-portrait-upload
           data-scope="${esc(scope)}"
           data-card-id="${esc(c.id)}"
           ${encAttr}
+          ${partyAttr}
           ${style}
         >
           ${hasPortrait ? "" : esc(initials(c.name))}
@@ -419,6 +441,11 @@
         const enc = state.library.find((e) => e.id === target.encId);
         if (!enc) return null;
         return enc.combatants.find((c) => c.id === target.cardId) || null;
+      }
+      if (target.scope === "party") {
+        const party = state.parties.find((p) => p.id === target.partyId) || getSelectedParty();
+        if (!party) return null;
+        return party.members.find((m) => m.id === target.cardId) || null;
       }
       return null;
     }
@@ -480,8 +507,238 @@
       if (!file) return "";
       const raw = await readFileAsDataUrl(file);
       if (!/^data:image\//i.test(raw)) return "";
-      const optimized = await resizeImageDataUrl(raw, 256, 0.84);
+      const optimized = await resizeImageDataUrl(raw, 1024, 0.9);
       return normalizePortrait(optimized || raw);
+    }
+
+    function portraitEditorMetrics() {
+      const img = portraitEditor.image;
+      const size = PORTRAIT_EDITOR_PREVIEW_SIZE;
+      if (!img) {
+        return {
+          size,
+          cx: size / 2,
+          cy: size / 2,
+          r: size * 0.485,
+          drawW: 0,
+          drawH: 0,
+          x: 0,
+          y: 0,
+          maxOffsetX: 0,
+          maxOffsetY: 0
+        };
+      }
+
+      const srcW = img.naturalWidth || img.width || 1;
+      const srcH = img.naturalHeight || img.height || 1;
+      const baseScale = Math.max(size / srcW, size / srcH);
+      const scale = baseScale * clamp(Number(portraitEditor.zoom) || 1, PORTRAIT_EDITOR_MIN_ZOOM, PORTRAIT_EDITOR_MAX_ZOOM);
+      const drawW = srcW * scale;
+      const drawH = srcH * scale;
+      const maxOffsetX = Math.max(0, (drawW - size) / 2);
+      const maxOffsetY = Math.max(0, (drawH - size) / 2);
+      const offsetX = clamp(portraitEditor.offsetX, -maxOffsetX, maxOffsetX);
+      const offsetY = clamp(portraitEditor.offsetY, -maxOffsetY, maxOffsetY);
+
+      return {
+        size,
+        cx: size / 2,
+        cy: size / 2,
+        r: size * 0.485,
+        drawW,
+        drawH,
+        x: size / 2 - drawW / 2 + offsetX,
+        y: size / 2 - drawH / 2 + offsetY,
+        maxOffsetX,
+        maxOffsetY
+      };
+    }
+
+    function clampPortraitEditorOffsets() {
+      const m = portraitEditorMetrics();
+      portraitEditor.offsetX = clamp(portraitEditor.offsetX, -m.maxOffsetX, m.maxOffsetX);
+      portraitEditor.offsetY = clamp(portraitEditor.offsetY, -m.maxOffsetY, m.maxOffsetY);
+    }
+
+    function drawPortraitEditorCanvas() {
+      const canvas = shadow.getElementById("portraitEditorCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const m = portraitEditorMetrics();
+      canvas.width = m.size;
+      canvas.height = m.size;
+
+      ctx.clearRect(0, 0, m.size, m.size);
+      ctx.fillStyle = "#080b11";
+      ctx.fillRect(0, 0, m.size, m.size);
+
+      if (portraitEditor.image) {
+        clampPortraitEditorOffsets();
+        const mm = portraitEditorMetrics();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(portraitEditor.image, mm.x, mm.y, mm.drawW, mm.drawH);
+      } else {
+        ctx.fillStyle = "#8f98a8";
+        ctx.font = "600 13px system-ui, -apple-system, Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("No image selected", m.cx, m.cy);
+      }
+
+      ctx.save();
+      ctx.fillStyle = "rgba(4, 6, 10, 0.62)";
+      ctx.beginPath();
+      ctx.rect(0, 0, m.size, m.size);
+      ctx.moveTo(m.cx + m.r, m.cy);
+      ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(236, 242, 255, 0.95)";
+      ctx.stroke();
+    }
+
+    function loadPortraitEditorImage(dataUrl, reset = true) {
+      const normalized = normalizePortrait(dataUrl);
+      portraitEditor.source = normalized;
+      portraitEditor.image = null;
+      portraitEditor.zoom = PORTRAIT_EDITOR_MIN_ZOOM;
+      if (reset) {
+        portraitEditor.offsetX = 0;
+        portraitEditor.offsetY = 0;
+      }
+
+      if (!normalized) {
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = true;
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        portraitEditor.image = img;
+        clampPortraitEditorOffsets();
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = false;
+      };
+      img.onerror = () => {
+        portraitEditor.image = null;
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = true;
+      };
+      img.src = normalized;
+    }
+
+    function openPortraitEditor(target) {
+      const combatant = getTargetCombatant(target);
+      if (!combatant) return;
+      portraitEditor.open = true;
+      portraitEditor.target = {
+        scope: target.scope,
+        cardId: target.cardId,
+        encId: target.encId || null,
+        partyId: target.partyId || null
+      };
+      portraitEditor.dragging = false;
+      portraitEditor.pointerId = null;
+      loadPortraitEditorImage(combatant.portrait || "", true);
+      render();
+    }
+
+    function closePortraitEditor(shouldRender = true) {
+      portraitEditor.open = false;
+      portraitEditor.target = null;
+      portraitEditor.source = "";
+      portraitEditor.image = null;
+      portraitEditor.zoom = PORTRAIT_EDITOR_MIN_ZOOM;
+      portraitEditor.offsetX = 0;
+      portraitEditor.offsetY = 0;
+      portraitEditor.dragging = false;
+      portraitEditor.pointerId = null;
+      if (shouldRender) render();
+    }
+
+    function exportPortraitFromEditor() {
+      if (!portraitEditor.image) return "";
+
+      const out = document.createElement("canvas");
+      out.width = PORTRAIT_EDITOR_EXPORT_SIZE;
+      out.height = PORTRAIT_EDITOR_EXPORT_SIZE;
+      const ctx = out.getContext("2d");
+      if (!ctx) return "";
+
+      const m = portraitEditorMetrics();
+      const ratio = PORTRAIT_EDITOR_EXPORT_SIZE / m.size;
+
+      ctx.clearRect(0, 0, out.width, out.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(out.width / 2, out.height / 2, out.width / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(
+        portraitEditor.image,
+        m.x * ratio,
+        m.y * ratio,
+        m.drawW * ratio,
+        m.drawH * ratio
+      );
+      ctx.restore();
+
+      let data = "";
+      try {
+        data = out.toDataURL("image/webp", 0.92);
+      } catch (_) {
+        data = "";
+      }
+      if (!data || data === "data:,") {
+        try {
+          data = out.toDataURL("image/png");
+        } catch (_) {
+          data = "";
+        }
+      }
+      return normalizePortrait(data);
+    }
+
+    function savePortraitFromEditor() {
+      if (!portraitEditor.target) return;
+      const combatant = getTargetCombatant(portraitEditor.target);
+      if (!combatant) {
+        closePortraitEditor();
+        return;
+      }
+      const data = exportPortraitFromEditor();
+      if (!data) return;
+      combatant.portrait = data;
+      closePortraitEditor(false);
+      persistAndRender();
+    }
+
+    function removePortraitFromEditor() {
+      if (!portraitEditor.target) {
+        closePortraitEditor();
+        return;
+      }
+      const combatant = getTargetCombatant(portraitEditor.target);
+      if (!combatant) {
+        closePortraitEditor();
+        return;
+      }
+      combatant.portrait = "";
+      closePortraitEditor(false);
+      persistAndRender();
     }
 
     function moveItem(arr, fromId, toId) {
@@ -568,6 +825,41 @@
       `;
     }
 
+    function renderPortraitEditorModal() {
+      if (!portraitEditor.open) return "";
+      const targetCombatant = getTargetCombatant(portraitEditor.target);
+      const hasPortrait = !!targetCombatant?.portrait;
+      const hasDraftImage = !!portraitEditor.source;
+      const canRemove = hasPortrait || hasDraftImage;
+
+      return `
+        <div class="portrait-editor-backdrop" id="portraitEditorBackdrop">
+          <div class="portrait-editor-modal" role="dialog" aria-modal="true" aria-label="Portrait editor">
+            <div class="portrait-editor-head">
+              <div class="portrait-editor-title">Portrait Editor</div>
+              <div class="hint-text">Drag to reposition · Zoom to frame</div>
+            </div>
+
+            <div class="portrait-editor-canvas-wrap">
+              <canvas id="portraitEditorCanvas" width="${PORTRAIT_EDITOR_PREVIEW_SIZE}" height="${PORTRAIT_EDITOR_PREVIEW_SIZE}" aria-label="Portrait crop preview"></canvas>
+            </div>
+
+            <div class="portrait-editor-controls">
+              <label for="portraitEditorZoom">Zoom</label>
+              <input id="portraitEditorZoom" type="range" min="${PORTRAIT_EDITOR_MIN_ZOOM}" max="${PORTRAIT_EDITOR_MAX_ZOOM}" step="0.01" value="${Number(portraitEditor.zoom || 1).toFixed(2)}">
+            </div>
+
+            <div class="portrait-editor-actions">
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorCancelBtn">Cancel</button>
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorUploadBtn">Choose image</button>
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorRemoveBtn" ${canRemove ? "" : "disabled"}>Remove image</button>
+              <button type="button" class="btn btn-xs" id="portraitEditorSaveBtn" ${portraitEditor.image ? "" : "disabled"}>Save portrait</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderPartyManager(party) {
       if (!party || !state.partyManagerOpen) return "";
 
@@ -575,6 +867,10 @@
         .map((m, i) => {
           return `
             <div class="row" data-party-member-row="${esc(m.id)}">
+              <div class="col" style="max-width:66px;">
+                <label>Portrait</label>
+                ${portraitMarkup(m, "party", party.id)}
+              </div>
               <div class="col"><label>Name</label><input type="text" data-party-field="name" data-member-id="${esc(m.id)}" value="${esc(m.name)}"></div>
               <div class="col" style="max-width:85px;"><label>Type</label>
                 <select data-party-field="type" data-member-id="${esc(m.id)}">
@@ -1657,6 +1953,93 @@ function renderEditorModal() {
           padding: 0 2px;
         }
 
+        .portrait-editor-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: rgba(3, 5, 8, 0.74);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 14px;
+          backdrop-filter: blur(3px);
+        }
+
+        .portrait-editor-modal {
+          width: min(92vw, 360px);
+          border-radius: 12px;
+          border: 1px solid #2b3444;
+          background: linear-gradient(150deg, #0d131d, #06090f 70%);
+          box-shadow: 0 12px 38px rgba(0, 0, 0, 0.55);
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .portrait-editor-head {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .portrait-editor-title {
+          font-size: 0.92rem;
+          font-weight: 650;
+          letter-spacing: 0.01em;
+          color: #ebf1ff;
+        }
+
+        .portrait-editor-canvas-wrap {
+          border-radius: 12px;
+          border: 1px solid #2d3443;
+          background: radial-gradient(circle at top left, #182133, #090d14);
+          padding: 8px;
+          display: grid;
+          place-items: center;
+        }
+
+        #portraitEditorCanvas {
+          width: ${PORTRAIT_EDITOR_PREVIEW_SIZE}px;
+          height: ${PORTRAIT_EDITOR_PREVIEW_SIZE}px;
+          max-width: 100%;
+          border-radius: 8px;
+          border: 1px solid #2c3340;
+          background: #070b11;
+          cursor: grab;
+          touch-action: none;
+          image-rendering: auto;
+          user-select: none;
+        }
+
+        #portraitEditorCanvas.dragging {
+          cursor: grabbing;
+        }
+
+        .portrait-editor-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .portrait-editor-controls label {
+          font-size: 0.73rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-muted);
+        }
+
+        .portrait-editor-controls input[type="range"] {
+          width: 100%;
+        }
+
+        .portrait-editor-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 6px;
+        }
+
         @media (max-width: 860px) {
           .card-content { grid-template-columns: 1fr; row-gap: 4px; }
           .card-meta { justify-self: start; align-items: flex-start; }
@@ -1687,6 +2070,7 @@ function renderEditorModal() {
           <input id="portraitUploadInput" type="file" accept="image/*" style="display:none;" aria-hidden="true">
         </div>
       </div>
+      ${renderPortraitEditorModal()}
       `;
     }
 
@@ -1788,7 +2172,7 @@ function renderEditorModal() {
       });
 
 
-      // portrait upload (active and library cards)
+      // portrait upload + editor (active, library, party cards)
       const portraitInput = shadow.getElementById("portraitUploadInput");
       if (portraitInput) {
         shadow.querySelectorAll("[data-portrait-upload]").forEach((btn) => {
@@ -1799,33 +2183,141 @@ function renderEditorModal() {
             const scope = btn.getAttribute("data-scope");
             const cardId = btn.getAttribute("data-card-id");
             const encId = btn.getAttribute("data-lib-enc-id") || null;
+            const partyId = btn.getAttribute("data-party-id") || null;
             if (!scope || !cardId) return;
 
-            pendingPortraitTarget = { scope, cardId, encId };
-            portraitInput.value = "";
-            portraitInput.click();
+            openPortraitEditor({ scope, cardId, encId, partyId });
           });
         });
 
         portraitInput.addEventListener("change", async () => {
           const file = portraitInput.files?.[0];
-          const target = pendingPortraitTarget;
-          pendingPortraitTarget = null;
           portraitInput.value = "";
-
-          if (!file || !target) return;
+          if (!file || !portraitEditor.open) return;
 
           try {
             const dataUrl = await processPortraitFile(file);
             if (!dataUrl) return;
-            const combatant = getTargetCombatant(target);
-            if (!combatant) return;
-            combatant.portrait = dataUrl;
-            persistAndRender();
+            loadPortraitEditorImage(dataUrl, true);
+            const zoom = shadow.getElementById("portraitEditorZoom");
+            if (zoom) zoom.value = String(PORTRAIT_EDITOR_MIN_ZOOM);
+
+            const removeBtn = shadow.getElementById("portraitEditorRemoveBtn");
+            if (removeBtn) removeBtn.disabled = false;
+
+            const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+            if (saveBtn) saveBtn.disabled = false;
           } catch (err) {
             console.warn("Encounter tool: failed portrait upload", err);
           }
         });
+      }
+
+      const editorBackdrop = shadow.getElementById("portraitEditorBackdrop");
+      if (editorBackdrop) {
+        editorBackdrop.addEventListener("click", (e) => {
+          if (e.target === editorBackdrop) closePortraitEditor();
+        });
+      }
+
+      const editorCancelBtn = shadow.getElementById("portraitEditorCancelBtn");
+      if (editorCancelBtn) {
+        editorCancelBtn.addEventListener("click", () => {
+          closePortraitEditor();
+        });
+      }
+
+      const editorUploadBtn = shadow.getElementById("portraitEditorUploadBtn");
+      if (editorUploadBtn && portraitInput) {
+        editorUploadBtn.addEventListener("click", () => {
+          portraitInput.value = "";
+          portraitInput.click();
+        });
+      }
+
+      const editorSaveBtn = shadow.getElementById("portraitEditorSaveBtn");
+      if (editorSaveBtn) {
+        editorSaveBtn.addEventListener("click", () => {
+          savePortraitFromEditor();
+        });
+      }
+
+      const editorRemoveBtn = shadow.getElementById("portraitEditorRemoveBtn");
+      if (editorRemoveBtn) {
+        editorRemoveBtn.addEventListener("click", () => {
+          removePortraitFromEditor();
+        });
+      }
+
+      const editorZoom = shadow.getElementById("portraitEditorZoom");
+      if (editorZoom) {
+        editorZoom.addEventListener("input", () => {
+          portraitEditor.zoom = clamp(
+            Number(editorZoom.value) || PORTRAIT_EDITOR_MIN_ZOOM,
+            PORTRAIT_EDITOR_MIN_ZOOM,
+            PORTRAIT_EDITOR_MAX_ZOOM
+          );
+          clampPortraitEditorOffsets();
+          drawPortraitEditorCanvas();
+        });
+      }
+
+      const editorCanvas = shadow.getElementById("portraitEditorCanvas");
+      if (editorCanvas) {
+        drawPortraitEditorCanvas();
+
+        editorCanvas.addEventListener("pointerdown", (e) => {
+          if (!portraitEditor.image) return;
+          portraitEditor.dragging = true;
+          portraitEditor.pointerId = e.pointerId;
+          portraitEditor.pointerStartX = e.clientX;
+          portraitEditor.pointerStartY = e.clientY;
+          portraitEditor.startOffsetX = portraitEditor.offsetX;
+          portraitEditor.startOffsetY = portraitEditor.offsetY;
+          editorCanvas.classList.add("dragging");
+          try {
+            editorCanvas.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        });
+
+        editorCanvas.addEventListener("pointermove", (e) => {
+          if (!portraitEditor.dragging || portraitEditor.pointerId !== e.pointerId) return;
+          portraitEditor.offsetX = portraitEditor.startOffsetX + (e.clientX - portraitEditor.pointerStartX);
+          portraitEditor.offsetY = portraitEditor.startOffsetY + (e.clientY - portraitEditor.pointerStartY);
+          clampPortraitEditorOffsets();
+          drawPortraitEditorCanvas();
+        });
+
+        const stopDrag = (e) => {
+          if (portraitEditor.pointerId !== e.pointerId) return;
+          portraitEditor.dragging = false;
+          portraitEditor.pointerId = null;
+          editorCanvas.classList.remove("dragging");
+          try {
+            editorCanvas.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+        };
+
+        editorCanvas.addEventListener("pointerup", stopDrag);
+        editorCanvas.addEventListener("pointercancel", stopDrag);
+
+        editorCanvas.addEventListener(
+          "wheel",
+          (e) => {
+            if (!portraitEditor.image) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.08 : 0.08;
+            portraitEditor.zoom = clamp(
+              (Number(portraitEditor.zoom) || PORTRAIT_EDITOR_MIN_ZOOM) + delta,
+              PORTRAIT_EDITOR_MIN_ZOOM,
+              PORTRAIT_EDITOR_MAX_ZOOM
+            );
+            if (editorZoom) editorZoom.value = String(portraitEditor.zoom);
+            clampPortraitEditorOffsets();
+            drawPortraitEditorCanvas();
+          },
+          { passive: false }
+        );
       }
 
       // active name & round
