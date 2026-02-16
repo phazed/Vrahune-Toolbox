@@ -31,6 +31,12 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function normalizePortrait(value) {
+    const s = String(value || "").trim();
+    if (!s) return "";
+    return /^data:image\//i.test(s) ? s : "";
+  }
+
   function initialParties() {
     return [
       {
@@ -60,7 +66,8 @@
       ac: Math.max(0, intOr(raw.ac, 10)),
       speed: Math.max(0, intOr(raw.speed, 30)),
       hpCurrent,
-      hpMax
+      hpMax,
+      portrait: normalizePortrait(raw.portrait)
     };
   }
 
@@ -357,6 +364,7 @@
     const state = initial;
     let dragActiveId = null;
     let dragEditorId = null;
+    let pendingPortraitTarget = null;
 
     function getSelectedParty() {
       return state.parties.find((p) => p.id === state.selectedPartyId) || null;
@@ -379,6 +387,101 @@
       if (!s) return "?";
       const parts = s.split(/\s+/).slice(0, 2);
       return parts.map((p) => p.charAt(0).toUpperCase()).join("");
+    }
+
+    function portraitMarkup(c, scope, encId = null) {
+      const hasPortrait = !!c.portrait;
+      const style = hasPortrait ? ` style="background-image:url('${esc(c.portrait)}')"` : "";
+      const encAttr = encId ? ` data-lib-enc-id="${esc(encId)}"` : "";
+      return `
+        <button
+          type="button"
+          class="card-portrait ${hasPortrait ? "has-image" : ""}"
+          title="Click to upload portrait"
+          data-portrait-upload
+          data-scope="${esc(scope)}"
+          data-card-id="${esc(c.id)}"
+          ${encAttr}
+          ${style}
+        >
+          ${hasPortrait ? "" : esc(initials(c.name))}
+          <span class="portrait-badge" aria-hidden="true">📷</span>
+        </button>
+      `;
+    }
+
+    function getTargetCombatant(target) {
+      if (!target || !target.scope || !target.cardId) return null;
+      if (target.scope === "active") {
+        return state.activeCombatants.find((c) => c.id === target.cardId) || null;
+      }
+      if (target.scope === "library") {
+        const enc = state.library.find((e) => e.id === target.encId);
+        if (!enc) return null;
+        return enc.combatants.find((c) => c.id === target.cardId) || null;
+      }
+      return null;
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Failed to read image"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function resizeImageDataUrl(dataUrl, maxDimension = 256, quality = 0.84) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const srcW = img.naturalWidth || img.width || 1;
+            const srcH = img.naturalHeight || img.height || 1;
+            const ratio = Math.min(1, maxDimension / Math.max(srcW, srcH));
+            const width = Math.max(1, Math.round(srcW * ratio));
+            const height = Math.max(1, Math.round(srcH * ratio));
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve(dataUrl);
+              return;
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, width, height);
+
+            let out = "";
+            try {
+              out = canvas.toDataURL("image/webp", quality);
+            } catch (_) {}
+            if (!out || out === "data:,") {
+              try {
+                out = canvas.toDataURL("image/jpeg", quality);
+              } catch (_) {}
+            }
+
+            resolve(out || dataUrl);
+          } catch (_) {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    async function processPortraitFile(file) {
+      if (!file) return "";
+      const raw = await readFileAsDataUrl(file);
+      if (!/^data:image\//i.test(raw)) return "";
+      const optimized = await resizeImageDataUrl(raw, 256, 0.84);
+      return normalizePortrait(optimized || raw);
     }
 
     function moveItem(arr, fromId, toId) {
@@ -589,7 +692,7 @@
           return `
             <div class="card ${typeClass} ${active ? "active-turn" : ""} ${downed ? "downed" : ""}" draggable="true" data-card-id="${esc(c.id)}">
               <div class="card-main">
-                <div class="card-portrait" title="Portrait">${esc(initials(c.name))}</div>
+                ${portraitMarkup(c, "active")}
                 <div class="card-content">
                   <div class="name-block">
                     <div class="name-row">
@@ -719,7 +822,7 @@ function renderLibraryTab() {
               return `
                 <div class="card ${tagClass(c.type)} ${downed ? "downed" : ""}" draggable="true" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">
                   <div class="card-main">
-                    <div class="card-portrait">${esc(initials(c.name))}</div>
+                    ${portraitMarkup(c, "library", enc.id)}
                     <div class="card-content">
                       <div class="name-block">
                         <div class="name-row">
@@ -1187,7 +1290,47 @@ function renderEditorModal() {
           color: var(--accent-strong);
           font-weight: 600;
           font-size: 0.9rem;
-          cursor: default;
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          outline: none;
+          padding: 0;
+          line-height: 1;
+          position: relative;
+          overflow: hidden;
+          background-size: cover;
+          background-position: center;
+          transition: border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+        }
+
+        .card-portrait:hover,
+        .card-portrait:focus-visible {
+          border-color: #5a6a89;
+          box-shadow: 0 0 0 1px rgba(122, 142, 183, 0.35);
+        }
+
+        .card-portrait.has-image {
+          color: transparent;
+          text-shadow: none;
+        }
+
+        .portrait-badge {
+          position: absolute;
+          right: -1px;
+          bottom: -1px;
+          width: 15px;
+          height: 15px;
+          border-radius: 999px;
+          border: 1px solid #2d3645;
+          background: #090d14;
+          color: #ced8ea;
+          font-size: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          opacity: 0.88;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.45);
         }
 
         .enemy-card .card-portrait { background: radial-gradient(circle at top left, #3a2025, #05070c); }
@@ -1541,6 +1684,7 @@ function renderEditorModal() {
           <div class="panel-inner">
             ${state.tab === "active" ? renderActiveTab() : renderLibraryTab()}
           </div>
+          <input id="portraitUploadInput" type="file" accept="image/*" style="display:none;" aria-hidden="true">
         </div>
       </div>
       `;
@@ -1642,6 +1786,47 @@ function renderEditorModal() {
           persistAndRender();
         });
       });
+
+
+      // portrait upload (active and library cards)
+      const portraitInput = shadow.getElementById("portraitUploadInput");
+      if (portraitInput) {
+        shadow.querySelectorAll("[data-portrait-upload]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const scope = btn.getAttribute("data-scope");
+            const cardId = btn.getAttribute("data-card-id");
+            const encId = btn.getAttribute("data-lib-enc-id") || null;
+            if (!scope || !cardId) return;
+
+            pendingPortraitTarget = { scope, cardId, encId };
+            portraitInput.value = "";
+            portraitInput.click();
+          });
+        });
+
+        portraitInput.addEventListener("change", async () => {
+          const file = portraitInput.files?.[0];
+          const target = pendingPortraitTarget;
+          pendingPortraitTarget = null;
+          portraitInput.value = "";
+
+          if (!file || !target) return;
+
+          try {
+            const dataUrl = await processPortraitFile(file);
+            if (!dataUrl) return;
+            const combatant = getTargetCombatant(target);
+            if (!combatant) return;
+            combatant.portrait = dataUrl;
+            persistAndRender();
+          } catch (err) {
+            console.warn("Encounter tool: failed portrait upload", err);
+          }
+        });
+      }
 
       // active name & round
       const activeNameInput = shadow.getElementById("activeEncounterName");
