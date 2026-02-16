@@ -1,15 +1,75 @@
-// tool-monster-vault.js
-(() => {
-  const TOOL_ID = "monsterVaultTool";
-  const TOOL_NAME = "Monster Vault";
-  const STORAGE_KEY = "vrahuneMonsterVaultStateV2";
-  const LEGACY_STORAGE_KEY = "vrahuneMonsterVaultStateV1";
+// tool-encounter.js
+// Encounter / Initiative tool for Vrahune Toolbox
+(function () {
+  if (window.__vrahuneEncounterToolActive) return;
+  window.__vrahuneEncounterToolActive = true;
 
-  const SRD_MONSTERS = [{"id":"srd521-animated-armor","name":"Animated Armor","sizeType":"Medium Construct, Unaligned","cr":"1","xp":200,"ac":18,"hp":33,"speed":25,"speedText":"25 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-animated-flying-sword","name":"Animated Flying Sword","sizeType":"Small Construct, Unaligned","cr":"1/4","xp":50,"ac":17,"hp":14,"speed":5,"speedText":"5 ft., Fly 50 ft. (hover)","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-animated-rug-of-smothering","name":"Animated Rug of Smothering","sizeType":"Large Construct, Unaligned","cr":"2","xp":450,"ac":12,"hp":27,"speed":10,"speedText":"10 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ankheg","name":"Ankheg","sizeType":"Large Monstrosity, Unaligned","cr":"2","xp":450,"ac":14,"hp":45,"speed":30,"speedText":"30 ft., Burrow 10 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-assassin","name":"Assassin","sizeType":"Medium or Small Humanoid, Neutral","cr":"8","xp":3900,"ac":16,"hp":97,"speed":30,"speedText":"30 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-awakened-shrub","name":"Awakened Shrub","sizeType":"Small Plant, Neutral","cr":"0","xp":10,"ac":9,"hp":10,"speed":20,"speedText":"20 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-awakened-tree","name":"Awakened Tree","sizeType":"Huge Plant, Neutral","cr":"2","xp":450,"ac":13,"hp":59,"speed":20,"speedText":"20 ft.","initiative":8,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-axe-beak","name":"Axe Beak","sizeType":"Large Monstrosity, Unaligned","cr":"1/4","xp":50,"ac":11,"hp":19,"speed":50,"speedText":"50 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-azer-sentinel","name":"Azer Sentinel","sizeType":"Medium Elemental, Lawful Neutral","cr":"2","xp":450,"ac":17,"hp":39,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-balor","name":"Balor","sizeType":"Huge Fiend (Demon), Chaotic Evil","cr":"19","xp":22000,"ac":19,"hp":287,"speed":40,"speedText":"40 ft., Fly 80 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bandit","name":"Bandit","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/8","xp":25,"ac":12,"hp":11,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bandit-captain","name":"Bandit Captain","sizeType":"Medium or Small Humanoid, Neutral","cr":"2","xp":450,"ac":15,"hp":52,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-barbed-devil","name":"Barbed Devil","sizeType":"Medium Fiend (Devil), Lawful Evil","cr":"5","xp":1800,"ac":15,"hp":110,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-basilisk","name":"Basilisk","sizeType":"Medium Monstrosity, Unaligned","cr":"3","xp":700,"ac":15,"hp":52,"speed":20,"speedText":"20 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bearded-devil","name":"Bearded Devil","sizeType":"Medium Fiend (Devil), Lawful Evil","cr":"3","xp":700,"ac":13,"hp":58,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-behir","name":"Behir","sizeType":"Huge Monstrosity, Neutral Evil","cr":"11","xp":7,"ac":17,"hp":168,"speed":50,"speedText":"50 ft., Climb 50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-berserker","name":"Berserker","sizeType":"Medium or Small Humanoid, Neutral","cr":"2","xp":450,"ac":13,"hp":67,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-black-dragon-wyrmling","name":"Black Dragon Wyrmling","sizeType":"Medium Dragon (Chromatic), Chaotic Evil","cr":"2","xp":450,"ac":17,"hp":33,"speed":30,"speedText":"30 ft., Fly 60 ft., Swim 30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-black-dragon","name":"Young Black Dragon","sizeType":"Large Dragon (Chromatic), Chaotic Evil","cr":"7","xp":2900,"ac":18,"hp":127,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-black-dragon","name":"Adult Black Dragon","sizeType":"Huge Dragon (Chromatic), Chaotic Evil","cr":"14","xp":11500,"ac":19,"hp":195,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-black-dragon","name":"Ancient Black Dragon","sizeType":"Gargantuan Dragon (Chromatic), Chaotic Evil","cr":"21","xp":33000,"ac":22,"hp":367,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":26,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-black-pudding","name":"Black Pudding","sizeType":"Large Ooze, Unaligned","cr":"4","xp":1100,"ac":7,"hp":68,"speed":20,"speedText":"20 ft., Climb 20 ft.","initiative":7,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-blink-dog","name":"Blink Dog","sizeType":"Medium Fey, Lawful Good","cr":"1/4","xp":50,"ac":13,"hp":22,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-blue-dragon-wyrmling","name":"Blue Dragon Wyrmling","sizeType":"Medium Dragon (Chromatic), Lawful Evil","cr":"3","xp":700,"ac":17,"hp":65,"speed":30,"speedText":"30 ft., Burrow 15 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-blue-dragon","name":"Young Blue Dragon","sizeType":"Large Dragon (Chromatic), Lawful Evil","cr":"9","xp":5000,"ac":18,"hp":152,"speed":40,"speedText":"40 ft., Burrow 20 ft., Fly 80 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-blue-dragon","name":"Adult Blue Dragon","sizeType":"Huge Dragon (Chromatic), Lawful Evil","cr":"16","xp":15000,"ac":19,"hp":212,"speed":40,"speedText":"40 ft., Burrow 30 ft., Fly 80 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-blue-dragon","name":"Ancient Blue Dragon","sizeType":"Gargantuan Dragon (Chromatic), Lawful Evil","cr":"23","xp":50000,"ac":22,"hp":481,"speed":40,"speedText":"40 ft., Burrow 40 ft., Fly 80 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bone-devil","name":"Bone Devil","sizeType":"Large Fiend (Devil), Lawful Evil","cr":"9","xp":5000,"ac":16,"hp":161,"speed":40,"speedText":"40 ft., Fly 40 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-brass-dragon-wyrmling","name":"Brass Dragon Wyrmling","sizeType":"Medium Dragon (Metallic), Chaotic Good","cr":"1","xp":200,"ac":15,"hp":22,"speed":30,"speedText":"30 ft., Burrow 15 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-brass-dragon","name":"Young Brass Dragon","sizeType":"Large Dragon (Metallic), Chaotic Good","cr":"6","xp":2300,"ac":17,"hp":110,"speed":40,"speedText":"40 ft., Burrow 20 ft., Fly 80 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-brass-dragon","name":"Adult Brass Dragon","sizeType":"Huge Dragon (Metallic), Chaotic Good","cr":"13","xp":10000,"ac":18,"hp":172,"speed":40,"speedText":"40 ft., Burrow 30 ft., Fly 80 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-brass-dragon","name":"Ancient Brass Dragon","sizeType":"Gargantuan Dragon (Metallic), Chaotic Good","cr":"20","xp":25000,"ac":20,"hp":332,"speed":40,"speedText":"40 ft., Burrow 40 ft., Fly 80 ft.","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bronze-dragon-wyrmling","name":"Bronze Dragon Wyrmling","sizeType":"Medium Dragon (Metallic), Lawful Good","cr":"2","xp":450,"ac":15,"hp":39,"speed":30,"speedText":"30 ft., Fly 60 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-bronze-dragon","name":"Young Bronze Dragon","sizeType":"Large Dragon (Metallic), Lawful Good","cr":"8","xp":3900,"ac":17,"hp":142,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-bronze-dragon","name":"Adult Bronze Dragon","sizeType":"Huge Dragon (Metallic), Lawful Good","cr":"15","xp":13000,"ac":18,"hp":212,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-bronze-dragon","name":"Ancient Bronze Dragon","sizeType":"Gargantuan Dragon (Metallic), Lawful Good","cr":"22","xp":41000,"ac":22,"hp":444,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bugbear-stalker","name":"Bugbear Stalker","sizeType":"Medium Fey (Goblinoid), Chaotic Evil","cr":"3","xp":700,"ac":15,"hp":65,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bugbear-warrior","name":"Bugbear Warrior","sizeType":"Medium Fey (Goblinoid), Chaotic Evil","cr":"1","xp":200,"ac":14,"hp":33,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bulette","name":"Bulette","sizeType":"Large Monstrosity, Unaligned","cr":"5","xp":1800,"ac":17,"hp":94,"speed":40,"speedText":"40 ft., Burrow 40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-centaur-trooper","name":"Centaur Trooper","sizeType":"Large Fey, Neutral Good","cr":"2","xp":450,"ac":16,"hp":45,"speed":50,"speedText":"50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-chain-devil","name":"Chain Devil","sizeType":"Medium Fiend (Devil), Lawful Evil","cr":"8","xp":3900,"ac":15,"hp":85,"speed":30,"speedText":"30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-chimera","name":"Chimera","sizeType":"Large Monstrosity, Chaotic Evil","cr":"6","xp":2300,"ac":14,"hp":114,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-chuul","name":"Chuul","sizeType":"Large Aberration, Chaotic Evil","cr":"4","xp":1100,"ac":16,"hp":76,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-clay-golem","name":"Clay Golem","sizeType":"Large Construct, Unaligned","cr":"9","xp":5000,"ac":14,"hp":123,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cloaker","name":"Cloaker","sizeType":"Large Aberration, Chaotic Neutral","cr":"8","xp":3900,"ac":14,"hp":91,"speed":10,"speedText":"10 ft., Fly 40 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cloud-giant","name":"Cloud Giant","sizeType":"Huge Giant, Neutral","cr":"9","xp":5000,"ac":14,"hp":200,"speed":40,"speedText":"40 ft., Fly 20 ft. (hover)","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cockatrice","name":"Cockatrice","sizeType":"Small Monstrosity, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":22,"speed":20,"speedText":"20 ft., Fly 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-commoner","name":"Commoner","sizeType":"Medium or Small Humanoid, Neutral","cr":"0","xp":10,"ac":10,"hp":4,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-copper-dragon-wyrmling","name":"Copper Dragon Wyrmling","sizeType":"Medium Dragon (Metallic), Chaotic Good","cr":"1","xp":200,"ac":16,"hp":22,"speed":30,"speedText":"30 ft., Climb 30 ft., Fly 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-copper-dragon","name":"Young Copper Dragon","sizeType":"Large Dragon (Metallic), Chaotic Good","cr":"7","xp":2900,"ac":17,"hp":119,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-copper-dragon","name":"Adult Copper Dragon","sizeType":"Huge Dragon (Metallic), Chaotic Good","cr":"14","xp":11500,"ac":18,"hp":184,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":21,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-copper-dragon","name":"Ancient Copper Dragon","sizeType":"Gargantuan Dragon (Metallic), Chaotic Good","cr":"21","xp":33000,"ac":21,"hp":367,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":25,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-couatl","name":"Couatl","sizeType":"Medium Celestial, Lawful Good","cr":"4","xp":1100,"ac":19,"hp":60,"speed":30,"speedText":"30 ft., Fly 90 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-crawling-claws","name":"Swarm of Crawling Claws","sizeType":"Medium Swarm of Tiny Undead, Neutral Evil","cr":"3","xp":700,"ac":12,"hp":49,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cultist","name":"Cultist","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/8","xp":25,"ac":12,"hp":9,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cultist-fanatic","name":"Cultist Fanatic","sizeType":"Medium or Small Humanoid, Neutral","cr":"2","xp":450,"ac":13,"hp":44,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-darkmantle","name":"Darkmantle","sizeType":"Small Aberration, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":22,"speed":10,"speedText":"10 ft., Fly 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-death-dog","name":"Death Dog","sizeType":"Medium Monstrosity, Neutral Evil","cr":"1","xp":200,"ac":12,"hp":39,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-deva","name":"Deva","sizeType":"Medium Celestial (Angel), Lawful Good","cr":"10","xp":5900,"ac":17,"hp":229,"speed":30,"speedText":"30 ft., Fly 90 ft. (hover)","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-djinni","name":"Djinni","sizeType":"Large Elemental (Genie), Neutral","cr":"11","xp":7,"ac":17,"hp":218,"speed":30,"speedText":"30 ft., Fly 90 ft. (hover)","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-doppelganger","name":"Doppelganger","sizeType":"Medium Monstrosity, Neutral","cr":"3","xp":700,"ac":14,"hp":52,"speed":30,"speedText":"30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-dragon-turtle","name":"Dragon Turtle","sizeType":"Gargantuan Dragon, Neutral","cr":"17","xp":18000,"ac":20,"hp":356,"speed":20,"speedText":"20 ft., Swim 50 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-dretch","name":"Dretch","sizeType":"Small Fiend (Demon), Chaotic Evil","cr":"1/4","xp":50,"ac":11,"hp":18,"speed":20,"speedText":"20 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-drider","name":"Drider","sizeType":"Large Monstrosity, Chaotic Evil","cr":"6","xp":2300,"ac":19,"hp":123,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-druid","name":"Druid","sizeType":"Medium or Small Humanoid (Druid), Neutral","cr":"2","xp":450,"ac":13,"hp":44,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-dryad","name":"Dryad","sizeType":"Medium Fey, Neutral","cr":"1","xp":200,"ac":16,"hp":22,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-earth-elemental","name":"Earth Elemental","sizeType":"Large Elemental, Neutral","cr":"5","xp":1800,"ac":17,"hp":147,"speed":30,"speedText":"30 ft., Burrow 30 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-efreeti","name":"Efreeti","sizeType":"Large Elemental (Genie), Neutral","cr":"11","xp":7,"ac":17,"hp":212,"speed":40,"speedText":"40 ft., Fly 60 ft. (hover)","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-erinyes","name":"Erinyes","sizeType":"Medium Fiend (Devil), Lawful Evil","cr":"12","xp":8400,"ac":18,"hp":178,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ettercap","name":"Ettercap","sizeType":"Medium Monstrosity, Neutral Evil","cr":"2","xp":450,"ac":13,"hp":44,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ettin","name":"Ettin","sizeType":"Large Giant, Chaotic Evil","cr":"4","xp":1100,"ac":12,"hp":85,"speed":40,"speedText":"40 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-fire-elemental","name":"Fire Elemental","sizeType":"Large Elemental, Neutral","cr":"5","xp":1800,"ac":13,"hp":93,"speed":50,"speedText":"50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-fire-giant","name":"Fire Giant","sizeType":"Huge Giant, Lawful Evil","cr":"9","xp":5000,"ac":18,"hp":162,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-flesh-golem","name":"Flesh Golem","sizeType":"Medium Construct, Neutral","cr":"5","xp":1800,"ac":9,"hp":127,"speed":30,"speedText":"30 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-frost-giant","name":"Frost Giant","sizeType":"Huge Giant, Neutral Evil","cr":"8","xp":3900,"ac":15,"hp":149,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-shrieker-fungus","name":"Shrieker Fungus","sizeType":"Medium Plant, Unaligned","cr":"0","xp":10,"ac":5,"hp":13,"speed":5,"speedText":"5 ft.","initiative":5,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-violet-fungus","name":"Violet Fungus","sizeType":"Medium Plant, Unaligned","cr":"1/4","xp":50,"ac":5,"hp":18,"speed":5,"speedText":"5 ft.","initiative":5,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gargoyle","name":"Gargoyle","sizeType":"Medium Elemental, Chaotic Evil","cr":"2","xp":450,"ac":15,"hp":67,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gelatinous-cube","name":"Gelatinous Cube","sizeType":"Large Ooze, Unaligned","cr":"2","xp":450,"ac":6,"hp":63,"speed":15,"speedText":"15 ft.","initiative":6,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ghast","name":"Ghast","sizeType":"Medium Undead, Chaotic Evil","cr":"2","xp":450,"ac":13,"hp":36,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ghost","name":"Ghost","sizeType":"Medium Undead, Neutral","cr":"4","xp":1100,"ac":11,"hp":45,"speed":5,"speedText":"5 ft., Fly 40 ft. (hover)","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ghoul","name":"Ghoul","sizeType":"Medium Undead, Chaotic Evil","cr":"1","xp":200,"ac":12,"hp":22,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gibbering-mouther","name":"Gibbering Mouther","sizeType":"Medium Aberration, Chaotic Neutral","cr":"2","xp":450,"ac":9,"hp":52,"speed":20,"speedText":"20 ft., Swim 20 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-glabrezu","name":"Glabrezu","sizeType":"Large Fiend (Demon), Chaotic Evil","cr":"9","xp":5000,"ac":17,"hp":189,"speed":40,"speedText":"40 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gladiator","name":"Gladiator","sizeType":"Medium or Small Humanoid, Neutral","cr":"5","xp":1800,"ac":16,"hp":112,"speed":30,"speedText":"30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gnoll-warrior","name":"Gnoll Warrior","sizeType":"Medium Fiend, Chaotic Evil","cr":"1/2","xp":100,"ac":15,"hp":27,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-goblin-minion","name":"Goblin Minion","sizeType":"Small Fey (Goblinoid), Chaotic Neutral","cr":"1/8","xp":25,"ac":12,"hp":7,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-goblin-warrior","name":"Goblin Warrior","sizeType":"Small Fey (Goblinoid), Chaotic Neutral","cr":"1/4","xp":50,"ac":15,"hp":10,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-goblin-boss","name":"Goblin Boss","sizeType":"Small Fey (Goblinoid), Chaotic Neutral","cr":"1","xp":200,"ac":17,"hp":21,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gold-dragon-wyrmling","name":"Gold Dragon Wyrmling","sizeType":"Medium Dragon (Metallic), Lawful Good","cr":"3","xp":700,"ac":17,"hp":60,"speed":30,"speedText":"30 ft., Fly 60 ft., Swim 30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-gold-dragon","name":"Young Gold Dragon","sizeType":"Large Dragon (Metallic), Lawful Good","cr":"10","xp":5900,"ac":18,"hp":178,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-gold-dragon","name":"Adult Gold Dragon","sizeType":"Huge Dragon (Metallic), Lawful Good","cr":"17","xp":18000,"ac":19,"hp":243,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-gold-dragon","name":"Ancient Gold Dragon","sizeType":"Gargantuan Dragon (Metallic), Lawful Good","cr":"24","xp":62000,"ac":22,"hp":546,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":26,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gorgon","name":"Gorgon","sizeType":"Large Construct, Unaligned","cr":"5","xp":1800,"ac":19,"hp":114,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-gray-ooze","name":"Gray Ooze","sizeType":"Medium Ooze, Unaligned","cr":"1/2","xp":100,"ac":9,"hp":22,"speed":10,"speedText":"10 ft., Climb 10 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-green-dragon-wyrmling","name":"Green Dragon Wyrmling","sizeType":"Medium Dragon (Chromatic), Lawful Evil","cr":"2","xp":450,"ac":17,"hp":38,"speed":30,"speedText":"30 ft., Fly 60 ft., Swim 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-green-dragon","name":"Young Green Dragon","sizeType":"Large Dragon (Chromatic), Lawful Evil","cr":"8","xp":3900,"ac":18,"hp":136,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-green-dragon","name":"Adult Green Dragon","sizeType":"Huge Dragon (Chromatic), Lawful Evil","cr":"15","xp":13000,"ac":19,"hp":207,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":21,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-green-dragon","name":"Ancient Green Dragon","sizeType":"Gargantuan Dragon (Chromatic), Lawful Evil","cr":"22","xp":41000,"ac":21,"hp":402,"speed":40,"speedText":"40 ft., Fly 80 ft., Swim 40 ft.","initiative":25,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-green-hag","name":"Green Hag","sizeType":"Medium Fey, Neutral Evil","cr":"3","xp":700,"ac":17,"hp":82,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-grick","name":"Grick","sizeType":"Medium Aberration, Unaligned","cr":"2","xp":450,"ac":14,"hp":54,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-griffon","name":"Griffon","sizeType":"Large Monstrosity, Unaligned","cr":"2","xp":450,"ac":12,"hp":59,"speed":30,"speedText":"30 ft., Fly 80 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-grimlock","name":"Grimlock","sizeType":"Medium Aberration, Neutral Evil","cr":"1/4","xp":50,"ac":11,"hp":11,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-guardian-naga","name":"Guardian Naga","sizeType":"Large Celestial, Lawful Good","cr":"10","xp":5900,"ac":18,"hp":136,"speed":40,"speedText":"40 ft., Climb 40 ft., Swim 40 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-guard","name":"Guard","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/8","xp":25,"ac":16,"hp":11,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-guard-captain","name":"Guard Captain","sizeType":"Medium or Small Humanoid, Neutral","cr":"4","xp":1100,"ac":18,"hp":75,"speed":30,"speedText":"30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-half-dragon","name":"Half-Dragon","sizeType":"Medium Dragon, Neutral","cr":"5","xp":1800,"ac":18,"hp":105,"speed":40,"speedText":"40 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-harpy","name":"Harpy","sizeType":"Medium Monstrosity, Chaotic Evil","cr":"1","xp":200,"ac":11,"hp":38,"speed":20,"speedText":"20 ft., Fly 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hell-hound","name":"Hell Hound","sizeType":"Medium Fiend, Lawful Evil","cr":"3","xp":700,"ac":15,"hp":58,"speed":50,"speedText":"50 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hezrou","name":"Hezrou","sizeType":"Large Fiend (Demon), Chaotic Evil","cr":"8","xp":3900,"ac":18,"hp":157,"speed":30,"speedText":"30 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hill-giant","name":"Hill Giant","sizeType":"Huge Giant, Chaotic Evil","cr":"5","xp":1800,"ac":13,"hp":105,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hippogriff","name":"Hippogriff","sizeType":"Large Monstrosity, Unaligned","cr":"1","xp":200,"ac":11,"hp":26,"speed":40,"speedText":"40 ft., Fly 60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hobgoblin-warrior","name":"Hobgoblin Warrior","sizeType":"Medium Fey (Goblinoid), Lawful Evil","cr":"1/2","xp":100,"ac":18,"hp":11,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hobgoblin-captain","name":"Hobgoblin Captain","sizeType":"Medium Fey (Goblinoid), Lawful Evil","cr":"3","xp":700,"ac":17,"hp":58,"speed":30,"speedText":"30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-homunculus","name":"Homunculus","sizeType":"Tiny Construct, Neutral","cr":"0","xp":10,"ac":13,"hp":4,"speed":20,"speedText":"20 ft., Fly 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-horned-devil","name":"Horned Devil","sizeType":"Large Fiend (Devil), Lawful Evil","cr":"11","xp":7,"ac":18,"hp":199,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hydra","name":"Hydra","sizeType":"Huge Monstrosity, Unaligned","cr":"8","xp":3900,"ac":15,"hp":184,"speed":40,"speedText":"40 ft., Swim 40 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ice-devil","name":"Ice Devil","sizeType":"Large Fiend (Devil), Lawful Evil","cr":"14","xp":11500,"ac":18,"hp":228,"speed":40,"speedText":"40 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-imp","name":"Imp","sizeType":"Tiny Fiend (Devil), Lawful Evil","cr":"1","xp":200,"ac":13,"hp":21,"speed":20,"speedText":"20 ft., Fly 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-incubus","name":"Incubus","sizeType":"Medium Fiend, Neutral Evil","cr":"4","xp":1100,"ac":15,"hp":66,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-invisible-stalker","name":"Invisible Stalker","sizeType":"Large Elemental, Neutral","cr":"6","xp":2300,"ac":14,"hp":97,"speed":50,"speedText":"50 ft., Fly 50 ft. (hover)","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-iron-golem","name":"Iron Golem","sizeType":"Large Construct, Unaligned","cr":"16","xp":15000,"ac":20,"hp":252,"speed":30,"speedText":"30 ft.","initiative":19,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-knight","name":"Knight","sizeType":"Medium or Small Humanoid, Neutral","cr":"3","xp":700,"ac":18,"hp":52,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-kobold-warrior","name":"Kobold Warrior","sizeType":"Small Dragon, Neutral","cr":"1/8","xp":25,"ac":14,"hp":7,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-kraken","name":"Kraken","sizeType":"Gargantuan Monstrosity (Titan), Chaotic Evil","cr":"23","xp":50000,"ac":18,"hp":481,"speed":30,"speedText":"30 ft., Swim 120 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-lamia","name":"Lamia","sizeType":"Large Fiend, Chaotic Evil","cr":"4","xp":1100,"ac":13,"hp":97,"speed":40,"speedText":"40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-lemure","name":"Lemure","sizeType":"Medium Fiend (Devil), Lawful Evil","cr":"0","xp":10,"ac":9,"hp":9,"speed":20,"speedText":"20 ft.","initiative":7,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-lich","name":"Lich","sizeType":"Medium Undead (Wizard), Neutral Evil","cr":"21","xp":33000,"ac":20,"hp":315,"speed":30,"speedText":"30 ft.","initiative":27,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mage","name":"Mage","sizeType":"Medium or Small Humanoid (Wizard), Neutral","cr":"6","xp":2300,"ac":15,"hp":81,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-archmage","name":"Archmage","sizeType":"Medium or Small Humanoid (Wizard), Neutral","cr":"12","xp":8000,"ac":17,"hp":170,"speed":30,"speedText":"30 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-magmin","name":"Magmin","sizeType":"Small Elemental, Chaotic Neutral","cr":"1/2","xp":100,"ac":14,"hp":13,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-manticore","name":"Manticore","sizeType":"Large Monstrosity, Lawful Evil","cr":"3","xp":700,"ac":14,"hp":68,"speed":30,"speedText":"30 ft., Fly 50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-marilith","name":"Marilith","sizeType":"Large Fiend (Demon), Chaotic Evil","cr":"16","xp":15000,"ac":16,"hp":220,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-medusa","name":"Medusa","sizeType":"Medium Monstrosity, Lawful Evil","cr":"6","xp":2300,"ac":15,"hp":127,"speed":30,"speedText":"30 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-dust-mephit","name":"Dust Mephit","sizeType":"Small Elemental, Neutral Evil","cr":"1/2","xp":100,"ac":12,"hp":17,"speed":30,"speedText":"30 ft., Fly 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ice-mephit","name":"Ice Mephit","sizeType":"Small Elemental, Neutral Evil","cr":"1/2","xp":100,"ac":11,"hp":21,"speed":30,"speedText":"30 ft., Fly 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-magma-mephit","name":"Magma Mephit","sizeType":"Small Elemental, Neutral Evil","cr":"1/2","xp":100,"ac":11,"hp":18,"speed":30,"speedText":"30 ft., Fly 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-steam-mephit","name":"Steam Mephit","sizeType":"Small Elemental, Neutral Evil","cr":"1/4","xp":50,"ac":10,"hp":17,"speed":30,"speedText":"30 ft., Fly 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-merfolk-skirmisher","name":"Merfolk Skirmisher","sizeType":"Medium Elemental, Neutral","cr":"1/8","xp":25,"ac":11,"hp":11,"speed":10,"speedText":"10 ft., Swim 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-merrow","name":"Merrow","sizeType":"Large Monstrosity, Chaotic Evil","cr":"2","xp":450,"ac":13,"hp":45,"speed":10,"speedText":"10 ft., Swim 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mimic","name":"Mimic","sizeType":"Medium Monstrosity, Neutral","cr":"2","xp":450,"ac":12,"hp":58,"speed":20,"speedText":"20 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-minotaur-of-baphomet","name":"Minotaur of Baphomet","sizeType":"Large Monstrosity, Chaotic Evil","cr":"3","xp":700,"ac":14,"hp":85,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mummy","name":"Mummy","sizeType":"Medium or Small Undead, Lawful Evil","cr":"3","xp":700,"ac":11,"hp":58,"speed":20,"speedText":"20 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mummy-lord","name":"Mummy Lord","sizeType":"Medium or Small Undead (Cleric), Lawful Evil","cr":"15","xp":13000,"ac":17,"hp":187,"speed":30,"speedText":"30 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-nalfeshnee","name":"Nalfeshnee","sizeType":"Large Fiend (Demon), Chaotic Evil","cr":"13","xp":10000,"ac":18,"hp":184,"speed":20,"speedText":"20 ft., Fly 30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-night-hag","name":"Night Hag","sizeType":"Medium Fiend, Neutral Evil","cr":"5","xp":1800,"ac":17,"hp":112,"speed":30,"speedText":"30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-nightmare","name":"Nightmare","sizeType":"Large Fiend, Neutral Evil","cr":"3","xp":700,"ac":13,"hp":68,"speed":60,"speedText":"60 ft., Fly 90 ft. (hover)","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-noble","name":"Noble","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/8","xp":25,"ac":15,"hp":9,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ochre-jelly","name":"Ochre Jelly","sizeType":"Large Ooze, Unaligned","cr":"2","xp":450,"ac":8,"hp":52,"speed":20,"speedText":"20 ft., Climb 20 ft.","initiative":8,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ogre","name":"Ogre","sizeType":"Large Giant, Chaotic Evil","cr":"2","xp":450,"ac":11,"hp":68,"speed":40,"speedText":"40 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-oni","name":"Oni","sizeType":"Large Fiend, Lawful Evil","cr":"7","xp":2900,"ac":17,"hp":119,"speed":30,"speedText":"30 ft., Fly 30 ft. (hover)","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-otyugh","name":"Otyugh","sizeType":"Large Aberration, Neutral","cr":"5","xp":1800,"ac":14,"hp":104,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-owlbear","name":"Owlbear","sizeType":"Large Monstrosity, Unaligned","cr":"3","xp":700,"ac":13,"hp":59,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pegasus","name":"Pegasus","sizeType":"Large Celestial, Chaotic Good","cr":"2","xp":450,"ac":12,"hp":59,"speed":60,"speedText":"60 ft., Fly 90 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-phase-spider","name":"Phase Spider","sizeType":"Large Monstrosity, Unaligned","cr":"3","xp":700,"ac":14,"hp":45,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pirate","name":"Pirate","sizeType":"Medium or Small Humanoid, Neutral","cr":"1","xp":200,"ac":14,"hp":33,"speed":30,"speedText":"30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pirate-captain","name":"Pirate Captain","sizeType":"Medium or Small Humanoid, Neutral","cr":"6","xp":2300,"ac":17,"hp":84,"speed":30,"speedText":"30 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pit-fiend","name":"Pit Fiend","sizeType":"Large Fiend (Devil), Lawful Evil","cr":"20","xp":25000,"ac":21,"hp":337,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-planetar","name":"Planetar","sizeType":"Large Celestial (Angel), Lawful Good","cr":"16","xp":15000,"ac":19,"hp":262,"speed":40,"speedText":"40 ft., Fly 120 ft. (hover)","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-priest-acolyte","name":"Priest Acolyte","sizeType":"Medium or Small Humanoid (Cleric), Neutral","cr":"1/4","xp":50,"ac":13,"hp":11,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-priest","name":"Priest","sizeType":"Medium or Small Humanoid (Cleric), Neutral","cr":"2","xp":450,"ac":13,"hp":38,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pseudodragon","name":"Pseudodragon","sizeType":"Tiny Dragon, Neutral Good","cr":"1/4","xp":50,"ac":14,"hp":10,"speed":15,"speedText":"15 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-purple-worm","name":"Purple Worm","sizeType":"Gargantuan Monstrosity, Unaligned","cr":"15","xp":13000,"ac":18,"hp":247,"speed":50,"speedText":"50 ft., Burrow 50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-quasit","name":"Quasit","sizeType":"Tiny Fiend (Demon), Chaotic Evil","cr":"1","xp":200,"ac":13,"hp":25,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-rakshasa","name":"Rakshasa","sizeType":"Medium Fiend, Lawful Evil","cr":"13","xp":10000,"ac":17,"hp":221,"speed":40,"speedText":"40 ft.","initiative":18,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-red-dragon-wyrmling","name":"Red Dragon Wyrmling","sizeType":"Medium Dragon (Chromatic), Chaotic Evil","cr":"4","xp":1100,"ac":17,"hp":75,"speed":30,"speedText":"30 ft., Climb 30 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-red-dragon","name":"Young Red Dragon","sizeType":"Large Dragon (Chromatic), Chaotic Evil","cr":"10","xp":5900,"ac":18,"hp":178,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-red-dragon","name":"Adult Red Dragon","sizeType":"Huge Dragon (Chromatic), Chaotic Evil","cr":"17","xp":18000,"ac":19,"hp":256,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-red-dragon","name":"Ancient Red Dragon","sizeType":"Gargantuan Dragon (Chromatic), Chaotic Evil","cr":"24","xp":62000,"ac":22,"hp":507,"speed":40,"speedText":"40 ft., Climb 40 ft., Fly 80 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-remorhaz","name":"Remorhaz","sizeType":"Huge Monstrosity, Unaligned","cr":"11","xp":7,"ac":17,"hp":195,"speed":40,"speedText":"40 ft., Burrow 30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-roc","name":"Roc","sizeType":"Gargantuan Monstrosity, Unaligned","cr":"11","xp":7,"ac":15,"hp":248,"speed":20,"speedText":"20 ft., Fly 120 ft.","initiative":18,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-roper","name":"Roper","sizeType":"Large Aberration, Neutral Evil","cr":"5","xp":1800,"ac":20,"hp":93,"speed":10,"speedText":"10 ft., Climb 20 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-rust-monster","name":"Rust Monster","sizeType":"Medium Monstrosity, Unaligned","cr":"1/2","xp":100,"ac":14,"hp":33,"speed":40,"speedText":"40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sahuagin-warrior","name":"Sahuagin Warrior","sizeType":"Medium Fiend, Lawful Evil","cr":"1/2","xp":100,"ac":12,"hp":22,"speed":30,"speedText":"30 ft., Swim 40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-salamander","name":"Salamander","sizeType":"Large Elemental, Neutral Evil","cr":"5","xp":1800,"ac":15,"hp":90,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-satyr","name":"Satyr","sizeType":"Medium Fey, Chaotic Neutral","cr":"1/2","xp":100,"ac":13,"hp":31,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-scout","name":"Scout","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/2","xp":100,"ac":13,"hp":16,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sea-hag","name":"Sea Hag","sizeType":"Medium Fey, Chaotic Evil","cr":"2","xp":450,"ac":14,"hp":52,"speed":30,"speedText":"30 ft., Swim 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-shadow","name":"Shadow","sizeType":"Medium Undead, Chaotic Evil","cr":"1/2","xp":100,"ac":12,"hp":27,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-shambling-mound","name":"Shambling Mound","sizeType":"Large Plant, Unaligned","cr":"5","xp":1800,"ac":15,"hp":110,"speed":30,"speedText":"30 ft., Swim 20 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-shield-guardian","name":"Shield Guardian","sizeType":"Large Construct, Unaligned","cr":"7","xp":2900,"ac":17,"hp":142,"speed":30,"speedText":"30 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-silver-dragon-wyrmling","name":"Silver Dragon Wyrmling","sizeType":"Medium Dragon (Metallic), Lawful Good","cr":"2","xp":450,"ac":17,"hp":45,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-silver-dragon","name":"Young Silver Dragon","sizeType":"Large Dragon (Metallic), Lawful Good","cr":"9","xp":5000,"ac":18,"hp":168,"speed":40,"speedText":"40 ft., Fly 80 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-silver-dragon","name":"Adult Silver Dragon","sizeType":"Huge Dragon (Metallic), Lawful Good","cr":"16","xp":15000,"ac":19,"hp":216,"speed":40,"speedText":"40 ft., Fly 80 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-silver-dragon","name":"Ancient Silver Dragon","sizeType":"Gargantuan Dragon (Metallic), Lawful Good","cr":"23","xp":50000,"ac":22,"hp":468,"speed":40,"speedText":"40 ft., Fly 80 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-skeleton","name":"Skeleton","sizeType":"Medium Undead, Lawful Evil","cr":"1/4","xp":50,"ac":14,"hp":13,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-warhorse-skeleton","name":"Warhorse Skeleton","sizeType":"Large Undead, Lawful Evil","cr":"1/2","xp":100,"ac":13,"hp":22,"speed":60,"speedText":"60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-minotaur-skeleton","name":"Minotaur Skeleton","sizeType":"Large Undead, Lawful Evil","cr":"2","xp":450,"ac":12,"hp":45,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-solar","name":"Solar","sizeType":"Large Celestial (Angel), Lawful Good","cr":"21","xp":33000,"ac":21,"hp":297,"speed":50,"speedText":"50 ft., Fly 150 ft. (hover)","initiative":30,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-specter","name":"Specter","sizeType":"Medium Undead, Chaotic Evil","cr":"1","xp":200,"ac":12,"hp":22,"speed":30,"speedText":"30 ft., Fly 50 ft. (hover)","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sphinx-of-wonder","name":"Sphinx of Wonder","sizeType":"Tiny Celestial, Lawful Good","cr":"1","xp":200,"ac":13,"hp":24,"speed":20,"speedText":"20 ft., Fly 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sphinx-of-lore","name":"Sphinx of Lore","sizeType":"Large Celestial, Lawful Neutral","cr":"11","xp":7,"ac":17,"hp":170,"speed":40,"speedText":"40 ft., Fly 60 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sphinx-of-valor","name":"Sphinx of Valor","sizeType":"Large Celestial, Lawful Neutral","cr":"17","xp":18000,"ac":17,"hp":199,"speed":40,"speedText":"40 ft., Fly 60 ft.","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-spirit-naga","name":"Spirit Naga","sizeType":"Large Fiend, Chaotic Evil","cr":"8","xp":3900,"ac":17,"hp":135,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-sprite","name":"Sprite","sizeType":"Tiny Fey, Neutral Good","cr":"1/4","xp":50,"ac":15,"hp":10,"speed":10,"speedText":"10 ft., Fly 40 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-spy","name":"Spy","sizeType":"Medium or Small Humanoid, Neutral","cr":"1","xp":200,"ac":12,"hp":27,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-stirge","name":"Stirge","sizeType":"Tiny Monstrosity, Unaligned","cr":"1/8","xp":25,"ac":13,"hp":5,"speed":10,"speedText":"10 ft., Fly 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-stone-giant","name":"Stone Giant","sizeType":"Huge Giant, Neutral","cr":"7","xp":2900,"ac":17,"hp":126,"speed":40,"speedText":"40 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-stone-golem","name":"Stone Golem","sizeType":"Large Construct, Unaligned","cr":"10","xp":5900,"ac":18,"hp":220,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-storm-giant","name":"Storm Giant","sizeType":"Huge Giant, Chaotic Good","cr":"13","xp":10000,"ac":16,"hp":230,"speed":50,"speedText":"50 ft., Fly 25 ft. (hover), Swim 50 ft.","initiative":17,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-succubus","name":"Succubus","sizeType":"Medium Fiend, Neutral Evil","cr":"4","xp":1100,"ac":15,"hp":71,"speed":30,"speedText":"30 ft., Fly 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-tarrasque","name":"Tarrasque","sizeType":"Gargantuan Monstrosity (Titan), Unaligned","cr":"30","xp":155000,"ac":25,"hp":697,"speed":60,"speedText":"60 ft., Burrow 40 ft., Climb 60 ft.","initiative":28,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-tough","name":"Tough","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/2","xp":100,"ac":12,"hp":32,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-tough-boss","name":"Tough Boss","sizeType":"Medium or Small Humanoid, Neutral","cr":"4","xp":1100,"ac":16,"hp":82,"speed":30,"speedText":"30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-treant","name":"Treant","sizeType":"Huge Plant, Chaotic Good","cr":"9","xp":5000,"ac":16,"hp":138,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-troll","name":"Troll","sizeType":"Large Giant, Chaotic Evil","cr":"5","xp":1800,"ac":15,"hp":94,"speed":30,"speedText":"30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-troll-limb","name":"Troll Limb","sizeType":"Small Giant, Chaotic Evil","cr":"1/2","xp":100,"ac":13,"hp":14,"speed":20,"speedText":"20 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-unicorn","name":"Unicorn","sizeType":"Large Celestial, Lawful Good","cr":"5","xp":1800,"ac":12,"hp":97,"speed":50,"speedText":"50 ft.","initiative":18,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-vampire-familiar","name":"Vampire Familiar","sizeType":"Medium or Small Humanoid, Neutral Evil","cr":"3","xp":700,"ac":15,"hp":65,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-vampire-spawn","name":"Vampire Spawn","sizeType":"Medium or Small Undead, Neutral Evil","cr":"5","xp":1800,"ac":16,"hp":90,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-vampire","name":"Vampire","sizeType":"Medium or Small Undead, Lawful Evil","cr":"13","xp":10000,"ac":16,"hp":195,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":24,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-vrock","name":"Vrock","sizeType":"Large Fiend (Demon), Chaotic Evil","cr":"6","xp":2300,"ac":15,"hp":152,"speed":40,"speedText":"40 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-warrior-infantry","name":"Warrior Infantry","sizeType":"Medium or Small Humanoid, Neutral","cr":"1/8","xp":25,"ac":13,"hp":9,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-warrior-veteran","name":"Warrior Veteran","sizeType":"Medium or Small Humanoid, Neutral","cr":"3","xp":700,"ac":17,"hp":65,"speed":30,"speedText":"30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-water-elemental","name":"Water Elemental","sizeType":"Large Elemental, Neutral","cr":"5","xp":1800,"ac":14,"hp":114,"speed":30,"speedText":"30 ft., Swim 90 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-werebear","name":"Werebear","sizeType":"Medium or Small Monstrosity (Lycanthrope), Neutral Good","cr":"5","xp":1800,"ac":15,"hp":135,"speed":30,"speedText":"30 ft., 40 ft. (bear form only), Climb 30 ft. (bear","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wereboar","name":"Wereboar","sizeType":"Medium or Small Monstrosity (Lycanthrope), Neutral Evil","cr":"4","xp":1100,"ac":15,"hp":97,"speed":30,"speedText":"30 ft., 40 ft. (boar form only)","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wererat","name":"Wererat","sizeType":"Medium or Small Monstrosity (Lycanthrope), Lawful Evil","cr":"2","xp":450,"ac":13,"hp":60,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-weretiger","name":"Weretiger","sizeType":"Medium or Small Monstrosity (Lycanthrope), Neutral","cr":"4","xp":1100,"ac":12,"hp":120,"speed":30,"speedText":"30 ft., 40 ft. (tiger form only)","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-werewolf","name":"Werewolf","sizeType":"Medium or Small Monstrosity (Lycanthrope), Chaotic Evil","cr":"3","xp":700,"ac":15,"hp":71,"speed":30,"speedText":"30 ft., 40 ft. (wolf form only)","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-white-dragon-wyrmling","name":"White Dragon Wyrmling","sizeType":"Medium Dragon (Chromatic), Chaotic Evil","cr":"2","xp":450,"ac":16,"hp":32,"speed":30,"speedText":"30 ft., Burrow 15 ft., Fly 60 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-young-white-dragon","name":"Young White Dragon","sizeType":"Large Dragon (Chromatic), Chaotic Evil","cr":"6","xp":2300,"ac":17,"hp":123,"speed":40,"speedText":"40 ft., Burrow 20 ft., Fly 80 ft., Swim 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-adult-white-dragon","name":"Adult White Dragon","sizeType":"Huge Dragon (Chromatic), Chaotic Evil","cr":"13","xp":10000,"ac":18,"hp":200,"speed":40,"speedText":"40 ft., Burrow 30 ft., Fly 80 ft., Swim 40 ft.","initiative":20,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ancient-white-dragon","name":"Ancient White Dragon","sizeType":"Gargantuan Dragon (Chromatic), Chaotic Evil","cr":"20","xp":25000,"ac":20,"hp":333,"speed":40,"speedText":"40 ft., Burrow 40 ft., Fly 80 ft., Swim 40 ft.","initiative":22,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wight","name":"Wight","sizeType":"Medium Undead, Neutral Evil","cr":"3","xp":700,"ac":14,"hp":82,"speed":30,"speedText":"30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-will-o-wisp","name":"Will-o’-Wisp","sizeType":"Tiny Undead, Chaotic Evil","cr":"2","xp":450,"ac":19,"hp":27,"speed":5,"speedText":"5 ft., Fly 50 ft. (hover)","initiative":19,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-winter-wolf","name":"Winter Wolf","sizeType":"Large Monstrosity, Neutral Evil","cr":"3","xp":700,"ac":13,"hp":75,"speed":50,"speedText":"50 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-worg","name":"Worg","sizeType":"Large Fey, Neutral Evil","cr":"1/2","xp":100,"ac":13,"hp":26,"speed":50,"speedText":"50 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wraith","name":"Wraith","sizeType":"Medium or Small Undead, Neutral Evil","cr":"5","xp":1800,"ac":13,"hp":67,"speed":5,"speedText":"5 ft., Fly 60 ft. (hover)","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wyvern","name":"Wyvern","sizeType":"Large Dragon, Unaligned","cr":"6","xp":2300,"ac":14,"hp":127,"speed":30,"speedText":"30 ft., Fly 80 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-xorn","name":"Xorn","sizeType":"Medium Elemental, Neutral","cr":"5","xp":1800,"ac":19,"hp":84,"speed":20,"speedText":"20 ft., Burrow 20 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-zombie","name":"Zombie","sizeType":"Medium Undead, Neutral Evil","cr":"1/4","xp":50,"ac":8,"hp":15,"speed":20,"speedText":"20 ft.","initiative":8,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ogre-zombie","name":"Ogre Zombie","sizeType":"Large Undead, Neutral Evil","cr":"2","xp":450,"ac":8,"hp":85,"speed":30,"speedText":"30 ft.","initiative":8,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-allosaurus","name":"Allosaurus","sizeType":"Large Beast (Dinosaur), Unaligned","cr":"2","xp":450,"ac":13,"hp":51,"speed":60,"speedText":"60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ankylosaurus","name":"Ankylosaurus","sizeType":"Huge Beast (Dinosaur), Unaligned","cr":"3","xp":700,"ac":15,"hp":68,"speed":30,"speedText":"30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-ape","name":"Ape","sizeType":"Medium Beast, Unaligned","cr":"1/2","xp":100,"ac":12,"hp":19,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-archelon","name":"Archelon","sizeType":"Huge Beast (Dinosaur), Unaligned","cr":"4","xp":1100,"ac":17,"hp":90,"speed":20,"speedText":"20 ft., Swim 80 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-baboon","name":"Baboon","sizeType":"Small Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":3,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-badger","name":"Badger","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":5,"speed":20,"speedText":"20 ft., Burrow 5 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-bat","name":"Bat","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":1,"speed":5,"speedText":"5 ft., Fly 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-black-bear","name":"Black Bear","sizeType":"Medium Beast, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":19,"speed":30,"speedText":"30 ft., Climb 30 ft., Swim 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-blood-hawk","name":"Blood Hawk","sizeType":"Small Beast, Unaligned","cr":"1/8","xp":25,"ac":12,"hp":7,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-boar","name":"Boar","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":11,"hp":13,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-brown-bear","name":"Brown Bear","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":11,"hp":22,"speed":40,"speedText":"40 ft., Climb 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-camel","name":"Camel","sizeType":"Large Beast, Unaligned","cr":"1/8","xp":25,"ac":10,"hp":17,"speed":50,"speedText":"50 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-cat","name":"Cat","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":2,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-constrictor-snake","name":"Constrictor Snake","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":13,"hp":13,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-crab","name":"Crab","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":3,"speed":20,"speedText":"20 ft., Swim 20 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-crocodile","name":"Crocodile","sizeType":"Large Beast, Unaligned","cr":"1/2","xp":100,"ac":12,"hp":13,"speed":20,"speedText":"20 ft., Swim 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-deer","name":"Deer","sizeType":"Medium Beast, Unaligned","cr":"0","xp":10,"ac":13,"hp":4,"speed":50,"speedText":"50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-dire-wolf","name":"Dire Wolf","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":14,"hp":22,"speed":50,"speedText":"50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-draft-horse","name":"Draft Horse","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":10,"hp":15,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-eagle","name":"Eagle","sizeType":"Small Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":4,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-elephant","name":"Elephant","sizeType":"Huge Beast, Unaligned","cr":"4","xp":1100,"ac":12,"hp":76,"speed":40,"speedText":"40 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-elk","name":"Elk","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":10,"hp":11,"speed":50,"speedText":"50 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-flying-snake","name":"Flying Snake","sizeType":"Tiny Monstrosity, Unaligned","cr":"1/8","xp":25,"ac":14,"hp":5,"speed":30,"speedText":"30 ft., Fly 60 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-frog","name":"Frog","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":1,"speed":20,"speedText":"20 ft., Swim 20 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-ape","name":"Giant Ape","sizeType":"Huge Beast, Unaligned","cr":"7","xp":2900,"ac":12,"hp":168,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":15,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-badger","name":"Giant Badger","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":13,"hp":15,"speed":30,"speedText":"30 ft., Burrow 10 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-bat","name":"Giant Bat","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":13,"hp":22,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-boar","name":"Giant Boar","sizeType":"Large Beast, Unaligned","cr":"2","xp":450,"ac":13,"hp":42,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-centipede","name":"Giant Centipede","sizeType":"Small Beast, Unaligned","cr":"1/4","xp":50,"ac":14,"hp":9,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-constrictor-snake","name":"Giant Constrictor Snake","sizeType":"Huge Beast, Unaligned","cr":"2","xp":450,"ac":12,"hp":60,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-crab","name":"Giant Crab","sizeType":"Medium Beast, Unaligned","cr":"1/8","xp":25,"ac":15,"hp":13,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-crocodile","name":"Giant Crocodile","sizeType":"Huge Beast, Unaligned","cr":"5","xp":1800,"ac":14,"hp":85,"speed":30,"speedText":"30 ft., Swim 50 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-eagle","name":"Giant Eagle","sizeType":"Large Celestial, Neutral Good","cr":"1","xp":200,"ac":13,"hp":26,"speed":10,"speedText":"10 ft., Fly 80 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-elk","name":"Giant Elk","sizeType":"Huge Celestial, Neutral Good","cr":"2","xp":450,"ac":14,"hp":42,"speed":60,"speedText":"60 ft.","initiative":16,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-fire-beetle","name":"Giant Fire Beetle","sizeType":"Small Beast, Unaligned","cr":"0","xp":10,"ac":13,"hp":4,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-frog","name":"Giant Frog","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":11,"hp":18,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-goat","name":"Giant Goat","sizeType":"Large Beast, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":19,"speed":40,"speedText":"40 ft., Climb 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-hyena","name":"Giant Hyena","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":12,"hp":45,"speed":50,"speedText":"50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-lizard","name":"Giant Lizard","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":12,"hp":19,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-octopus","name":"Giant Octopus","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":11,"hp":45,"speed":10,"speedText":"10 ft., Swim 60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-owl","name":"Giant Owl","sizeType":"Large Celestial, Neutral","cr":"1/4","xp":50,"ac":12,"hp":19,"speed":5,"speedText":"5 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-rat","name":"Giant Rat","sizeType":"Small Beast, Unaligned","cr":"1/8","xp":25,"ac":13,"hp":7,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-scorpion","name":"Giant Scorpion","sizeType":"Large Beast, Unaligned","cr":"3","xp":700,"ac":15,"hp":52,"speed":40,"speedText":"40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-seahorse","name":"Giant Seahorse","sizeType":"Large Beast, Unaligned","cr":"1/2","xp":100,"ac":14,"hp":16,"speed":5,"speedText":"5 ft., Swim 40 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-shark","name":"Giant Shark","sizeType":"Huge Beast, Unaligned","cr":"5","xp":1800,"ac":13,"hp":92,"speed":5,"speedText":"5 ft., Swim 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-spider","name":"Giant Spider","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":14,"hp":26,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-toad","name":"Giant Toad","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":11,"hp":39,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-venomous-snake","name":"Giant Venomous Snake","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":14,"hp":11,"speed":40,"speedText":"40 ft., Swim 40 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-vulture","name":"Giant Vulture","sizeType":"Large Monstrosity, Neutral Evil","cr":"1","xp":200,"ac":10,"hp":25,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-wasp","name":"Giant Wasp","sizeType":"Medium Beast, Unaligned","cr":"1/2","xp":100,"ac":13,"hp":22,"speed":10,"speedText":"10 ft., Fly 50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-weasel","name":"Giant Weasel","sizeType":"Medium Beast, Unaligned","cr":"1/8","xp":25,"ac":13,"hp":9,"speed":40,"speedText":"40 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-giant-wolf-spider","name":"Giant Wolf Spider","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":13,"hp":11,"speed":40,"speedText":"40 ft., Climb 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-goat","name":"Goat","sizeType":"Medium Beast, Unaligned","cr":"0","xp":10,"ac":10,"hp":4,"speed":40,"speedText":"40 ft., Climb 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hawk","name":"Hawk","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":13,"hp":1,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hippopotamus","name":"Hippopotamus","sizeType":"Large Beast, Unaligned","cr":"4","xp":1100,"ac":14,"hp":82,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":8,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hunter-shark","name":"Hunter Shark","sizeType":"Large Beast, Unaligned","cr":"2","xp":450,"ac":12,"hp":45,"speed":5,"speedText":"5 ft., Swim 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-hyena","name":"Hyena","sizeType":"Medium Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":5,"speed":50,"speedText":"50 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-jackal","name":"Jackal","sizeType":"Small Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":3,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-killer-whale","name":"Killer Whale","sizeType":"Huge Beast, Unaligned","cr":"3","xp":700,"ac":12,"hp":90,"speed":5,"speedText":"5 ft., Swim 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-lion","name":"Lion","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":12,"hp":22,"speed":50,"speedText":"50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-lizard","name":"Lizard","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":10,"hp":2,"speed":20,"speedText":"20 ft., Climb 20 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mammoth","name":"Mammoth","sizeType":"Huge Beast, Unaligned","cr":"6","xp":2300,"ac":13,"hp":126,"speed":50,"speedText":"50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mastiff","name":"Mastiff","sizeType":"Medium Beast, Unaligned","cr":"1/8","xp":25,"ac":12,"hp":5,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-mule","name":"Mule","sizeType":"Medium Beast, Unaligned","cr":"1/8","xp":25,"ac":10,"hp":11,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-octopus","name":"Octopus","sizeType":"Small Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":3,"speed":5,"speedText":"5 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-owl","name":"Owl","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":1,"speed":5,"speedText":"5 ft., Fly 60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-panther","name":"Panther","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":13,"hp":13,"speed":50,"speedText":"50 ft., Climb 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-piranha","name":"Piranha","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":13,"hp":1,"speed":5,"speedText":"5 ft., Swim 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-plesiosaurus","name":"Plesiosaurus","sizeType":"Large Beast (Dinosaur), Unaligned","cr":"2","xp":450,"ac":13,"hp":68,"speed":20,"speedText":"20 ft., Swim 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-polar-bear","name":"Polar Bear","sizeType":"Large Beast, Unaligned","cr":"2","xp":450,"ac":12,"hp":42,"speed":40,"speedText":"40 ft., Swim 40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pony","name":"Pony","sizeType":"Medium Beast, Unaligned","cr":"1/8","xp":25,"ac":10,"hp":11,"speed":40,"speedText":"40 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-pteranodon","name":"Pteranodon","sizeType":"Medium Beast (Dinosaur), Unaligned","cr":"1/4","xp":50,"ac":13,"hp":13,"speed":10,"speedText":"10 ft., Fly 60 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-rat","name":"Rat","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":10,"hp":1,"speed":20,"speedText":"20 ft., Climb 20 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-raven","name":"Raven","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":2,"speed":10,"speedText":"10 ft., Fly 50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-reef-shark","name":"Reef Shark","sizeType":"Medium Beast, Unaligned","cr":"1/2","xp":100,"ac":12,"hp":22,"speed":5,"speedText":"5 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-rhinoceros","name":"Rhinoceros","sizeType":"Large Beast, Unaligned","cr":"2","xp":450,"ac":13,"hp":45,"speed":40,"speedText":"40 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-riding-horse","name":"Riding Horse","sizeType":"Large Beast, Unaligned","cr":"1/4","xp":50,"ac":11,"hp":13,"speed":60,"speedText":"60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-saber-toothed-tiger","name":"Saber-Toothed Tiger","sizeType":"Large Beast, Unaligned","cr":"2","xp":450,"ac":13,"hp":52,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-scorpion","name":"Scorpion","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":11,"hp":1,"speed":10,"speedText":"10 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-seahorse","name":"Seahorse","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":1,"speed":5,"speedText":"5 ft., Swim 20 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-spider","name":"Spider","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":12,"hp":1,"speed":20,"speedText":"20 ft., Climb 20 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-bats","name":"Swarm of Bats","sizeType":"Large Swarm of Tiny Beasts, Unaligned","cr":"1/4","xp":50,"ac":12,"hp":11,"speed":5,"speedText":"5 ft., Fly 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-insects","name":"Swarm of Insects","sizeType":"Medium Swarm of Tiny Beasts, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":19,"speed":20,"speedText":"20 ft., Climb or Fly 20 ft. (GM’s choice)","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-piranhas","name":"Swarm of Piranhas","sizeType":"Medium Swarm of Tiny Beasts, Unaligned","cr":"1","xp":200,"ac":13,"hp":28,"speed":5,"speedText":"5 ft., Swim 40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-rats","name":"Swarm of Rats","sizeType":"Medium Swarm of Tiny Beasts, Unaligned","cr":"1/4","xp":50,"ac":10,"hp":14,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-ravens","name":"Swarm of Ravens","sizeType":"Medium Swarm of Tiny Beasts, Unaligned","cr":"1/4","xp":50,"ac":12,"hp":11,"speed":10,"speedText":"10 ft., Fly 50 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-swarm-of-venomous-snakes","name":"Swarm of Venomous Snakes","sizeType":"Medium Swarm of Tiny Beasts, Unaligned","cr":"2","xp":450,"ac":14,"hp":36,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":14,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-tiger","name":"Tiger","sizeType":"Large Beast, Unaligned","cr":"1","xp":200,"ac":13,"hp":30,"speed":40,"speedText":"40 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-triceratops","name":"Triceratops","sizeType":"Huge Beast (Dinosaur), Unaligned","cr":"5","xp":1800,"ac":14,"hp":114,"speed":50,"speedText":"50 ft.","initiative":9,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-tyrannosaurus-rex","name":"Tyrannosaurus Rex","sizeType":"Huge Beast (Dinosaur), Unaligned","cr":"8","xp":3900,"ac":13,"hp":136,"speed":50,"speedText":"50 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-venomous-snake","name":"Venomous Snake","sizeType":"Tiny Beast, Unaligned","cr":"1/8","xp":25,"ac":12,"hp":5,"speed":30,"speedText":"30 ft., Swim 30 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-vulture","name":"Vulture","sizeType":"Medium Beast, Unaligned","cr":"0","xp":10,"ac":10,"hp":5,"speed":10,"speedText":"10 ft., Fly 50 ft.","initiative":10,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-warhorse","name":"Warhorse","sizeType":"Large Beast, Unaligned","cr":"1/2","xp":100,"ac":11,"hp":19,"speed":60,"speedText":"60 ft.","initiative":11,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-weasel","name":"Weasel","sizeType":"Tiny Beast, Unaligned","cr":"0","xp":10,"ac":13,"hp":1,"speed":30,"speedText":"30 ft., Climb 30 ft.","initiative":13,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false},{"id":"srd521-wolf","name":"Wolf","sizeType":"Medium Beast, Unaligned","cr":"1/4","xp":50,"ac":12,"hp":11,"speed":40,"speedText":"40 ft.","initiative":12,"type":"Enemy","source":"SRD 5.2.1","isHomebrew":false}];
+  const TOOL_ID = "encounterTool";
+  const TOOL_NAME = "Encounter / Initiative";
+  const STORAGE_KEY = "vrahuneEncounterToolStateV7";
+  const LEGACY_KEYS = ["vrahuneEncounterToolStateV6", "vrahuneEncounterToolStateV4", "vrahuneEncounterToolStateV3", "vrahuneEncounterToolStateV2"];
 
-  // 5e CR -> XP reference (used as fallback + auto-fix for malformed values).
-  const CR_XP = {
-    "0": 10,
+  function uid(prefix = "id") {
+    return `${prefix}_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+  }
+
+  function esc(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function intOr(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.trunc(n) : fallback;
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  const CONDITIONS_2024 = [
+    "Blinded",
+    "Charmed",
+    "Deafened",
+    "Exhaustion",
+    "Frightened",
+    "Grappled",
+    "Incapacitated",
+    "Invisible",
+    "Paralyzed",
+    "Petrified",
+    "Poisoned",
+    "Prone",
+    "Restrained",
+    "Stunned",
+    "Unconscious"
+  ];
+
+  const CONDITION_INFO_2024 = {
+    Blinded: "Can’t see and fails sight checks. Attack rolls against it have advantage, and its attacks have disadvantage.",
+    Charmed: "Can’t attack the charmer or target it with harmful effects, and the charmer has advantage on social checks.",
+    Deafened: "Can’t hear and fails hearing checks.",
+    Exhaustion: "Each level applies −2 to D20 tests and −5 speed. At level 6, the creature dies.",
+    Frightened: "Has disadvantage on checks and attacks while it can see the source, and can’t willingly move closer.",
+    Grappled: "Speed is 0 while grappled.",
+    Incapacitated: "Can’t take actions, bonus actions, or reactions.",
+    Invisible: "Can’t be seen without special senses or magic. Its attacks have advantage; attacks against it have disadvantage.",
+    Paralyzed: "Incapacitated, speed 0, fails Str/Dex saves; attacks against it have advantage; nearby hits are critical.",
+    Petrified: "Incapacitated and transformed to an inanimate substance, with heavy defenses and immunities.",
+    Poisoned: "Has disadvantage on attack rolls and ability checks.",
+    Prone: "Can crawl unless it stands; nearby attackers gain advantage and distant attacks have disadvantage.",
+    Restrained: "Speed 0; attacks have disadvantage; attacks against it have advantage; Dex saves have disadvantage.",
+    Stunned: "Incapacitated, speed 0, fails Str/Dex saves; attacks against it have advantage.",
+    Unconscious: "Incapacitated and unaware; drops held items, falls prone, and nearby hits are critical."
+  };
+
+
+  const CR_XP_BY_RATING = {
+    "0": 0,
     "1/8": 25,
     "1/4": 50,
     "1/2": 100,
@@ -45,1902 +105,4227 @@
     "30": 155000
   };
 
-  function uid(prefix = "mv") {
-    return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+  const XP_BUDGET_2024_BY_LEVEL = {
+    1: { low: 50, moderate: 75, high: 100 },
+    2: { low: 100, moderate: 150, high: 200 },
+    3: { low: 150, moderate: 225, high: 400 },
+    4: { low: 250, moderate: 375, high: 500 },
+    5: { low: 500, moderate: 750, high: 1100 },
+    6: { low: 600, moderate: 1000, high: 1400 },
+    7: { low: 750, moderate: 1300, high: 1700 },
+    8: { low: 1000, moderate: 1700, high: 2100 },
+    9: { low: 1300, moderate: 2000, high: 2600 },
+    10: { low: 1600, moderate: 2300, high: 3100 },
+    11: { low: 1900, moderate: 2900, high: 4100 },
+    12: { low: 2200, moderate: 3700, high: 4700 },
+    13: { low: 2600, moderate: 4200, high: 5400 },
+    14: { low: 2900, moderate: 4900, high: 6200 },
+    15: { low: 3300, moderate: 5400, high: 7800 },
+    16: { low: 3800, moderate: 6100, high: 9800 },
+    17: { low: 4500, moderate: 7200, high: 11700 },
+    18: { low: 5000, moderate: 8700, high: 14200 },
+    19: { low: 5500, moderate: 10700, high: 17200 },
+    20: { low: 6400, moderate: 13200, high: 22000 }
+  };
+
+  function normalizeLevel(value, fallback = 1) {
+    return clamp(Math.max(1, intOr(value, fallback)), 1, 20);
   }
 
-  function intOr(v, fallback = 0) {
-    const n = parseInt(String(v ?? "").replace(/,/g, ""), 10);
-    return Number.isFinite(n) ? n : fallback;
+  function normalizeCR(value, fallback = "0") {
+    const raw = String(value ?? "").trim();
+    if (!raw) return fallback;
+
+    const direct = raw.toLowerCase().replace(/\s+/g, "");
+    if (direct === "1/8" || direct === "1/4" || direct === "1/2") return direct;
+    if (/^\d+$/.test(direct)) {
+      const n = clamp(intOr(direct, 0), 0, 30);
+      return String(n);
+    }
+    const fractionMatch = direct.match(/^(\d+)\/(\d+)$/);
+    if (fractionMatch) {
+      const num = Number(fractionMatch[1]);
+      const den = Number(fractionMatch[2]);
+      if (den > 0) {
+        const v = num / den;
+        if (v <= 0.125) return "1/8";
+        if (v <= 0.25) return "1/4";
+        if (v <= 0.5) return "1/2";
+        const n = clamp(Math.round(v), 0, 30);
+        return String(n);
+      }
+    }
+
+    const n = Number(direct);
+    if (!Number.isFinite(n)) return fallback;
+    if (n <= 0) return "0";
+    if (n <= 0.125) return "1/8";
+    if (n <= 0.25) return "1/4";
+    if (n <= 0.5) return "1/2";
+    return String(clamp(Math.round(n), 0, 30));
   }
 
-  function esc(s) {
-    return String(s ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  function crToXP(cr) {
+    return CR_XP_BY_RATING[normalizeCR(cr, "0")] || 0;
   }
 
-  function flattenText(value, depth = 0) {
+  function canonicalConditionName(value) {
+    const s = String(value || "").trim().toLowerCase();
+    if (!s) return "";
+    const hit = CONDITIONS_2024.find((c) => c.toLowerCase() === s);
+    return hit || "";
+  }
+
+  function normalizeConditions(rawConditions) {
+    if (!Array.isArray(rawConditions)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const entry of rawConditions) {
+      const name = canonicalConditionName(typeof entry === "string" ? entry : entry?.name);
+      if (!name || name === "Exhaustion" || seen.has(name)) continue;
+      const duration = Math.max(0, intOr(entry?.duration, 0));
+      out.push({ name, duration: duration > 0 ? duration : null });
+      seen.add(name);
+    }
+    return out;
+  }
+
+  function exhaustionEffects(level) {
+    const lv = clamp(intOr(level, 0), 0, 6);
+    if (!lv) return "No exhaustion penalties.";
+    const d20Penalty = lv * 2;
+    const speedPenalty = lv * 5;
+    return lv >= 6
+      ? `Level ${lv}: D20 tests −${d20Penalty}, Speed −${speedPenalty} ft, and the creature dies.`
+      : `Level ${lv}: D20 tests −${d20Penalty}, Speed −${speedPenalty} ft.`;
+  }
+
+  function normalizePortrait(value) {
+    const s = String(value || "").trim();
+    if (!s) return "";
+    return /^data:image\//i.test(s) ? s : "";
+  }
+
+  let monsterVaultIndexCache = [];
+
+  function monsterTextValue(value, depth = 0) {
     if (value == null) return "";
-    if (depth > 6) return "";
-
+    if (depth > 5) return "";
     if (typeof value === "string") {
       const s = value.trim();
-      if (!s) return "";
-      if (/^\[object Object\](,\s*\[object Object\])*$/i.test(s)) return "";
-      if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) {
-        try {
-          return flattenText(JSON.parse(s), depth + 1);
-        } catch (_) {
-          // keep original string if not valid JSON
-        }
-      }
+      if (!s || /^\[object Object\]$/i.test(s)) return "";
       return s;
     }
-
     if (typeof value === "number" || typeof value === "boolean") return String(value);
-
     if (Array.isArray(value)) {
-      const joined = value
-        .map((v) => flattenText(v, depth + 1))
+      return value
+        .map((v) => monsterTextValue(v, depth + 1))
         .filter(Boolean)
         .join(", ");
-      return joined;
     }
-
     if (typeof value === "object") {
-      const entries = Object.entries(value)
+      const parts = Object.entries(value)
         .map(([k, v]) => {
-          const inner = flattenText(v, depth + 1);
+          const inner = monsterTextValue(v, depth + 1);
           if (!inner) return "";
           const key = String(k || "").replace(/_/g, " ").trim();
           return key ? `${key}: ${inner}` : inner;
         })
         .filter(Boolean);
-      return entries.join(", ");
+      return parts.join(", ");
     }
-
     return String(value).trim();
   }
 
-  const SAVE_KEY_MAP = {
-    str: "Str",
-    strength: "Str",
-    dex: "Dex",
-    dexterity: "Dex",
-    con: "Con",
-    constitution: "Con",
-    int: "Int",
-    intelligence: "Int",
-    wis: "Wis",
-    wisdom: "Wis",
-    cha: "Cha",
-    charisma: "Cha"
-  };
-
-  function normalizeSaveKey(rawKey) {
-    const key = String(rawKey || "")
-      .toLowerCase()
-      .replace(/saving throw|save|throws?/g, "")
-      .replace(/[^a-z]/g, "")
-      .trim();
-    return SAVE_KEY_MAP[key] || "";
+  function monsterVaultApi() {
+    const api = window.VrahuneMonsterVault;
+    if (!api || typeof api !== "object") return null;
+    if (typeof api.getAllMonsters !== "function" || typeof api.toEncounterCombatant !== "function") return null;
+    return api;
   }
 
-  function formatModifier(raw) {
-    if (raw == null) return "";
-    if (typeof raw === "number" && Number.isFinite(raw)) {
-      return raw >= 0 ? `+${raw}` : String(raw);
-    }
-    if (typeof raw === "string") {
-      const s = raw.trim();
-      if (!s || /^\[object Object\]$/i.test(s)) return "";
-      if (/^[+-]?\d+$/.test(s)) {
-        const n = Number(s);
-        return n >= 0 ? `+${n}` : String(n);
-      }
-      return s;
-    }
-    if (typeof raw === "object") {
-      const candidate = raw.modifier ?? raw.mod ?? raw.bonus ?? raw.value ?? raw.total ?? raw.score;
-      if (candidate != null) return formatModifier(candidate);
-    }
-    return flattenText(raw);
+  function hasMonsterVaultApi() {
+    return !!monsterVaultApi();
   }
 
-  function formatSavingThrows(value) {
-    if (value == null) return "";
+  function monsterVaultMonsters(forceRefresh = false) {
+    const api = monsterVaultApi();
+    if (!api) return [];
 
-    if (typeof value === "string") {
-      const s = value.trim();
-      if (!s || /^\[object Object\](,\s*\[object Object\])*$/i.test(s)) return "";
-      if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) {
-        try {
-          return formatSavingThrows(JSON.parse(s));
-        } catch (_) {
-          // fall through
-        }
-      }
-      return s;
+    if (!forceRefresh && Array.isArray(monsterVaultIndexCache) && monsterVaultIndexCache.length) {
+      return monsterVaultIndexCache;
     }
 
-    if (Array.isArray(value)) {
-      const parts = value
-        .map((item) => {
-          if (item == null) return "";
-          if (typeof item === "string") return item.trim();
-          if (typeof item === "number") return formatModifier(item);
-          if (typeof item === "object") {
-            const rawKey = item.ability || item.ability_score?.name || item.name || item.proficiency?.name || item.key || item.save;
-            const key = normalizeSaveKey(rawKey);
-            const mod = formatModifier(item.value ?? item.modifier ?? item.mod ?? item.bonus ?? item.total ?? item.score);
-            if (key && mod) return `${key} ${mod}`;
-            if (key) return key;
-            return flattenText(item);
+    let mons = [];
+    try {
+      if (typeof api.getMonsterIndex === "function") {
+        mons = api.getMonsterIndex();
+      } else if (typeof api.getAllMonsters === "function") {
+        mons = api.getAllMonsters();
+      }
+    } catch (_) {
+      mons = [];
+    }
+
+    const normalized = (Array.isArray(mons) ? mons : [])
+      .map((m) => ({
+        id: String(m?.id || "").trim(),
+        name: String(m?.name || "Unnamed Monster").trim() || "Unnamed Monster",
+        type: ["PC", "NPC", "Enemy"].includes(m?.type) ? m.type : "Enemy",
+        cr: normalizeCR(m?.cr, "0"),
+        ac: Math.max(0, intOr(m?.ac, 10)),
+        hp: Math.max(1, intOr(m?.hp, 1)),
+        speed: Math.max(0, intOr(m?.speed, 30)),
+        initiative: Math.max(0, intOr(m?.initiative, 10)),
+        source: String(m?.source || (m?.isHomebrew ? "Homebrew" : "SRD 2024")).trim() || "SRD 2024",
+        sourceType: m?.isHomebrew ? "homebrew" : "srd",
+        sizeType: String(m?.sizeType || ""),
+        level: normalizeLevel(m?.level, 3),
+        xp: Math.max(0, intOr(m?.xp, crToXP(m?.cr))),
+        isHomebrew: !!m?.isHomebrew
+      }))
+      .filter((m) => m.id);
+
+    monsterVaultIndexCache = normalized;
+    return normalized;
+  }
+
+  function hasMonsterDetails(c) {
+    if (!c || c.type !== "Enemy") return false;
+    return [c.traits, c.actions, c.bonusActions, c.reactions, c.legendaryActions].some((arr) => Array.isArray(arr) && arr.length);
+  }
+
+
+  function initialParties() {
+    return [
+      {
+        id: uid("party"),
+        name: "Frostclaw Cell",
+        members: [
+          { id: uid("m"), name: "Vesper", type: "PC", level: 5, ac: 16, speed: 30, hpCurrent: 27, hpMax: 35 },
+          { id: uid("m"), name: "Arelix", type: "PC", level: 5, ac: 15, speed: 30, hpCurrent: 31, hpMax: 31 },
+          { id: uid("m"), name: "Lirael", type: "PC", level: 5, ac: 14, speed: 30, hpCurrent: 24, hpMax: 24 },
+          { id: uid("m"), name: "Thamar", type: "PC", level: 5, ac: 18, speed: 25, hpCurrent: 39, hpMax: 39 }
+        ]
+      }
+    ];
+  }
+
+  function mkCombatant(raw = {}) {
+    const hpMax = Math.max(0, intOr(raw.hpMax, 10));
+    const hpCurrent = clamp(intOr(raw.hpCurrent, hpMax), 0, hpMax);
+    const type = ["PC", "NPC", "Enemy"].includes(raw.type) ? raw.type : "NPC";
+    const initiative = Math.max(0, intOr(raw.initiative, 10));
+    const levelDefault = type === "Enemy" ? 1 : 3;
+
+    const details = raw.details && typeof raw.details === "object" ? JSON.parse(JSON.stringify(raw.details)) : null;
+    const normalizeFeatures = (list) =>
+      (Array.isArray(list) ? list : [])
+        .map((entry) => {
+          if (typeof entry === "string") {
+            const textOnly = monsterTextValue(entry);
+            return textOnly ? { name: "Feature", text: textOnly } : null;
           }
-          return flattenText(item);
+          const name = monsterTextValue(entry?.name).trim();
+          const text = monsterTextValue(entry?.text ?? entry?.description).trim();
+          if (!name && !text) return null;
+          return { name: name || "Feature", text };
         })
         .filter(Boolean);
-      return parts.join(", ");
-    }
 
-    if (typeof value === "object") {
-      const keys = Object.keys(value);
-      const mapped = keys
-        .map((k) => {
-          const key = normalizeSaveKey(k);
-          if (!key) return "";
-          const mod = formatModifier(value[k]);
-          return mod ? `${key} ${mod}` : "";
-        })
-        .filter(Boolean);
-      if (mapped.length) return mapped.join(", ");
-      return flattenText(value);
-    }
-
-    return flattenText(value);
-  }
-
-  function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
-  }
-
-  function crToFloat(cr) {
-    if (!cr && cr !== 0) return -1;
-    const s = String(cr).trim();
-    if (!s) return -1;
-    if (s.includes("/")) {
-      const [a, b] = s.split("/");
-      const num = Number(a);
-      const den = Number(b);
-      if (Number.isFinite(num) && Number.isFinite(den) && den !== 0) return num / den;
-      return -1;
-    }
-    const n = Number(s);
-    return Number.isFinite(n) ? n : -1;
-  }
-
-  function normalizeCR(raw, fallback = "1/2") {
-    const s = String(raw ?? "").trim();
-    return s || fallback;
-  }
-
-  function normalizeXP(rawXp, cr) {
-    const cleaned = String(rawXp ?? "").replace(/,/g, "").trim();
-    const parsed = Number(cleaned);
-    const fromCR = CR_XP[String(cr)] ?? null;
-
-    // Keep valid explicit values unless they are obviously malformed for high CR monsters.
-    if (Number.isFinite(parsed) && parsed >= 0) {
-      const crNum = crToFloat(cr);
-      if (!(parsed <= 9 && crNum >= 5 && fromCR != null)) return parsed;
-    }
-
-    if (fromCR != null) return fromCR;
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-  }
-
-  function defaultAbilities() {
-    return { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
-  }
-
-  function parseFeatureText(text) {
-    const lines = String(text || "")
-      .split(/\r?\n/)
-      .map((x) => x.trim())
-      .filter(Boolean);
-
-    return lines.map((line) => {
-      const splitByDouble = line.split(/\s*::\s*/);
-      if (splitByDouble.length >= 2) {
-        return {
-          name: splitByDouble.shift() || "Feature",
-          text: splitByDouble.join(" :: ")
-        };
-      }
-
-      const dotIdx = line.indexOf(".");
-      if (dotIdx > 0 && dotIdx < 42) {
-        const name = line.slice(0, dotIdx).trim();
-        const text = line.slice(dotIdx + 1).trim();
-        if (name && text) return { name, text };
-      }
-
-      return { name: "Feature", text: line };
-    });
-  }
-
-  function normalizeFeatureArray(input) {
-    if (!input) return [];
-
-    if (typeof input === "string") {
-      return parseFeatureText(input);
-    }
-
-    if (!Array.isArray(input)) return [];
-
-    return input
-      .map((item) => {
-        if (!item) return null;
-
-        if (typeof item === "string") {
-          const parsed = parseFeatureText(item);
-          return parsed.length ? parsed[0] : null;
-        }
-
-        if (typeof item === "object") {
-          const name = String(
-            item.name || item.title || item.label || item.action || "Feature"
-          ).trim() || "Feature";
-          const text = flattenText(
-            item.text || item.desc || item.description || item.effect || item.entries || item
-          );
-          if (!text) return null;
-          return {
-            name,
-            text,
-            attackBonus: Number.isFinite(Number(item.attackBonus ?? item.attack_bonus))
-              ? Number(item.attackBonus ?? item.attack_bonus)
-              : null
-          };
-        }
-
-        return null;
-      })
-      .filter(Boolean);
-  }
-
-  function featuresToText(features) {
-    return (Array.isArray(features) ? features : [])
-      .map((f) => {
-        const name = String(f?.name || "").trim();
-        const text = String(f?.text || "").trim();
-        if (!name && !text) return "";
-        if (!name || name === "Feature") return text;
-        return `${name} :: ${text}`;
-      })
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  function normalizeAbilities(raw) {
-    const base = defaultAbilities();
-    const src = raw && typeof raw === "object" ? raw : {};
+    const traits = normalizeFeatures(raw.traits || details?.traits);
+    const actions = normalizeFeatures(raw.actions || details?.actions);
+    const bonusActions = normalizeFeatures(raw.bonusActions || details?.bonusActions);
+    const reactions = normalizeFeatures(raw.reactions || details?.reactions);
+    const legendaryActions = normalizeFeatures(raw.legendaryActions || details?.legendaryActions);
 
     return {
-      str: clamp(intOr(src.str, base.str), 1, 30),
-      dex: clamp(intOr(src.dex, base.dex), 1, 30),
-      con: clamp(intOr(src.con, base.con), 1, 30),
-      int: clamp(intOr(src.int, base.int), 1, 30),
-      wis: clamp(intOr(src.wis, base.wis), 1, 30),
-      cha: clamp(intOr(src.cha, base.cha), 1, 30)
-    };
-  }
-
-  function extractDetailsFromRaw(raw) {
-    const details = raw?.details && typeof raw.details === "object" ? raw.details : raw || {};
-    const abilitiesSource = details.abilityScores || {
-      str: details.str,
-      dex: details.dex,
-      con: details.con,
-      int: details.int,
-      wis: details.wis,
-      cha: details.cha
-    };
-
-    return {
-      proficiencyBonus:
-        details.proficiencyBonus == null && details.pb == null
-          ? null
-          : clamp(intOr(details.proficiencyBonus ?? details.pb, 2), 0, 20),
-      abilityScores: normalizeAbilities(abilitiesSource),
-      savingThrows: formatSavingThrows(details.savingThrows ?? details.saves),
-      skills: flattenText(details.skills),
-      damageVulnerabilities: flattenText(details.damageVulnerabilities ?? details.vulnerabilities),
-      damageResistances: flattenText(details.damageResistances ?? details.resistances),
-      damageImmunities: flattenText(details.damageImmunities ?? details.immunities),
-      conditionImmunities: flattenText(details.conditionImmunities),
-      senses: flattenText(details.senses),
-      languages: flattenText(details.languages),
-      challengeNote: flattenText(details.challengeNote ?? details.challenge),
-      traits: normalizeFeatureArray(details.traits),
-      actions: normalizeFeatureArray(details.actions),
-      bonusActions: normalizeFeatureArray(details.bonusActions),
-      reactions: normalizeFeatureArray(details.reactions),
-      legendaryActions: normalizeFeatureArray(details.legendaryActions)
-    };
-  }
-
-  function normalizeMonster(raw, { isHomebrew = false } = {}) {
-    const name = String(raw?.name || "").trim() || "Unnamed Monster";
-    const cr = normalizeCR(raw?.cr, "1/2");
-    const speedNumeric = Math.max(0, intOr(raw?.speed, 30));
-    const hp = Math.max(1, intOr(raw?.hp, 10));
-
-    const details = extractDetailsFromRaw(raw);
-
-    return {
-      id: String(raw?.id || uid(isHomebrew ? "hbm" : "srd")),
-      name,
-      sizeType: String(raw?.sizeType || raw?.size || "Medium Creature, Unaligned"),
-      cr,
-      xp: normalizeXP(raw?.xp, cr),
-      ac: Math.max(0, intOr(raw?.ac, 13)),
-      hp,
-      speed: speedNumeric,
-      speedText: String(raw?.speedText || `${speedNumeric} ft.`),
-      initiative: Math.max(0, intOr(raw?.initiative, 10)),
-      type: ["PC", "NPC", "Enemy"].includes(raw?.type) ? raw.type : "Enemy",
-      source: String(raw?.source || (isHomebrew ? "Homebrew" : "SRD 5.2.1")),
-      isHomebrew: !!isHomebrew,
+      id: raw.id || uid("c"),
+      name: String(raw.name || "Unnamed").trim() || "Unnamed",
+      type,
+      initiative,
+      ac: Math.max(0, intOr(raw.ac, 10)),
+      speed: Math.max(0, intOr(raw.speed, 30)),
+      hpCurrent,
+      hpMax,
+      level: normalizeLevel(raw.level, levelDefault),
+      cr: normalizeCR(raw.cr, type === "Enemy" ? "1" : "0"),
+      conditions: normalizeConditions(raw.conditions),
+      exhaustionLevel: clamp(intOr(raw.exhaustionLevel, 0), 0, 6),
+      portrait: normalizePortrait(raw.portrait),
+      sourceMonsterId: raw.sourceMonsterId ? String(raw.sourceMonsterId) : "",
+      sourceMonsterName: raw.sourceMonsterName ? String(raw.sourceMonsterName) : "",
+      source: raw.source ? String(raw.source) : "",
+      xp: Math.max(0, intOr(raw.xp, raw.cr ? crToXP(raw.cr) : 0)),
+      sizeType: raw.sizeType ? String(raw.sizeType) : "",
       details,
-      // top-level aliases for compatibility with any existing encounter code
-      traits: details.traits,
-      actions: details.actions,
-      bonusActions: details.bonusActions,
-      reactions: details.reactions,
-      legendaryActions: details.legendaryActions,
-      abilityScores: details.abilityScores
+      traits,
+      actions,
+      bonusActions,
+      reactions,
+      legendaryActions,
+      showMonsterDetails: !!raw.showMonsterDetails
     };
   }
 
-  function defaultDraft() {
-    return {
-      name: "",
-      sizeType: "Medium Creature, Unaligned",
-      cr: "1/2",
-      xp: 100,
-      ac: 13,
-      hp: 10,
-      speed: 30,
-      speedText: "30 ft.",
-      initiative: 10,
-      type: "Enemy",
-      source: "Homebrew",
+  function cloneCombatant(c, withFreshId = false) {
+    return mkCombatant({ ...c, id: withFreshId ? uid("c") : c.id || uid("c") });
+  }
 
-      str: 10,
-      dex: 10,
-      con: 10,
-      int: 10,
-      wis: 10,
-      cha: 10,
-      pb: 2,
+  function summarizeEncounter(enc) {
+    if (!enc || !Array.isArray(enc.combatants) || !enc.combatants.length) {
+      return "No combatants";
+    }
+    const countByType = enc.combatants.reduce((acc, c) => {
+      const k = c.type || "NPC";
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    const parts = [];
+    if (countByType.PC) parts.push(`${countByType.PC}x PC`);
+    if (countByType.NPC) parts.push(`${countByType.NPC}x NPC`);
+    if (countByType.Enemy) parts.push(`${countByType.Enemy}x Enemy`);
+    return parts.join(" · ");
+  }
 
-      savingThrows: "",
-      skills: "",
-      damageVulnerabilities: "",
-      damageResistances: "",
-      damageImmunities: "",
-      conditionImmunities: "",
-      senses: "",
-      languages: "",
-      challengeNote: "",
-
-      traitsText: "",
-      actionsText: "",
-      bonusActionsText: "",
-      reactionsText: "",
-      legendaryActionsText: ""
-    };
+  function initialLibrary() {
+    return [
+      {
+        id: uid("enc"),
+        name: "Bandits on the Old Road",
+        tags: "CR ~3",
+        location: "Verdant Veil · Old trade route",
+        combatants: [
+          mkCombatant({ name: "Bandit Captain", type: "Enemy", cr: "2", ac: 15, speed: 30, hpCurrent: 65, hpMax: 65 }),
+          mkCombatant({ name: "Bandit", type: "Enemy", cr: "1/8", ac: 12, speed: 30, hpCurrent: 11, hpMax: 11 }),
+          mkCombatant({ name: "Bandit", type: "Enemy", cr: "1/8", ac: 12, speed: 30, hpCurrent: 11, hpMax: 11 }),
+          mkCombatant({ name: "Bandit", type: "Enemy", cr: "1/8", ac: 12, speed: 30, hpCurrent: 11, hpMax: 11 })
+        ]
+      },
+      {
+        id: uid("enc"),
+        name: "Frostclaw Gulf Patrol",
+        tags: "Ambush",
+        location: "Frostclaw Wilds · Coastal ice",
+        combatants: [
+          mkCombatant({ name: "Frostclaw Wolf", type: "Enemy", cr: "3", ac: 13, speed: 40, hpCurrent: 55, hpMax: 55 }),
+          mkCombatant({ name: "Frostclaw Wolf", type: "Enemy", cr: "3", ac: 13, speed: 40, hpCurrent: 55, hpMax: 55 }),
+          mkCombatant({ name: "Clan Hunter", type: "NPC", ac: 14, speed: 30, hpCurrent: 32, hpMax: 32 })
+        ]
+      }
+    ];
   }
 
   function defaultState() {
+    const parties = initialParties();
+    const activeCombatants = [
+      mkCombatant({ name: "Vesper", type: "PC", level: 5, ac: 16, speed: 30, hpCurrent: 27, hpMax: 35 }),
+      mkCombatant({ name: "Frostclaw Wolf", type: "Enemy", cr: "3", ac: 13, speed: 40, hpCurrent: 55, hpMax: 55 }),
+      mkCombatant({ name: "Bandit Captain", type: "Enemy", cr: "2", ac: 15, speed: 30, hpCurrent: 0, hpMax: 65 })
+    ];
+
     return {
-      search: "",
-      sourceFilter: "all",
-      crFilter: "all",
-      activeTab: "vault",
-      homebrew: [],
-      srdDetailsById: {},
-      srdDetailLookupFailures: {},
-      editingId: null,
-      expandedIds: [],
-      draft: defaultDraft()
+      tab: "active",
+      round: 3,
+      turnIndex: 0,
+      activeEncounterName: "Current Encounter",
+      activeLibraryId: null,
+      activeCombatants,
+      addExpanded: true,
+      partyManagerOpen: false,
+      selectedPartyId: parties[0]?.id || null,
+      parties,
+      library: initialLibrary(),
+      createName: "",
+      createTags: "",
+      createLocation: "",
+      libraryEditId: null,
+      // add form for active
+      addDraft: {
+        name: "",
+        type: "NPC",
+        initiative: 10,
+        ac: 15,
+        speed: 30,
+        hpCurrent: 12,
+        hpMax: 12,
+        level: 3,
+        cr: "1"
+      },
+      libraryAddDraft: {
+        name: "",
+        type: "Enemy",
+        initiative: 10,
+        ac: 13,
+        speed: 30,
+        hpCurrent: 10,
+        hpMax: 10,
+        level: 3,
+        cr: "1"
+      },
+      // editor modal
+      editorOpen: false,
+      editorEncounterId: null,
+      editor: {
+        name: "",
+        tags: "",
+        location: "",
+        combatants: [],
+        addDraft: { name: "", type: "Enemy", initiative: 10, ac: 13, speed: 30, hpCurrent: 10, hpMax: 10, level: 3, cr: "1" }
+      }
     };
   }
 
-  function normalizeDraft(input) {
-    const d = input && typeof input === "object" ? input : {};
-    const base = defaultDraft();
+  function normalizeState(raw) {
+    const base = defaultState();
+    if (!raw || typeof raw !== "object") return base;
 
-    return {
-      ...base,
-      name: String(d.name ?? base.name),
-      sizeType: String(d.sizeType ?? base.sizeType),
-      cr: normalizeCR(d.cr, base.cr),
-      xp: Math.max(0, intOr(d.xp, base.xp)),
-      ac: clamp(intOr(d.ac, base.ac), 0, 99),
-      hp: Math.max(1, intOr(d.hp, base.hp)),
-      speed: Math.max(0, intOr(d.speed, base.speed)),
-      speedText: String(d.speedText || base.speedText),
-      initiative: clamp(intOr(d.initiative, base.initiative), 0, 99),
-      type: ["PC", "NPC", "Enemy"].includes(d.type) ? d.type : base.type,
-      source: String(d.source || base.source),
+    const state = { ...base, ...raw };
 
-      str: clamp(intOr(d.str, base.str), 1, 30),
-      dex: clamp(intOr(d.dex, base.dex), 1, 30),
-      con: clamp(intOr(d.con, base.con), 1, 30),
-      int: clamp(intOr(d.int, base.int), 1, 30),
-      wis: clamp(intOr(d.wis, base.wis), 1, 30),
-      cha: clamp(intOr(d.cha, base.cha), 1, 30),
-      pb: clamp(intOr(d.pb, base.pb), 0, 20),
+    state.tab = state.tab === "library" ? "library" : "active";
+    state.round = Math.max(1, intOr(state.round, 1));
+    state.turnIndex = Math.max(0, intOr(state.turnIndex, 0));
+    state.activeEncounterName = String(state.activeEncounterName || "Current Encounter");
+    state.activeLibraryId = state.activeLibraryId || null;
+    state.addExpanded = state.addExpanded !== false;
+    state.partyManagerOpen = !!state.partyManagerOpen;
 
-      savingThrows: flattenText(d.savingThrows),
-      skills: flattenText(d.skills),
-      damageVulnerabilities: flattenText(d.damageVulnerabilities),
-      damageResistances: flattenText(d.damageResistances),
-      damageImmunities: flattenText(d.damageImmunities),
-      conditionImmunities: flattenText(d.conditionImmunities),
-      senses: flattenText(d.senses),
-      languages: flattenText(d.languages),
-      challengeNote: flattenText(d.challengeNote),
+    state.activeCombatants = Array.isArray(state.activeCombatants)
+      ? state.activeCombatants.map((c) => mkCombatant(c))
+      : [];
 
-      traitsText: String(d.traitsText || ""),
-      actionsText: String(d.actionsText || ""),
-      bonusActionsText: String(d.bonusActionsText || ""),
-      reactionsText: String(d.reactionsText || ""),
-      legendaryActionsText: String(d.legendaryActionsText || "")
+    if (state.activeCombatants.length === 0) {
+      state.turnIndex = 0;
+    } else {
+      state.turnIndex = clamp(state.turnIndex, 0, state.activeCombatants.length - 1);
+    }
+
+    state.parties = Array.isArray(state.parties)
+      ? state.parties.map((p) => ({
+          id: p.id || uid("party"),
+          name: String(p.name || "Party"),
+          members: Array.isArray(p.members) ? p.members.map((m) => mkCombatant({ ...m, id: m.id || uid("m") })) : []
+        }))
+      : base.parties;
+
+    if (!state.parties.length) {
+      state.parties = base.parties;
+    }
+
+    if (!state.selectedPartyId || !state.parties.some((p) => p.id === state.selectedPartyId)) {
+      state.selectedPartyId = state.parties[0]?.id || null;
+    }
+
+    state.library = Array.isArray(state.library)
+      ? state.library.map((e) => ({
+          id: e.id || uid("enc"),
+          name: String(e.name || "Untitled Encounter"),
+          tags: String(e.tags || ""),
+          location: String(e.location || ""),
+          combatants: Array.isArray(e.combatants) ? e.combatants.map((c) => mkCombatant(c)) : []
+        }))
+      : base.library;
+
+    if (state.activeLibraryId && !state.library.some((e) => e.id === state.activeLibraryId)) {
+      state.activeLibraryId = null;
+    }
+
+    state.createName = String(state.createName || "");
+    state.createTags = String(state.createTags || "");
+    state.createLocation = String(state.createLocation || "");
+    state.libraryEditId = state.libraryEditId || null;
+    if (state.libraryEditId && !state.library.some((e) => e.id === state.libraryEditId)) {
+      state.libraryEditId = null;
+    }
+
+    state.addDraft = {
+      name: String(state.addDraft?.name || ""),
+      type: ["PC", "NPC", "Enemy"].includes(state.addDraft?.type) ? state.addDraft.type : "NPC",
+      initiative: Math.max(0, intOr(state.addDraft?.initiative, 10)),
+      ac: Math.max(0, intOr(state.addDraft?.ac, 15)),
+      speed: Math.max(0, intOr(state.addDraft?.speed, 30)),
+      hpCurrent: Math.max(0, intOr(state.addDraft?.hpCurrent, 10)),
+      hpMax: Math.max(0, intOr(state.addDraft?.hpMax, 10)),
+      level: normalizeLevel(state.addDraft?.level, 3),
+      cr: normalizeCR(state.addDraft?.cr, "1")
     };
+
+    state.libraryAddDraft = {
+      name: String(state.libraryAddDraft?.name || ""),
+      type: ["PC", "NPC", "Enemy"].includes(state.libraryAddDraft?.type) ? state.libraryAddDraft.type : "Enemy",
+      initiative: Math.max(0, intOr(state.libraryAddDraft?.initiative, 10)),
+      ac: Math.max(0, intOr(state.libraryAddDraft?.ac, 13)),
+      speed: Math.max(0, intOr(state.libraryAddDraft?.speed, 30)),
+      hpCurrent: Math.max(0, intOr(state.libraryAddDraft?.hpCurrent, 10)),
+      hpMax: Math.max(0, intOr(state.libraryAddDraft?.hpMax, 10)),
+      level: normalizeLevel(state.libraryAddDraft?.level, 3),
+      cr: normalizeCR(state.libraryAddDraft?.cr, "1")
+    };
+
+    state.editorOpen = !!state.editorOpen;
+    state.editorEncounterId = state.editorEncounterId || null;
+    const ed = state.editor || {};
+    state.editor = {
+      name: String(ed.name || ""),
+      tags: String(ed.tags || ""),
+      location: String(ed.location || ""),
+      combatants: Array.isArray(ed.combatants) ? ed.combatants.map((c) => mkCombatant(c)) : [],
+      addDraft: {
+        name: String(ed.addDraft?.name || ""),
+        type: ["PC", "NPC", "Enemy"].includes(ed.addDraft?.type) ? ed.addDraft.type : "Enemy",
+        initiative: Math.max(0, intOr(ed.addDraft?.initiative, 10)),
+        ac: Math.max(0, intOr(ed.addDraft?.ac, 13)),
+        speed: Math.max(0, intOr(ed.addDraft?.speed, 30)),
+        hpCurrent: Math.max(0, intOr(ed.addDraft?.hpCurrent, 10)),
+        hpMax: Math.max(0, intOr(ed.addDraft?.hpMax, 10)),
+        level: normalizeLevel(ed.addDraft?.level, 3),
+        cr: normalizeCR(ed.addDraft?.cr, "1")
+      }
+    };
+
+    return state;
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return normalizeState(JSON.parse(raw));
-
-      // migrate v1 if present
-      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyRaw) {
-        const migrated = normalizeState(JSON.parse(legacyRaw));
-        saveState(migrated);
-        return migrated;
+      for (const key of LEGACY_KEYS) {
+        const oldRaw = localStorage.getItem(key);
+        if (oldRaw) return normalizeState(JSON.parse(oldRaw));
       }
-
-      return defaultState();
-    } catch {
-      return defaultState();
+    } catch (err) {
+      console.warn("Encounter tool: failed to load state", err);
     }
-  }
-
-  function normalizeState(input) {
-    const base = defaultState();
-    const s = input && typeof input === "object" ? input : {};
-
-    base.search = String(s.search || "");
-    base.sourceFilter = String(s.sourceFilter || "all");
-    base.crFilter = String(s.crFilter || "all");
-    base.activeTab = s.activeTab === "homebrew" ? "homebrew" : "vault";
-    base.editingId = s.editingId ? String(s.editingId) : null;
-    base.expandedIds = Array.isArray(s.expandedIds) ? s.expandedIds.map((x) => String(x)) : [];
-
-    base.homebrew = Array.isArray(s.homebrew)
-      ? s.homebrew.map((m) => normalizeMonster(m, { isHomebrew: true }))
-      : [];
-
-    if (s.srdDetailsById && typeof s.srdDetailsById === "object") {
-      Object.entries(s.srdDetailsById).forEach(([id, details]) => {
-        if (!details) return;
-        base.srdDetailsById[String(id)] = extractDetailsFromRaw({ details });
-      });
-    }
-
-    if (s.srdDetailLookupFailures && typeof s.srdDetailLookupFailures === "object") {
-      Object.entries(s.srdDetailLookupFailures).forEach(([id, val]) => {
-        if (val) base.srdDetailLookupFailures[String(id)] = true;
-      });
-    }
-
-    // Support old state shape (v1 draft without details)
-    if (s.draft && typeof s.draft === "object") {
-      const looksOld = !("traitsText" in s.draft) && !("actionsText" in s.draft) && !("str" in s.draft);
-      if (looksOld) {
-        const seed = normalizeMonster({ ...s.draft, isHomebrew: true }, { isHomebrew: true });
-        base.draft = draftFromMonster(seed);
-      } else {
-        base.draft = normalizeDraft(s.draft);
-      }
-    }
-
-    return base;
+    return defaultState();
   }
 
   function saveState(state) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (err) {
-      console.warn("Monster Vault: save failed", err);
+      console.warn("Encounter tool: failed to save state", err);
     }
   }
 
-  function normalizeSrdList() {
-    return SRD_MONSTERS.map((m) => normalizeMonster(m, { isHomebrew: false }));
-  }
-
-  const SRD_BASE = normalizeSrdList();
-
-  function getSrdMonstersWithDetails() {
-    return SRD_BASE.map((m) => {
-      const details = state.srdDetailsById?.[m.id];
-      if (!details) return m;
-      return normalizeMonster(
-        {
-          ...m,
-          details,
-          traits: details.traits,
-          actions: details.actions,
-          bonusActions: details.bonusActions,
-          reactions: details.reactions,
-          legendaryActions: details.legendaryActions
-        },
-        { isHomebrew: false }
-      );
-    });
-  }
-
-  function allMonsters() {
-    return [...getSrdMonstersWithDetails(), ...state.homebrew]
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  function hasDetails(monster) {
-    const d = monster?.details;
-    if (!d) return false;
-    return (
-      (d.traits?.length || 0) +
-      (d.actions?.length || 0) +
-      (d.bonusActions?.length || 0) +
-      (d.reactions?.length || 0) +
-      (d.legendaryActions?.length || 0)
-    ) > 0;
-  }
-
-
-  function slugifyMonsterName(name) {
-    return String(name || "")
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[’']/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
-
-  async function fetchJson(url) {
-    const resp = await fetch(url, { method: "GET" });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    return resp.json();
-  }
-
-  function detailsFromApiMonster(raw) {
-    if (!raw || typeof raw !== "object") return null;
-
-    const senses = raw.senses && typeof raw.senses === "object"
-      ? Object.entries(raw.senses)
-          .map(([k, v]) => {
-            const val = flattenText(v);
-            if (!val) return "";
-            return `${String(k || "").replace(/_/g, " ")}: ${val}`;
-          })
-          .filter(Boolean)
-          .join(", ")
-      : flattenText(raw.senses);
-
-    const details = {
-      proficiencyBonus: raw.proficiency_bonus ?? raw.prof_bonus ?? null,
-      abilityScores: normalizeAbilities({
-        str: raw.strength ?? raw.str,
-        dex: raw.dexterity ?? raw.dex,
-        con: raw.constitution ?? raw.con,
-        int: raw.intelligence ?? raw.int,
-        wis: raw.wisdom ?? raw.wis,
-        cha: raw.charisma ?? raw.cha
-      }),
-      savingThrows: formatSavingThrows(raw.saving_throws ?? raw.saves ?? raw.proficiencies),
-      skills: flattenText(raw.skills),
-      damageVulnerabilities: flattenText(raw.damage_vulnerabilities),
-      damageResistances: flattenText(raw.damage_resistances),
-      damageImmunities: flattenText(raw.damage_immunities),
-      conditionImmunities: flattenText(raw.condition_immunities),
-      senses,
-      languages: flattenText(raw.languages),
-      challengeNote: flattenText(raw.challenge_rating ?? raw.cr),
-      traits: normalizeFeatureArray(raw.special_abilities || raw.traits),
-      actions: normalizeFeatureArray(raw.actions),
-      bonusActions: normalizeFeatureArray(raw.bonus_actions),
-      reactions: normalizeFeatureArray(raw.reactions),
-      legendaryActions: normalizeFeatureArray(raw.legendary_actions)
+  function registerEncounterTool() {
+    const def = {
+      id: TOOL_ID,
+      name: TOOL_NAME,
+      description: "Quick initiative tracker & encounter builder.",
+      render: renderEncounterTool
     };
 
-    return extractDetailsFromRaw({ details });
-  }
-
-  async function hydrateSrdDetailsById(id) {
-    if (!id) return null;
-    if (state.srdDetailsById[id]) return state.srdDetailsById[id];
-    if (state.srdDetailLookupFailures[id]) return null;
-
-    const monster = SRD_BASE.find((m) => m.id === id);
-    if (!monster) return null;
-
-    const slug = slugifyMonsterName(monster.name);
-    if (!slug) return null;
-
-    const candidates = [
-      `https://www.dnd5eapi.co/api/2024/monsters/${slug}`,
-      `https://www.dnd5eapi.co/api/2014/monsters/${slug}`,
-      `https://www.dnd5eapi.co/api/monsters/${slug}`
-    ];
-
-    for (const url of candidates) {
-      try {
-        const payload = await fetchJson(url);
-        const details = detailsFromApiMonster(payload);
-        if (!details) continue;
-
-        const actionCount =
-          (details.actions?.length || 0) +
-          (details.bonusActions?.length || 0) +
-          (details.reactions?.length || 0) +
-          (details.legendaryActions?.length || 0);
-
-        if (actionCount > 0 || (details.traits?.length || 0) > 0) {
-          state.srdDetailsById[id] = details;
-          saveState(state);
-          publishApi();
-          return details;
-        }
-      } catch {
-        // try next endpoint
-      }
-    }
-
-    state.srdDetailLookupFailures[id] = true;
-    saveState(state);
-    return null;
-  }
-
-  function filteredMonsters() {
-    const q = state.search.trim().toLowerCase();
-
-    return allMonsters().filter((m) => {
-      if (state.sourceFilter === "homebrew" && !m.isHomebrew) return false;
-      if (state.sourceFilter === "srd" && m.isHomebrew) return false;
-      if (state.crFilter !== "all" && String(m.cr) !== state.crFilter) return false;
-
-      if (!q) return true;
-
-      const hay = [
-        m.name,
-        m.sizeType,
-        m.cr,
-        m.source,
-        m.details?.languages,
-        m.details?.senses,
-        ...(m.details?.actions || []).map((x) => `${x.name} ${x.text}`),
-        ...(m.details?.traits || []).map((x) => `${x.name} ${x.text}`)
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return hay.includes(q);
-    });
-  }
-
-  function clearDraft() {
-    state.editingId = null;
-    state.draft = defaultDraft();
-  }
-
-  function draftFromMonster(mon) {
-    const d = mon.details || extractDetailsFromRaw(mon);
-    return normalizeDraft({
-      name: mon.name,
-      sizeType: mon.sizeType,
-      cr: mon.cr,
-      xp: mon.xp,
-      ac: mon.ac,
-      hp: mon.hp,
-      speed: mon.speed,
-      speedText: mon.speedText || `${mon.speed} ft.`,
-      initiative: mon.initiative,
-      type: mon.type,
-      source: mon.source || "Homebrew",
-
-      str: d.abilityScores?.str,
-      dex: d.abilityScores?.dex,
-      con: d.abilityScores?.con,
-      int: d.abilityScores?.int,
-      wis: d.abilityScores?.wis,
-      cha: d.abilityScores?.cha,
-      pb: d.proficiencyBonus ?? 2,
-
-      savingThrows: d.savingThrows,
-      skills: d.skills,
-      damageVulnerabilities: d.damageVulnerabilities,
-      damageResistances: d.damageResistances,
-      damageImmunities: d.damageImmunities,
-      conditionImmunities: d.conditionImmunities,
-      senses: d.senses,
-      languages: d.languages,
-      challengeNote: d.challengeNote,
-
-      traitsText: featuresToText(d.traits),
-      actionsText: featuresToText(d.actions),
-      bonusActionsText: featuresToText(d.bonusActions),
-      reactionsText: featuresToText(d.reactions),
-      legendaryActionsText: featuresToText(d.legendaryActions)
-    });
-  }
-
-  function setDraftFromMonster(mon, mode = "edit") {
-    state.editingId = mode === "clone" ? null : mon.id;
-    const baseDraft = draftFromMonster(mon);
-    if (mode === "clone") {
-      baseDraft.name = `${mon.name} (Homebrew)`;
-      baseDraft.source = "Homebrew";
-    }
-    state.draft = baseDraft;
-  }
-
-  function draftToHomebrewMonster(draft, idOverride = null) {
-    return normalizeMonster(
-      {
-        id: idOverride || uid("hbm"),
-        name: draft.name,
-        sizeType: draft.sizeType,
-        cr: draft.cr,
-        xp: draft.xp,
-        ac: draft.ac,
-        hp: draft.hp,
-        speed: draft.speed,
-        speedText: draft.speedText || `${draft.speed} ft.`,
-        initiative: draft.initiative,
-        type: draft.type,
-        source: draft.source || "Homebrew",
-        details: {
-          proficiencyBonus: draft.pb,
-          abilityScores: {
-            str: draft.str,
-            dex: draft.dex,
-            con: draft.con,
-            int: draft.int,
-            wis: draft.wis,
-            cha: draft.cha
-          },
-          savingThrows: draft.savingThrows,
-          skills: draft.skills,
-          damageVulnerabilities: draft.damageVulnerabilities,
-          damageResistances: draft.damageResistances,
-          damageImmunities: draft.damageImmunities,
-          conditionImmunities: draft.conditionImmunities,
-          senses: draft.senses,
-          languages: draft.languages,
-          challengeNote: draft.challengeNote,
-          traits: parseFeatureText(draft.traitsText),
-          actions: parseFeatureText(draft.actionsText),
-          bonusActions: parseFeatureText(draft.bonusActionsText),
-          reactions: parseFeatureText(draft.reactionsText),
-          legendaryActions: parseFeatureText(draft.legendaryActionsText)
-        }
-      },
-      { isHomebrew: true }
-    );
-  }
-
-  function upsertHomebrewFromDraft() {
-    const monster = draftToHomebrewMonster(state.draft, state.editingId || uid("hbm"));
-    const idx = state.homebrew.findIndex((m) => m.id === monster.id);
-
-    if (idx >= 0) state.homebrew[idx] = monster;
-    else state.homebrew.push(monster);
-
-    if (!state.expandedIds.includes(monster.id)) state.expandedIds.push(monster.id);
-
-    clearDraft();
-    saveState(state);
-    publishApi();
-  }
-
-  function deleteHomebrew(id) {
-    state.homebrew = state.homebrew.filter((m) => m.id !== id);
-    state.expandedIds = state.expandedIds.filter((x) => x !== id);
-    if (state.editingId === id) clearDraft();
-    saveState(state);
-    publishApi();
-  }
-
-  function toggleExpanded(id) {
-    if (!id) return;
-    if (state.expandedIds.includes(id)) {
-      state.expandedIds = state.expandedIds.filter((x) => x !== id);
-    } else {
-      state.expandedIds.push(id);
-    }
-    saveState(state);
-  }
-
-  async function toggleDetailsWithFetch(id) {
-    if (!id) return;
-
-    const mon = allMonsters().find((m) => m.id === id);
-    if (!mon) return;
-
-    if (state.expandedIds.includes(id)) {
-      state.expandedIds = state.expandedIds.filter((x) => x !== id);
-      saveState(state);
+    if (typeof window.registerTool === "function") {
+      window.registerTool(def);
       return;
     }
 
-    if (!mon.isHomebrew && !hasDetails(mon) && !srdLoadInFlight.has(id)) {
-      srdLoadInFlight.add(id);
-      renderMonsterVaultTool();
-      try {
-        await hydrateSrdDetailsById(id);
-      } finally {
-        srdLoadInFlight.delete(id);
+    window.toolsConfig = window.toolsConfig || [];
+    const exists = window.toolsConfig.some((t) => t.id === TOOL_ID);
+    if (!exists) {
+      window.toolsConfig.push({ id: TOOL_ID, name: TOOL_NAME, description: def.description });
+    }
+  }
+
+  function injectPanelOverrideCss() {
+    const id = "encounter-tool-panel-overrides";
+    if (document.getElementById(id)) return;
+
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = `
+      #generatorPanel.encounter-tool-panel {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
       }
-    }
-
-    if (!state.expandedIds.includes(id)) {
-      state.expandedIds.push(id);
-      saveState(state);
-    }
+    `;
+    document.head.appendChild(style);
   }
 
-  function exportHomebrew() {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      version: 2,
-      monsters: state.homebrew
+  function renderEncounterTool() {
+    const label = document.getElementById("activeGeneratorLabel");
+    const panel = document.getElementById("generatorPanel");
+    if (!panel) return;
+
+    if (label) label.textContent = TOOL_NAME;
+
+    panel.innerHTML = "";
+    panel.classList.add("encounter-tool-panel");
+
+    const host = document.createElement("div");
+    host.style.display = "block";
+    host.style.width = "100%";
+    panel.appendChild(host);
+
+    const shadow = host.attachShadow({ mode: "open" });
+    const state = loadState();
+
+    const app = createApp(shadow, state);
+    app.render();
+  }
+
+  function createApp(shadow, initial) {
+    const state = initial;
+    let dragActiveId = null;
+    let dragEditorId = null;
+
+    const PORTRAIT_EDITOR_PREVIEW_SIZE = 220;
+    const PORTRAIT_EDITOR_EXPORT_SIZE = 256;
+    const PORTRAIT_EDITOR_MIN_ZOOM = 1;
+    const PORTRAIT_EDITOR_MAX_ZOOM = 3.6;
+
+    const portraitEditor = {
+      open: false,
+      target: null,
+      source: "",
+      image: null,
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+      dragging: false,
+      pointerId: null,
+      pointerStartX: 0,
+      pointerStartY: 0,
+      startOffsetX: 0,
+      startOffsetY: 0
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "monster-vault-homebrew.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
 
-  function importHomebrewFromFile(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
+    const conditionEditor = {
+      open: false,
+      cardId: null
+    };
+
+    const monsterPicker = {
+      open: false,
+      scope: "active",
+      encounterId: null,
+      query: "",
+      cr: "all",
+      source: "all",
+      cachedList: []
+    };
+
+    function openMonsterPicker(scope, encounterId = null) {
+      monsterPicker.open = true;
+      monsterPicker.scope = scope === "library" ? "library" : "active";
+      monsterPicker.encounterId = encounterId || null;
+      monsterPicker.query = "";
+      monsterPicker.cr = "all";
+      monsterPicker.source = "all";
+      monsterPicker.cachedList = monsterVaultMonsters(true);
+      render();
+    }
+
+    function closeMonsterPicker() {
+      monsterPicker.open = false;
+      monsterPicker.encounterId = null;
+      render();
+    }
+
+    function addMonsterFromVault(monsterId) {
+      const api = monsterVaultApi();
+      if (!api || !monsterId) return;
+      let created = null;
       try {
-        const parsed = JSON.parse(String(reader.result || ""));
-        const list = Array.isArray(parsed)
-          ? parsed
-          : Array.isArray(parsed?.monsters)
-            ? parsed.monsters
-            : [];
+        created = api.toEncounterCombatant(monsterId);
+      } catch (_) {
+        created = null;
+      }
+      if (!created) return;
 
-        if (!list.length) {
-          window.alert("No monsters found in that JSON.");
-          return;
+      if (created.hp != null && created.hpMax == null) created.hpMax = created.hp;
+      if (created.hpMax != null && created.hpCurrent == null) created.hpCurrent = created.hpMax;
+      if (created.initiative == null) created.initiative = 10;
+
+      const safeCreated = {
+        name: String(created.name || "Unnamed Monster").trim() || "Unnamed Monster",
+        type: ["PC", "NPC", "Enemy"].includes(created.type) ? created.type : "Enemy",
+        initiative: Math.max(0, intOr(created.initiative, 10)),
+        ac: Math.max(0, intOr(created.ac, 10)),
+        speed: Math.max(0, intOr(created.speed, 30)),
+        hpCurrent: Math.max(0, intOr(created.hpCurrent, intOr(created.hpMax, 1))),
+        hpMax: Math.max(1, intOr(created.hpMax, 1)),
+        level: normalizeLevel(created.level, 3),
+        cr: normalizeCR(created.cr, "0"),
+        sourceMonsterId: created.sourceMonsterId || monsterId,
+        sourceMonsterName: created.sourceMonsterName || created.name || "",
+        source: String(created.source || "").trim(),
+        xp: Math.max(0, intOr(created.xp, crToXP(created.cr))),
+        sizeType: String(created.sizeType || "").trim(),
+        details: safeJsonClone(created.details || {}),
+        traits: safeJsonClone(created.traits || []),
+        actions: safeJsonClone(created.actions || []),
+        bonusActions: safeJsonClone(created.bonusActions || []),
+        reactions: safeJsonClone(created.reactions || []),
+        legendaryActions: safeJsonClone(created.legendaryActions || []),
+        conditions: []
+      };
+      safeCreated.hpCurrent = clamp(safeCreated.hpCurrent, 0, safeCreated.hpMax);
+
+      const next = mkCombatant(safeCreated);
+      if (monsterPicker.scope === "library") {
+        const enc = state.library.find((e) => e.id === monsterPicker.encounterId);
+        if (!enc) return;
+        enc.combatants.push(next);
+        enc.combatants = sortByInitiativeDesc(enc.combatants);
+      } else {
+        state.activeCombatants.push(next);
+        state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+        if (state.turnIndex >= state.activeCombatants.length) {
+          state.turnIndex = Math.max(0, state.activeCombatants.length - 1);
         }
-
-        const normalized = list.map((m) => normalizeMonster(m, { isHomebrew: true }));
-        const byId = new Map(state.homebrew.map((m) => [m.id, m]));
-        normalized.forEach((m) => byId.set(m.id, m));
-        state.homebrew = [...byId.values()];
-
-        saveState(state);
-        publishApi();
-        renderMonsterVaultTool();
-      } catch (err) {
-        console.error(err);
-        window.alert("Could not import file. Use a JSON export from Monster Vault.");
       }
-    };
-    reader.readAsText(file);
-  }
+      persistAndRender();
+    }
 
-  function toEncounterCombatant(monsterOrId, overrides = {}) {
-    const src =
-      typeof monsterOrId === "string"
-        ? allMonsters().find((m) => m.id === monsterOrId)
-        : normalizeMonster(monsterOrId, { isHomebrew: !!monsterOrId?.isHomebrew });
 
-    if (!src) return null;
+    function getActiveCombatantById(cardId) {
+      return state.activeCombatants.find((c) => c.id === cardId) || null;
+    }
 
-    const out = {
-      id: uid("c"),
-      name: src.name,
-      type: ["PC", "NPC", "Enemy"].includes(src.type) ? src.type : "Enemy",
-      initiative: Math.max(0, intOr(src.initiative, 10)),
-      ac: Math.max(0, intOr(src.ac, 13)),
-      speed: Math.max(0, intOr(src.speed, 30)),
-      hpCurrent: Math.max(0, intOr(src.hp, 1)),
-      hpMax: Math.max(1, intOr(src.hp, 1)),
-      level: src.type === "Enemy" ? 1 : 3,
-      cr: src.cr || "1/2",
-      sourceMonsterId: src.id,
-      sourceMonsterName: src.name,
-      source: src.source,
-      xp: src.xp,
-      sizeType: src.sizeType,
-      details: extractDetailsFromRaw({ details: src.details || {} }),
-      traits: normalizeFeatureArray(src.details?.traits || src.traits || []),
-      actions: normalizeFeatureArray(src.details?.actions || src.actions || []),
-      bonusActions: normalizeFeatureArray(src.details?.bonusActions || src.bonusActions || []),
-      reactions: normalizeFeatureArray(src.details?.reactions || src.reactions || []),
-      legendaryActions: normalizeFeatureArray(src.details?.legendaryActions || src.legendaryActions || []),
-      conditions: []
-    };
+    function getConditionTargetCombatant() {
+      return conditionEditor.cardId ? getActiveCombatantById(conditionEditor.cardId) : null;
+    }
 
-    const merged = { ...out, ...(overrides || {}) };
-    merged.hpMax = Math.max(1, intOr(merged.hpMax, out.hpMax));
-    merged.hpCurrent = clamp(intOr(merged.hpCurrent, out.hpCurrent), 0, merged.hpMax);
-    merged.ac = Math.max(0, intOr(merged.ac, out.ac));
-    merged.speed = Math.max(0, intOr(merged.speed, out.speed));
-    merged.initiative = Math.max(0, intOr(merged.initiative, out.initiative));
-    merged.cr = normalizeCR(merged.cr, out.cr);
-    return merged;
-  }
+    function openConditionEditor(cardId) {
+      if (!cardId) return;
+      const c = getActiveCombatantById(cardId);
+      if (!c) return;
+      conditionEditor.open = true;
+      conditionEditor.cardId = cardId;
+      render();
+    }
 
-  function publishApi() {
-    window.VrahuneMonsterVault = {
-      version: 2,
-      getAllMonsters() {
-        return allMonsters().map((m) => JSON.parse(JSON.stringify(m)));
-      },
-      getMonsterIndex() {
-        return allMonsters().map((m) => ({
-          id: m.id,
-          name: m.name,
-          type: m.type,
-          cr: m.cr,
-          level: m.level,
-          ac: m.ac,
-          hp: m.hp,
-          speed: m.speed,
-          initiative: m.initiative,
-          xp: m.xp,
-          sizeType: m.sizeType,
-          source: m.source,
-          isHomebrew: !!m.isHomebrew
-        }));
-      },
-      getMonsterById(id) {
-        const mon = allMonsters().find((m) => m.id === id);
-        return mon ? JSON.parse(JSON.stringify(mon)) : null;
-      },
-      searchMonsters(query = "") {
-        const q = String(query || "").trim().toLowerCase();
-        if (!q) return this.getAllMonsters();
-        return allMonsters()
-          .filter((m) => `${m.name} ${m.cr} ${m.sizeType} ${m.source}`.toLowerCase().includes(q))
-          .map((m) => JSON.parse(JSON.stringify(m)));
-      },
-      addHomebrewMonster(rawMonster) {
-        const monster = normalizeMonster(
-          {
-            ...(rawMonster || {}),
-            id: rawMonster?.id || uid("hbm")
-          },
-          { isHomebrew: true }
-        );
+    function closeConditionEditor() {
+      if (!conditionEditor.open) return;
+      conditionEditor.open = false;
+      conditionEditor.cardId = null;
+      render();
+    }
 
-        const idx = state.homebrew.findIndex((m) => m.id === monster.id);
-        if (idx >= 0) state.homebrew[idx] = monster;
-        else state.homebrew.push(monster);
-
-        saveState(state);
-        publishApi();
-        renderMonsterVaultTool();
-        return JSON.parse(JSON.stringify(monster));
-      },
-      removeHomebrewMonster(id) {
-        deleteHomebrew(String(id || ""));
-      },
-      toEncounterCombatant(monsterOrId, overrides = {}) {
-        return toEncounterCombatant(monsterOrId, overrides);
+    function toggleCondition(cardId, conditionName) {
+      const c = getActiveCombatantById(cardId);
+      const name = canonicalConditionName(conditionName);
+      if (!c || !name || name === "Exhaustion") return;
+      const idx = c.conditions.findIndex((x) => x.name === name);
+      if (idx >= 0) {
+        c.conditions.splice(idx, 1);
+      } else {
+        c.conditions.push({ name, duration: null });
       }
-    };
+      c.conditions = normalizeConditions(c.conditions);
+      persistAndRender();
+    }
 
-    window.dispatchEvent(new CustomEvent("vrahune-monster-vault-updated"));
-  }
+    function setConditionDuration(cardId, conditionName, rawValue) {
+      const c = getActiveCombatantById(cardId);
+      const name = canonicalConditionName(conditionName);
+      if (!c || !name || name === "Exhaustion") return;
+      const entry = c.conditions.find((x) => x.name === name);
+      if (!entry) return;
+      const trimmed = String(rawValue ?? "").trim();
+      if (!trimmed) {
+        entry.duration = null;
+      } else {
+        const n = Math.max(1, intOr(trimmed, entry.duration || 1));
+        entry.duration = n;
+      }
+      saveState(state);
+      render();
+    }
 
-  function renderFeatureList(label, list) {
-    const arr = Array.isArray(list) ? list : [];
-    if (!arr.length) return "";
+    function removeCondition(cardId, conditionName) {
+      const c = getActiveCombatantById(cardId);
+      const name = canonicalConditionName(conditionName);
+      if (!c || !name) return;
+      c.conditions = c.conditions.filter((x) => x.name !== name);
+      persistAndRender();
+    }
 
-    return `
-      <div class="mv-detail-section">
-        <div class="mv-detail-heading">${esc(label)} (${arr.length})</div>
-        <ul class="mv-feature-list">
-          ${arr
-            .map((f) => {
-              const name = String(f?.name || "Feature").trim();
-              const text = String(f?.text || "").trim();
-              if (!text) return "";
-              return `<li><b>${esc(name)}.</b> ${esc(text)}</li>`;
-            })
-            .join("")}
-        </ul>
-      </div>
-    `;
-  }
+    function clearAllConditions(cardId) {
+      const c = getActiveCombatantById(cardId);
+      if (!c) return;
+      c.conditions = [];
+      c.exhaustionLevel = 0;
+      persistAndRender();
+    }
 
-  function renderMonsterDetails(monster) {
-    const d = monster.details || {};
-    const a = d.abilityScores || defaultAbilities();
+    function setExhaustionLevel(cardId, value) {
+      const c = getActiveCombatantById(cardId);
+      if (!c) return;
+      c.exhaustionLevel = clamp(intOr(value, c.exhaustionLevel), 0, 6);
+      persistAndRender();
+    }
 
-    const miscRows = [
-      ["Saving Throws", d.savingThrows],
-      ["Skills", d.skills],
-      ["Vulnerabilities", d.damageVulnerabilities],
-      ["Resistances", d.damageResistances],
-      ["Immunities", d.damageImmunities],
-      ["Condition Immunities", d.conditionImmunities],
-      ["Senses", d.senses],
-      ["Languages", d.languages],
-      ["Challenge Notes", d.challengeNote]
-    ]
-      .map(([k, v]) => [k, flattenText(v)])
-      .filter(([, value]) => String(value || "").trim());
+    function persistAndRender() {
+      saveState(state);
+      render();
+    }
 
-    const actionCount =
-      (d.actions?.length || 0) +
-      (d.bonusActions?.length || 0) +
-      (d.reactions?.length || 0) +
-      (d.legendaryActions?.length || 0);
+    function sortByInitiativeDesc(arr) {
+      return [...arr].sort((a, b) => {
+        const diff = intOr(b.initiative, 0) - intOr(a.initiative, 0);
+        return diff;
+      });
+    }
 
-    return `
-      <div class="mv-details">
-        <div class="mv-details-grid">
-          <div class="mv-statline"><span>STR</span><b>${a.str}</b></div>
-          <div class="mv-statline"><span>DEX</span><b>${a.dex}</b></div>
-          <div class="mv-statline"><span>CON</span><b>${a.con}</b></div>
-          <div class="mv-statline"><span>INT</span><b>${a.int}</b></div>
-          <div class="mv-statline"><span>WIS</span><b>${a.wis}</b></div>
-          <div class="mv-statline"><span>CHA</span><b>${a.cha}</b></div>
-          <div class="mv-statline"><span>PB</span><b>${d.proficiencyBonus == null ? "—" : `+${d.proficiencyBonus}`}</b></div>
-          <div class="mv-statline"><span>XP</span><b>${Number(monster.xp || 0).toLocaleString()}</b></div>
+    function moveItem(arr, fromId, toId) {
+      if (!Array.isArray(arr) || !fromId || !toId || fromId === toId) return arr;
+      const from = arr.findIndex((x) => x.id === fromId);
+      const to = arr.findIndex((x) => x.id === toId);
+      if (from < 0 || to < 0) return arr;
+      const copy = [...arr];
+      const [item] = copy.splice(from, 1);
+      copy.splice(to, 0, item);
+      return copy;
+    }
+
+    function moveToEnd(arr, fromId) {
+      const i = arr.findIndex((x) => x.id === fromId);
+      if (i < 0) return arr;
+      const copy = [...arr];
+      const [item] = copy.splice(i, 1);
+      copy.push(item);
+      return copy;
+    }
+
+    function serializeActiveAsEncounter(existing = null) {
+      const baseName = state.activeEncounterName?.trim() || "Current Encounter";
+      return {
+        id: existing?.id || uid("enc"),
+        name: existing?.name || baseName,
+        tags: existing?.tags || "",
+        location: existing?.location || "",
+        combatants: state.activeCombatants.map((c) => cloneCombatant(c, true))
+      };
+    }
+
+    function getEncounterDifficulty(combatants = state.activeCombatants) {
+      const roster = Array.isArray(combatants) ? combatants : [];
+      const allies = roster.filter((c) => c.type !== "Enemy");
+      const enemies = roster.filter((c) => c.type === "Enemy");
+
+      const partyLevels = allies.map((c) => normalizeLevel(c.level, 1));
+      const partyCount = partyLevels.length;
+      const enemyCount = enemies.length;
+      const enemyXP = enemies.reduce((sum, c) => sum + crToXP(c.cr), 0);
+
+      const budget = partyLevels.reduce(
+        (acc, lv) => {
+          const row = XP_BUDGET_2024_BY_LEVEL[lv] || XP_BUDGET_2024_BY_LEVEL[1];
+          acc.low += row.low;
+          acc.moderate += row.moderate;
+          acc.high += row.high;
+          return acc;
+        },
+        { low: 0, moderate: 0, high: 0 }
+      );
+
+      let tier = "Not enough data";
+      let tierClass = "tier-none";
+
+      if (!partyCount || !enemyCount) {
+        tier = !partyCount ? "Add PCs/NPCs with levels" : "Add enemies with CR";
+      } else if (enemyXP <= budget.low) {
+        tier = "Low";
+        tierClass = "tier-low";
+      } else if (enemyXP <= budget.moderate) {
+        tier = "Moderate";
+        tierClass = "tier-moderate";
+      } else if (enemyXP <= budget.high) {
+        tier = "High";
+        tierClass = "tier-high";
+      } else if (enemyXP <= budget.high * 1.5) {
+        tier = "Above High";
+        tierClass = "tier-above";
+      } else {
+        tier = "Extreme";
+        tierClass = "tier-extreme";
+      }
+
+      const pctOfHigh = budget.high > 0 ? Math.round((enemyXP / budget.high) * 100) : 0;
+      const lowPct = budget.high > 0 ? Math.round((budget.low / budget.high) * 100) : 0;
+      const moderatePct = budget.high > 0 ? Math.round((budget.moderate / budget.high) * 100) : 0;
+
+      return {
+        partyCount,
+        enemyCount,
+        enemyXP,
+        budget,
+        tier,
+        tierClass,
+        pctOfHigh: clamp(pctOfHigh, 0, 300),
+        lowPct: clamp(lowPct, 0, 100),
+        moderatePct: clamp(moderatePct, 0, 100)
+      };
+    }
+
+    function getSelectedParty() {
+      return state.parties.find((p) => p.id === state.selectedPartyId) || null;
+    }
+
+    function currentTurnName() {
+      if (!state.activeCombatants.length) return "—";
+      const idx = clamp(state.turnIndex, 0, state.activeCombatants.length - 1);
+      return state.activeCombatants[idx]?.name || "—";
+    }
+
+    function tagClass(type) {
+      if (type === "PC") return "pc-card";
+      if (type === "Enemy") return "enemy-card";
+      return "npc-card";
+    }
+
+    function initials(name) {
+      const s = String(name || "?").trim();
+      if (!s) return "?";
+      const parts = s.split(/\s+/).slice(0, 2);
+      return parts.map((p) => p.charAt(0).toUpperCase()).join("");
+    }
+
+    function portraitMarkup(c, scope, refId = null) {
+      const hasPortrait = !!c.portrait;
+      const style = hasPortrait ? ` style="background-image:url('${esc(c.portrait)}')"` : "";
+      const encAttr = scope === "library" && refId ? ` data-lib-enc-id="${esc(refId)}"` : "";
+      const partyAttr = scope === "party" && refId ? ` data-party-id="${esc(refId)}"` : "";
+      return `
+        <button
+          type="button"
+          class="card-portrait ${hasPortrait ? "has-image" : ""}"
+          title="Edit portrait"
+          data-portrait-upload
+          data-scope="${esc(scope)}"
+          data-card-id="${esc(c.id)}"
+          ${encAttr}
+          ${partyAttr}
+          ${style}
+        >
+          ${hasPortrait ? "" : esc(initials(c.name))}
+          <span class="portrait-badge" aria-hidden="true">📷</span>
+        </button>
+      `;
+    }
+
+    function getTargetCombatant(target) {
+      if (!target || !target.scope || !target.cardId) return null;
+      if (target.scope === "active") {
+        return state.activeCombatants.find((c) => c.id === target.cardId) || null;
+      }
+      if (target.scope === "library") {
+        const enc = state.library.find((e) => e.id === target.encId);
+        if (!enc) return null;
+        return enc.combatants.find((c) => c.id === target.cardId) || null;
+      }
+      if (target.scope === "party") {
+        const party = state.parties.find((p) => p.id === target.partyId) || getSelectedParty();
+        if (!party) return null;
+        return party.members.find((m) => m.id === target.cardId) || null;
+      }
+      return null;
+    }
+
+    function openPortraitEditor(target) {
+      const combatant = getTargetCombatant(target);
+      if (!combatant) return;
+      portraitEditor.open = true;
+      portraitEditor.target = {
+        scope: target.scope,
+        cardId: target.cardId,
+        encId: target.encId || null,
+        partyId: target.partyId || null
+      };
+      portraitEditor.dragging = false;
+      portraitEditor.pointerId = null;
+      loadPortraitEditorImage(combatant.portrait || "", true);
+      render();
+    }
+
+    function closePortraitEditor(shouldRender = true) {
+      portraitEditor.open = false;
+      portraitEditor.target = null;
+      portraitEditor.source = "";
+      portraitEditor.image = null;
+      portraitEditor.zoom = PORTRAIT_EDITOR_MIN_ZOOM;
+      portraitEditor.offsetX = 0;
+      portraitEditor.offsetY = 0;
+      portraitEditor.dragging = false;
+      portraitEditor.pointerId = null;
+      if (shouldRender) render();
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Failed to read image"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function resizeImageDataUrl(dataUrl, maxDimension = 256, quality = 0.84) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const srcW = img.naturalWidth || img.width || 1;
+            const srcH = img.naturalHeight || img.height || 1;
+            const ratio = Math.min(1, maxDimension / Math.max(srcW, srcH));
+            const width = Math.max(1, Math.round(srcW * ratio));
+            const height = Math.max(1, Math.round(srcH * ratio));
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve(dataUrl);
+              return;
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, width, height);
+
+            let out = "";
+            try {
+              out = canvas.toDataURL("image/webp", quality);
+            } catch (_) {}
+            if (!out || out === "data:,") {
+              try {
+                out = canvas.toDataURL("image/jpeg", quality);
+              } catch (_) {}
+            }
+
+            resolve(out || dataUrl);
+          } catch (_) {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    function loadPortraitEditorImage(dataUrl, reset = true) {
+      const normalized = normalizePortrait(dataUrl);
+      portraitEditor.source = normalized;
+      portraitEditor.image = null;
+      portraitEditor.zoom = PORTRAIT_EDITOR_MIN_ZOOM;
+      if (reset) {
+        portraitEditor.offsetX = 0;
+        portraitEditor.offsetY = 0;
+      }
+
+      if (!normalized) {
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = true;
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        portraitEditor.image = img;
+        clampPortraitEditorOffsets();
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = false;
+      };
+      img.onerror = () => {
+        portraitEditor.image = null;
+        drawPortraitEditorCanvas();
+        const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+        if (saveBtn) saveBtn.disabled = true;
+      };
+      img.src = normalized;
+    }
+
+    function clampPortraitEditorOffsets() {
+      const m = portraitEditorMetrics();
+      portraitEditor.offsetX = clamp(portraitEditor.offsetX, -m.maxOffsetX, m.maxOffsetX);
+      portraitEditor.offsetY = clamp(portraitEditor.offsetY, -m.maxOffsetY, m.maxOffsetY);
+    }
+
+    function portraitEditorMetrics() {
+      const img = portraitEditor.image;
+      const size = PORTRAIT_EDITOR_PREVIEW_SIZE;
+      if (!img) {
+        return {
+          size,
+          cx: size / 2,
+          cy: size / 2,
+          r: size * 0.485,
+          drawW: 0,
+          drawH: 0,
+          x: 0,
+          y: 0,
+          maxOffsetX: 0,
+          maxOffsetY: 0
+        };
+      }
+
+      const srcW = img.naturalWidth || img.width || 1;
+      const srcH = img.naturalHeight || img.height || 1;
+      const baseScale = Math.max(size / srcW, size / srcH);
+      const scale = baseScale * clamp(Number(portraitEditor.zoom) || 1, PORTRAIT_EDITOR_MIN_ZOOM, PORTRAIT_EDITOR_MAX_ZOOM);
+      const drawW = srcW * scale;
+      const drawH = srcH * scale;
+      const maxOffsetX = Math.max(0, (drawW - size) / 2);
+      const maxOffsetY = Math.max(0, (drawH - size) / 2);
+      const offsetX = clamp(portraitEditor.offsetX, -maxOffsetX, maxOffsetX);
+      const offsetY = clamp(portraitEditor.offsetY, -maxOffsetY, maxOffsetY);
+
+      return {
+        size,
+        cx: size / 2,
+        cy: size / 2,
+        r: size * 0.485,
+        drawW,
+        drawH,
+        x: size / 2 - drawW / 2 + offsetX,
+        y: size / 2 - drawH / 2 + offsetY,
+        maxOffsetX,
+        maxOffsetY
+      };
+    }
+
+    function drawPortraitEditorCanvas() {
+      const canvas = shadow.getElementById("portraitEditorCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const m = portraitEditorMetrics();
+      canvas.width = m.size;
+      canvas.height = m.size;
+
+      ctx.clearRect(0, 0, m.size, m.size);
+      ctx.fillStyle = "#080b11";
+      ctx.fillRect(0, 0, m.size, m.size);
+
+      if (portraitEditor.image) {
+        clampPortraitEditorOffsets();
+        const mm = portraitEditorMetrics();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(portraitEditor.image, mm.x, mm.y, mm.drawW, mm.drawH);
+      } else {
+        ctx.fillStyle = "#8f98a8";
+        ctx.font = "600 13px system-ui, -apple-system, Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("No image selected", m.cx, m.cy);
+      }
+
+      ctx.save();
+      ctx.fillStyle = "rgba(4, 6, 10, 0.62)";
+      ctx.beginPath();
+      ctx.rect(0, 0, m.size, m.size);
+      ctx.moveTo(m.cx + m.r, m.cy);
+      ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(236, 242, 255, 0.95)";
+      ctx.stroke();
+    }
+
+    function exportPortraitFromEditor() {
+      if (!portraitEditor.image) return "";
+
+      const out = document.createElement("canvas");
+      out.width = PORTRAIT_EDITOR_EXPORT_SIZE;
+      out.height = PORTRAIT_EDITOR_EXPORT_SIZE;
+      const ctx = out.getContext("2d");
+      if (!ctx) return "";
+
+      const m = portraitEditorMetrics();
+      const ratio = PORTRAIT_EDITOR_EXPORT_SIZE / m.size;
+
+      ctx.clearRect(0, 0, out.width, out.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(out.width / 2, out.height / 2, out.width / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(
+        portraitEditor.image,
+        m.x * ratio,
+        m.y * ratio,
+        m.drawW * ratio,
+        m.drawH * ratio
+      );
+      ctx.restore();
+
+      let data = "";
+      try {
+        data = out.toDataURL("image/webp", 0.92);
+      } catch (_) {
+        data = "";
+      }
+      if (!data || data === "data:,") {
+        try {
+          data = out.toDataURL("image/png");
+        } catch (_) {
+          data = "";
+        }
+      }
+      return normalizePortrait(data);
+    }
+
+    function savePortraitFromEditor() {
+      if (!portraitEditor.target) return;
+      const combatant = getTargetCombatant(portraitEditor.target);
+      if (!combatant) {
+        closePortraitEditor();
+        return;
+      }
+      const data = exportPortraitFromEditor();
+      if (!data) return;
+      combatant.portrait = data;
+      closePortraitEditor(false);
+      persistAndRender();
+    }
+
+    function removePortraitFromEditor() {
+      if (!portraitEditor.target) {
+        closePortraitEditor();
+        return;
+      }
+      const combatant = getTargetCombatant(portraitEditor.target);
+      if (!combatant) {
+        closePortraitEditor();
+        return;
+      }
+      combatant.portrait = "";
+      closePortraitEditor(false);
+      persistAndRender();
+    }
+
+    async function processPortraitFile(file) {
+      if (!file) return "";
+      const raw = await readFileAsDataUrl(file);
+      if (!/^data:image\//i.test(raw)) return "";
+      const optimized = await resizeImageDataUrl(raw, 1024, 0.9);
+      return normalizePortrait(optimized || raw);
+    }
+
+    function renderTopTabs() {
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div class="tabs-row">
+            <button class="tab ${state.tab === "active" ? "active" : ""}" data-tab="active">Active Encounter</button>
+            <button class="tab ${state.tab === "library" ? "active" : ""}" data-tab="library">Encounter Library</button>
+          </div>
+          <div class="hint-text">Use this for combat, chases, stealth runs, or social scenes with turns.</div>
         </div>
+      `;
+    }
 
-        ${miscRows.length
-          ? `<div class="mv-detail-lines">${miscRows
-              .map(([k, v]) => `<div class="mv-detail-line"><span>${esc(k)}</span><b>${esc(v)}</b></div>`)
-              .join("")}</div>`
-          : ""}
+    function renderPortraitEditorModal() {
+      if (!portraitEditor.open) return "";
+      const targetCombatant = getTargetCombatant(portraitEditor.target);
+      const hasPortrait = !!targetCombatant?.portrait;
+      const hasDraftImage = !!portraitEditor.source;
+      const canRemove = hasPortrait || hasDraftImage;
 
-        ${renderFeatureList("Traits", d.traits)}
+      return `
+        <div class="portrait-editor-backdrop" id="portraitEditorBackdrop">
+          <div class="portrait-editor-modal" role="dialog" aria-modal="true" aria-label="Portrait editor">
+            <div class="portrait-editor-head">
+              <div class="portrait-editor-title">Portrait Editor</div>
+              <div class="hint-text">Drag to reposition · Zoom to frame</div>
+            </div>
 
-        ${actionCount
-          ? `
-            ${renderFeatureList("Actions", d.actions)}
-            ${renderFeatureList("Bonus Actions", d.bonusActions)}
-            ${renderFeatureList("Reactions", d.reactions)}
-            ${renderFeatureList("Legendary Actions", d.legendaryActions)}
-          `
-          : `<div class="mv-muted" style="margin-top:4px;">No actions listed for this entry.</div>`}
-      </div>
-    `;
-  }
+            <div class="portrait-editor-canvas-wrap">
+              <canvas id="portraitEditorCanvas" width="${PORTRAIT_EDITOR_PREVIEW_SIZE}" height="${PORTRAIT_EDITOR_PREVIEW_SIZE}" aria-label="Portrait crop preview"></canvas>
+            </div>
 
-  function renderMonsterRows(list) {
-    return list
-      .slice(0, 420)
-      .map((m) => {
-        const isOpen = state.expandedIds.includes(m.id);
-        const tag = m.isHomebrew ? "Homebrew" : "SRD";
-        const actionsCount = (m.details?.actions?.length || 0) + (m.details?.bonusActions?.length || 0) + (m.details?.reactions?.length || 0) + (m.details?.legendaryActions?.length || 0);
-        const isLoading = srdLoadInFlight.has(m.id);
+            <div class="portrait-editor-controls">
+              <label for="portraitEditorZoom">Zoom</label>
+              <input id="portraitEditorZoom" type="range" min="${PORTRAIT_EDITOR_MIN_ZOOM}" max="${PORTRAIT_EDITOR_MAX_ZOOM}" step="0.01" value="${Number(portraitEditor.zoom || 1).toFixed(2)}">
+            </div>
 
-        const actions = m.isHomebrew
-          ? `
-            <button class="btn btn-secondary btn-xs" data-mv-edit="${esc(m.id)}">Edit</button>
-            <button class="btn btn-secondary btn-xs" data-mv-delete="${esc(m.id)}">Delete</button>
-          `
-          : `
-            <button class="btn btn-secondary btn-xs" data-mv-clone="${esc(m.id)}">Clone to Homebrew</button>
-            <span class="mv-source-tag">${tag}</span>
-          `;
+            <div class="portrait-editor-actions">
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorCancelBtn">Cancel</button>
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorUploadBtn">Choose image</button>
+              <button type="button" class="btn btn-secondary btn-xs" id="portraitEditorRemoveBtn" ${canRemove ? "" : "disabled"}>Remove image</button>
+              <button type="button" class="btn btn-xs" id="portraitEditorSaveBtn" ${portraitEditor.image ? "" : "disabled"}>Save portrait</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-        return `
-          <div class="mv-row-wrap ${isOpen ? "open" : ""}">
-            <div class="mv-row">
-              <div class="mv-main">
-                <div class="mv-name">${esc(m.name)}</div>
-                <div class="mv-meta">
-                  CR ${esc(m.cr)} · XP ${Number(m.xp || 0).toLocaleString()} · AC ${m.ac} · HP ${m.hp} · Spd ${m.speed} · Init ${m.initiative}
+    function openEditor(encounter) {
+      const enc = encounter || { id: null, name: "", tags: "", location: "", combatants: [] };
+      state.editorOpen = true;
+      state.editorEncounterId = enc.id || null;
+      state.editor = {
+        name: enc.name || "",
+        tags: enc.tags || "",
+        location: enc.location || "",
+        combatants: (enc.combatants || []).map((c) => cloneCombatant(c, true)),
+        addDraft: { name: "", type: "Enemy", initiative: 10, ac: 13, speed: 30, hpCurrent: 10, hpMax: 10, level: 3, cr: "1" }
+      };
+      persistAndRender();
+    }
+
+    function closeEditor() {
+      state.editorOpen = false;
+      state.editorEncounterId = null;
+      persistAndRender();
+    }
+
+    function ensureTurnIndex() {
+      if (!state.activeCombatants.length) {
+        state.turnIndex = 0;
+      } else {
+        state.turnIndex = clamp(state.turnIndex, 0, state.activeCombatants.length - 1);
+      }
+    }
+
+    function renderConditionBadges(c) {
+      const chips = [];
+      (c.conditions || []).forEach((cond) => {
+        const label = cond.duration ? `${cond.name} · ${cond.duration}r` : cond.name;
+        const tip = CONDITION_INFO_2024[cond.name] || "";
+        chips.push(`<span class="condition-chip" title="${esc(tip)}">${esc(label)}</span>`);
+      });
+      if ((c.exhaustionLevel || 0) > 0) {
+        chips.push(`<span class="condition-chip exhaustion" title="${esc(CONDITION_INFO_2024.Exhaustion)}">Exhaustion ${c.exhaustionLevel}</span>`);
+      }
+      if (!chips.length) return "";
+      return `<div class="condition-row">${chips.join("")}</div>`;
+    }
+
+    function renderMonsterDetailsPanel(c) {
+      if (!hasMonsterDetails(c) || !c.showMonsterDetails) return "";
+      const groups = [
+        { title: "Traits", entries: c.traits || [] },
+        { title: "Actions", entries: c.actions || [] },
+        { title: "Bonus Actions", entries: c.bonusActions || [] },
+        { title: "Reactions", entries: c.reactions || [] },
+        { title: "Legendary", entries: c.legendaryActions || [] }
+      ].filter((g) => Array.isArray(g.entries) && g.entries.length);
+
+      if (!groups.length) return "";
+      return `
+        <div class="monster-details">
+          ${groups
+            .map(
+              (group) => `
+                <div class="monster-detail-group">
+                  <div class="monster-detail-title">${esc(group.title)}</div>
+                  ${group.entries
+                    .map(
+                      (entry) => `
+                        <div class="monster-detail-entry">
+                          <span class="monster-detail-name">${esc(entry.name || "Feature")}</span>
+                          <span class="monster-detail-text">${esc(entry.text || "")}</span>
+                        </div>
+                      `
+                    )
+                    .join("")}
                 </div>
-                <div class="mv-submeta">
-                  ${esc(m.sizeType)} · ${esc(m.source)}${hasDetails(m) ? ` · Details ready${actionsCount ? ` · Actions ${actionsCount}` : ""}` : " · Details on demand"}
+              `
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+    function renderConditionEditorModal() {
+      if (!conditionEditor.open) return "";
+      const combatant = getConditionTargetCombatant();
+      if (!combatant) {
+        conditionEditor.open = false;
+        conditionEditor.cardId = null;
+        return "";
+      }
+
+      const conditionButtons = CONDITIONS_2024.filter((name) => name !== "Exhaustion")
+        .map((name) => {
+          const active = combatant.conditions.some((c) => c.name === name);
+          return `<button type="button" class="condition-toggle ${active ? "active" : ""}" data-cond-toggle="${esc(name)}" title="${esc(CONDITION_INFO_2024[name] || "")}">${esc(name)}</button>`;
+        })
+        .join("");
+
+      const activeRows = combatant.conditions.length
+        ? combatant.conditions
+            .map(
+              (cond) => `
+                <div class="condition-active-row">
+                  <span class="condition-active-name">${esc(cond.name)}</span>
+                  <label>Rounds</label>
+                  <input type="number" min="1" data-cond-duration="${esc(cond.name)}" value="${cond.duration || ""}" placeholder="∞">
+                  <button class="btn btn-secondary btn-xs" type="button" data-cond-remove="${esc(cond.name)}">Remove</button>
                 </div>
-              </div>
-              <div class="mv-actions">
-                <button class="btn btn-secondary btn-xs" data-mv-toggle="${esc(m.id)}" ${isLoading ? "disabled" : ""}>${isOpen ? "Hide details" : (isLoading ? "Loading..." : "Details")}</button>
-                ${actions}
+              `
+            )
+            .join("")
+        : `<div class="hint-text">No non-exhaustion conditions on this combatant.</div>`;
+
+      return `
+        <div class="condition-editor-backdrop" id="conditionEditorBackdrop">
+          <div class="condition-editor-modal" role="dialog" aria-modal="true" aria-label="Condition editor">
+            <div class="condition-editor-head">
+              <div class="portrait-editor-title">Conditions — ${esc(combatant.name)}</div>
+              <div class="hint-text">Active encounter only • 2024 condition list</div>
+            </div>
+
+            <div class="condition-picker-grid">
+              ${conditionButtons}
+            </div>
+
+            <div class="condition-editor-block">
+              <div class="boxed-subsection-title">Applied conditions</div>
+              ${activeRows}
+            </div>
+
+            <div class="condition-editor-block">
+              <div class="boxed-subsection-title">Exhaustion level</div>
+              <div class="row">
+                <div class="col" style="max-width:90px;">
+                  <input type="number" min="0" max="6" id="condExhaustionInput" value="${clamp(intOr(combatant.exhaustionLevel, 0), 0, 6)}">
+                </div>
+                <div class="col">
+                  <div class="hint-text">${esc(exhaustionEffects(combatant.exhaustionLevel))}</div>
+                </div>
               </div>
             </div>
-            ${isOpen ? renderMonsterDetails(m) : ""}
+
+            <div class="portrait-editor-actions">
+              <button type="button" class="btn btn-secondary btn-xs" id="condClearAllBtn">Clear all</button>
+              <button type="button" class="btn btn-secondary btn-xs" id="condCloseBtn">Close</button>
+            </div>
           </div>
-        `;
-      })
-      .join("");
-  }
+        </div>
+      `;
+    }
 
-  let state = loadState();
-  const srdLoadInFlight = new Set();
+    function renderMonsterVaultPickerModal() {
+      if (!monsterPicker.open) return "";
 
-  function renderMonsterVaultTool() {
-    const panel = document.getElementById("generatorPanel");
-    const label = document.getElementById("activeGeneratorLabel");
-    if (!panel || !label) return;
-    label.textContent = TOOL_NAME;
+      const allMonsters = monsterVaultMonsters();
+      const query = String(monsterPicker.query || "").trim().toLowerCase();
+      const crFilter = String(monsterPicker.cr || "all");
+      const sourceFilter = String(monsterPicker.source || "all");
+      const crValues = [...new Set(allMonsters.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
 
-    const all = allMonsters();
-    const filtered = filteredMonsters();
-    const crOptions = [...new Set(all.map((m) => String(m.cr || "")).filter(Boolean))]
-      .sort((a, b) => crToFloat(a) - crToFloat(b));
+      const filtered = allMonsters.filter((m) => {
+        if (crFilter !== "all" && m.cr !== crFilter) return false;
+        if (sourceFilter !== "all" && m.sourceType !== sourceFilter) return false;
+        if (!query) return true;
+        const hay = `${m.name} ${m.cr} ${m.sizeType} ${m.source}`.toLowerCase();
+        return hay.includes(query);
+      });
 
-    panel.innerHTML = `
+      const targetLabel =
+        monsterPicker.scope === "library"
+          ? (() => {
+              const enc = state.library.find((e) => e.id === monsterPicker.encounterId);
+              return enc ? `${enc.name} · ${enc.combatants.length} saved` : "Encounter Library";
+            })()
+          : `${state.activeEncounterName || "Active Encounter"} · ${state.activeCombatants.length} active`;
+
+      return `
+        <div class="monster-picker-backdrop" id="monsterPickerBackdrop">
+          <div class="monster-picker-modal" role="dialog" aria-modal="true" aria-label="Add from Monster Vault">
+            <div class="monster-picker-head">
+              <div class="portrait-editor-title">Add from Monster Vault</div>
+              <div class="hint-text">${esc(targetLabel)}</div>
+            </div>
+
+            <div class="monster-picker-filters">
+              <div class="col">
+                <label for="monsterPickerSearch">Search</label>
+                <input id="monsterPickerSearch" type="text" placeholder="Goblin, Dragon, CR 5..." value="${esc(monsterPicker.query)}">
+              </div>
+              <div class="col" style="max-width:120px;">
+                <label for="monsterPickerCr">CR</label>
+                <select id="monsterPickerCr">
+                  <option value="all" ${crFilter === "all" ? "selected" : ""}>All</option>
+                  ${crValues.map((cr) => `<option value="${esc(cr)}" ${crFilter === cr ? "selected" : ""}>${esc(cr)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="col" style="max-width:140px;">
+                <label for="monsterPickerSource">Source</label>
+                <select id="monsterPickerSource">
+                  <option value="all" ${sourceFilter === "all" ? "selected" : ""}>All</option>
+                  <option value="srd" ${sourceFilter === "srd" ? "selected" : ""}>SRD 2024</option>
+                  <option value="homebrew" ${sourceFilter === "homebrew" ? "selected" : ""}>Homebrew</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="monster-picker-count">${filtered.length} result${filtered.length === 1 ? "" : "s"}${filtered.length > 300 ? " (showing first 300)" : ""}</div>
+
+            <div class="monster-picker-list">
+              ${
+                filtered.length
+                  ? filtered
+                      .slice(0, 300)
+                      .map(
+                        (m) => `
+                          <div class="monster-picker-row">
+                            <div class="monster-picker-main">
+                              <div class="monster-picker-name">${esc(m.name)}</div>
+                              <div class="monster-picker-meta">CR ${esc(m.cr)} · AC ${m.ac} · HP ${m.hp} · Spd ${m.speed} · Init ${m.initiative} · ${esc(m.source)}</div>
+                            </div>
+                            <button class="btn btn-xs" data-picker-add-monster="${esc(m.id)}">Add</button>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : `<div class="hint-text" style="padding:8px;">${hasMonsterVaultApi() ? "No monsters match your filters." : "Monster Vault tool is not loaded."}</div>`
+              }
+            </div>
+
+            <div class="portrait-editor-actions" style="justify-content:flex-end;">
+              <button type="button" class="btn btn-secondary btn-xs" id="monsterPickerCloseBtn">Done</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPartyManager(party) {
+      if (!party || !state.partyManagerOpen) return "";
+
+      const rows = party.members
+        .map((m) => {
+          return `
+            <div class="row" data-party-member-row="${esc(m.id)}">
+              <div class="col" style="max-width:66px;">
+                <label>Portrait</label>
+                ${portraitMarkup(m, "party", party.id)}
+              </div>
+              <div class="col"><label>Name</label><input type="text" data-party-field="name" data-member-id="${esc(m.id)}" value="${esc(m.name)}"></div>
+              <div class="col" style="max-width:85px;"><label>Type</label>
+                <select data-party-field="type" data-member-id="${esc(m.id)}">
+                  <option ${m.type === "PC" ? "selected" : ""}>PC</option>
+                  <option ${m.type === "NPC" ? "selected" : ""}>NPC</option>
+                  <option ${m.type === "Enemy" ? "selected" : ""}>Enemy</option>
+                </select>
+              </div>
+              <div class="col" style="max-width:78px;"><label>Init</label><input type="number" min="0" data-party-field="initiative" data-member-id="${esc(m.id)}" value="${intOr(m.initiative, 0)}"></div>
+              <div class="col" style="max-width:74px;"><label>Lvl</label><input type="number" min="1" max="20" data-party-field="level" data-member-id="${esc(m.id)}" value="${normalizeLevel(m.level, 3)}"></div>
+              <div class="col" style="max-width:82px;"><label>CR</label><input type="text" data-party-field="cr" data-member-id="${esc(m.id)}" value="${esc(normalizeCR(m.cr, "1"))}"></div>
+              <div class="col" style="max-width:70px;"><label>AC</label><input type="number" min="0" data-party-field="ac" data-member-id="${esc(m.id)}" value="${m.ac}"></div>
+              <div class="col" style="max-width:90px;"><label>Speed</label><input type="number" min="0" data-party-field="speed" data-member-id="${esc(m.id)}" value="${m.speed}"></div>
+              <div class="col" style="max-width:90px;"><label>HP Cur</label><input type="number" min="0" data-party-field="hpCurrent" data-member-id="${esc(m.id)}" value="${m.hpCurrent}"></div>
+              <div class="col" style="max-width:90px;"><label>HP Max</label><input type="number" min="0" data-party-field="hpMax" data-member-id="${esc(m.id)}" value="${m.hpMax}"></div>
+              <div class="col" style="max-width:62px;"><label>&nbsp;</label><button class="btn btn-secondary btn-xs" data-party-remove="${esc(m.id)}">×</button></div>
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="boxed-subsection" style="margin-top:6px;">
+          <div class="boxed-subsection-header">
+            <div class="boxed-subsection-title">Manage party preset</div>
+            <span class="hint-text">Portraits + level/CR persist for future encounter prep.</span>
+          </div>
+
+          <div class="row">
+            <div class="col" style="max-width:300px;">
+              <label>Party name</label>
+              <input type="text" id="partyNameInput" value="${esc(party.name)}">
+            </div>
+            <div class="col" style="max-width:120px;">
+              <label>&nbsp;</label>
+              <button class="btn btn-xs" id="partyAddMemberBtn">+ Add member</button>
+            </div>
+          </div>
+          ${rows || `<div class="hint-text">No party members yet.</div>`}
+        </div>
+      `;
+    }
+
+    function renderActiveTab() {
+      const party = getSelectedParty();
+      const addExpanded = !!state.addExpanded;
+
+      const addSectionBody = addExpanded
+        ? `
+          <div class="row">
+            <div class="col">
+              <label>Name</label>
+              <input type="text" id="addName" placeholder="Vesper, Goblin Scout, Frostclaw Wolf" value="${esc(state.addDraft.name)}">
+            </div>
+            <div class="col" style="max-width:85px;">
+              <label>Init</label>
+              <input type="number" min="0" id="addInit" value="${state.addDraft.initiative}">
+            </div>
+            <div class="col" style="max-width:85px;">
+              <label>AC</label>
+              <input type="number" min="0" id="addAC" value="${state.addDraft.ac}">
+            </div>
+            <div class="col" style="max-width:110px;">
+              <label>Speed (ft)</label>
+              <input type="number" min="0" id="addSpeed" value="${state.addDraft.speed}">
+            </div>
+            <div class="col" style="max-width:78px;">
+              <label>Lvl</label>
+              <input type="number" min="1" max="20" id="addLevel" value="${normalizeLevel(state.addDraft.level, 3)}">
+            </div>
+            <div class="col" style="max-width:90px;">
+              <label>CR</label>
+              <input type="text" id="addCR" value="${esc(normalizeCR(state.addDraft.cr, "1"))}" placeholder="1/2">
+            </div>
+            <div class="col" style="max-width:178px;">
+              <label>HP (current / max)</label>
+              <div style="display:flex; gap:4px;">
+                <input type="number" min="0" id="addHpCur" value="${state.addDraft.hpCurrent}">
+                <input type="number" min="0" id="addHpMax" value="${state.addDraft.hpMax}">
+              </div>
+            </div>
+            <div class="col" style="max-width:110px;">
+              <label>Type</label>
+              <select id="addType">
+                <option ${state.addDraft.type === "PC" ? "selected" : ""}>PC</option>
+                <option ${state.addDraft.type === "NPC" ? "selected" : ""}>NPC</option>
+                <option ${state.addDraft.type === "Enemy" ? "selected" : ""}>Enemy</option>
+              </select>
+            </div>
+            <div class="col" style="max-width:92px;">
+              <label>&nbsp;</label>
+              <button class="btn btn-xs" id="addCombatantBtn">Add</button>
+            </div>
+          </div>
+
+          <div class="party-strip">
+            <div class="party-row">
+              <span class="party-name">Saved party: ${esc(party?.name || "None")}</span>
+              <span class="hint-text">Click + to add one, or add all at once.</span>
+            </div>
+            <div class="party-row">
+              ${party
+                ? party.members
+                    .map(
+                      (m) => `<div class="party-chip">${esc(m.name)} <button title="Add to encounter" data-party-add-one="${esc(
+                        m.id
+                      )}">+</button></div>`
+                    )
+                    .join("")
+                : `<span class="hint-text">No members in selected party.</span>`}
+              <button class="btn btn-xs" id="addFullPartyBtn">Add full party</button>
+              <button class="btn btn-secondary btn-xs" id="togglePartyManagerBtn">${state.partyManagerOpen ? "Hide" : "Manage"} party</button>
+            </div>
+          </div>
+
+          ${renderPartyManager(party)}
+        `
+        : "";
+
+      const cards = state.activeCombatants
+        .map((c, i) => {
+          const active = i === state.turnIndex;
+          const downed = c.hpCurrent <= 0;
+          const typeClass = tagClass(c.type);
+          const auxLabel = c.type === "Enemy" ? "CR" : "Lvl";
+          const auxValue = c.type === "Enemy" ? normalizeCR(c.cr, "1") : normalizeLevel(c.level, 3);
+          const auxField = c.type === "Enemy" ? "cr" : "level";
+          const auxType = c.type === "Enemy" ? "text" : "number";
+          return `
+            <div class="card ${typeClass} ${active ? "active-turn" : ""} ${downed ? "downed" : ""}" draggable="true" data-card-id="${esc(c.id)}">
+              <div class="card-main">
+                ${portraitMarkup(c, "active")}
+                <div class="card-content">
+                  <div class="name-block">
+                    <div class="name-row">
+                      <span class="inline-edit inline-edit-name" data-inline-edit data-scope="active" data-card-id="${esc(c.id)}" data-field="name" data-type="text">
+                        <span class="inline-view card-name" title="Click to edit">${esc(c.name)}</span>
+                        <input class="inline-input inline-input-name" type="text" value="${esc(c.name)}" aria-label="Edit name">
+                      </span>
+                      <span class="card-tag">${esc(c.type)}</span>
+                    </div>
+                  </div>
+
+                  <div class="hp-block">
+                    <span class="hp-label">HP:</span>
+                    <input class="tiny-num" type="number" min="0" data-card-field="hpCurrent" data-card-id="${esc(c.id)}" value="${c.hpCurrent}">
+                    <span>/</span>
+                    <input class="tiny-num" type="number" min="0" data-card-field="hpMax" data-card-id="${esc(c.id)}" value="${c.hpMax}">
+
+                    <input class="hp-amount-input" type="number" min="1" step="1" placeholder="1" data-amount-for="${esc(c.id)}">
+                    <div class="hp-buttons">
+                      <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
+                      <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
+                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
+                      ${hasMonsterDetails(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="active">${c.showMonsterDetails ? "Hide" : "Info"}</button>` : ""}
+                    </div>
+                  </div>
+
+                  ${renderConditionBadges(c)}
+                  ${renderMonsterDetailsPanel(c)}
+
+                  <div class="card-meta">
+                    <div class="card-meta-top">
+                      <div class="meta-init-center">
+                        <span class="meta-k">Init</span>
+                        <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="active" data-card-id="${esc(c.id)}" data-field="initiative" data-type="number">
+                          <span class="inline-view meta-v" title="Click to edit">${intOr(c.initiative, 0)}</span>
+                          <input class="inline-input inline-input-meta" type="number" min="0" value="${intOr(c.initiative, 0)}" aria-label="Edit initiative">
+                        </span>
+                      </div>
+                      <div class="meta-stack-read">
+                        <div class="meta-read-line">
+                          <span class="meta-k">AC</span>
+                          <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="active" data-card-id="${esc(c.id)}" data-field="ac" data-type="number">
+                            <span class="inline-view meta-v" title="Click to edit">${c.ac}</span>
+                            <input class="inline-input inline-input-meta" type="number" min="0" value="${c.ac}" aria-label="Edit AC">
+                          </span>
+                        </div>
+                        <div class="meta-read-line">
+                          <span class="meta-k">Spd</span>
+                          <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="active" data-card-id="${esc(c.id)}" data-field="speed" data-type="number">
+                            <span class="inline-view meta-v" title="Click to edit">${c.speed}</span>
+                            <input class="inline-input inline-input-meta" type="number" min="0" value="${c.speed}" aria-label="Edit speed">
+                          </span>
+                        </div>
+                        <div class="meta-read-line">
+                          <span class="meta-k">${auxLabel}</span>
+                          <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="active" data-card-id="${esc(c.id)}" data-field="${auxField}" data-type="${auxType}">
+                            <span class="inline-view meta-v" title="Click to edit">${esc(String(auxValue))}</span>
+                            <input class="inline-input inline-input-meta" ${auxType === "number" ? 'type="number" min="1" max="20"' : 'type="text"'} value="${esc(String(auxValue))}" aria-label="Edit ${auxLabel}">
+                          </span>
+                        </div>
+                      </div>
+                      <button class="btn-icon" title="Remove" data-remove-card="${esc(c.id)}">×</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="section-heading-row">
+          <div class="section-title">Active Encounter</div>
+          <div class="hint-text">Round & turn tracking with compact, draggable cards.</div>
+        </div>
+
+        <div class="row">
+          <div class="col" style="max-width:220px;">
+            <label>Encounter name</label>
+            <input type="text" id="activeEncounterName" value="${esc(state.activeEncounterName)}" placeholder="Current Encounter">
+          </div>
+          <div class="col" style="max-width:85px;">
+            <label>Round</label>
+            <input type="number" id="roundInput" min="1" value="${state.round}">
+          </div>
+          <div class="col">
+            <label>Current turn</label>
+            <input type="text" value="${esc(currentTurnName())}" readonly>
+          </div>
+          <div class="col" style="display:flex; gap:4px; justify-content:flex-end; max-width:320px;">
+            <button class="btn btn-secondary btn-xs" id="prevTurnBtn">Previous turn</button>
+            <button class="btn btn-xs" id="nextTurnBtn">Next turn</button>
+            <button class="btn btn-secondary btn-xs" id="nextRoundBtn">Next round</button>
+          </div>
+        </div>
+
+                <div class="boxed-subsection">
+          <div class="boxed-subsection-header">
+            <button class="btn btn-secondary btn-xs" id="toggleAddSectionBtn" style="gap:8px; border-radius:8px;">
+              <span class="chevron">${addExpanded ? "▾" : "▸"}</span>
+              <span>Add / edit combatants</span>
+            </button>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="hint-text">Preload monsters or drop in ad-hoc PCs/NPCs.</span>
+              <button class="btn btn-secondary btn-xs" id="openVaultActiveBtn" ${hasMonsterVaultApi() ? "" : 'title="Load Monster Vault tool first"'}>Add from Monster Vault</button>
+            </div>
+          </div>
+          ${addSectionBody}
+        </div>
+
+        <div class="initiative-box">
+          <div class="section-heading-row">
+            <div class="section-title">Turn order</div>
+            <div class="hint-text">Drag cards up/down to set initiative. Top goes first.</div>
+          </div>
+          <div class="initiative-list" id="initiativeList">
+            ${cards || `<div class="hint-text">No combatants yet. Add one above or from party presets.</div>`}
+          </div>
+        </div>
+      `;
+    }
+
+function renderLibraryTab() {
+  const party = getSelectedParty();
+  const editingId = state.libraryEditId;
+
+  const rows = state.library
+    .map((enc) => {
+      const isActive = enc.id === state.activeLibraryId;
+      const isEditing = enc.id === editingId;
+      const namesList = enc.combatants.length
+        ? enc.combatants.map((c) => c.name).join(" · ")
+        : "No combatants saved";
+      const builderDifficulty = getEncounterDifficulty(enc.combatants);
+
+      const editorCards = isEditing
+        ? enc.combatants
+            .map((c) => {
+              const downed = c.hpCurrent <= 0;
+              const auxLabel = c.type === "Enemy" ? "CR" : "Lvl";
+              const auxValue = c.type === "Enemy" ? normalizeCR(c.cr, "1") : normalizeLevel(c.level, 3);
+              const auxField = c.type === "Enemy" ? "cr" : "level";
+              const auxType = c.type === "Enemy" ? "text" : "number";
+
+              return `
+                <div class="card ${tagClass(c.type)} ${downed ? "downed" : ""}" draggable="true" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">
+                  <div class="card-main">
+                    ${portraitMarkup(c, "library", enc.id)}
+                    <div class="card-content">
+                      <div class="name-block">
+                        <div class="name-row">
+                          <span class="inline-edit inline-edit-name" data-inline-edit data-scope="library" data-lib-enc-id="${esc(enc.id)}" data-card-id="${esc(c.id)}" data-field="name" data-type="text">
+                            <span class="inline-view card-name" title="Click to edit">${esc(c.name)}</span>
+                            <input class="inline-input inline-input-name" type="text" value="${esc(c.name)}" aria-label="Edit name">
+                          </span>
+                          <span class="card-tag">${esc(c.type)}</span>
+                        </div>
+                      </div>
+                      <div class="hp-block">
+                        <span class="hp-label">HP:</span>
+                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpCurrent" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpCurrent}">
+                        <span>/</span>
+                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpMax" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpMax}">
+                                            <div class="hp-buttons">
+                        ${hasMonsterDetails(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="library" data-lib-enc-id="${esc(enc.id)}">${c.showMonsterDetails ? "Hide" : "Info"}</button>` : ""}
+                      </div>
+                    </div>
+                      <div class="card-meta">
+                        <div class="card-meta-top">
+                          <div class="meta-init-center">
+                            <span class="meta-k">Init</span>
+                            <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="library" data-lib-enc-id="${esc(enc.id)}" data-card-id="${esc(c.id)}" data-field="initiative" data-type="number">
+                              <span class="inline-view meta-v" title="Click to edit">${intOr(c.initiative, 0)}</span>
+                              <input class="inline-input inline-input-meta" type="number" min="0" value="${intOr(c.initiative, 0)}" aria-label="Edit initiative">
+                            </span>
+                          </div>
+                          <div class="meta-stack-read">
+                            <div class="meta-read-line">
+                              <span class="meta-k">AC</span>
+                              <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="library" data-lib-enc-id="${esc(enc.id)}" data-card-id="${esc(c.id)}" data-field="ac" data-type="number">
+                                <span class="inline-view meta-v" title="Click to edit">${c.ac}</span>
+                                <input class="inline-input inline-input-meta" type="number" min="0" value="${c.ac}" aria-label="Edit AC">
+                              </span>
+                            </div>
+                            <div class="meta-read-line">
+                              <span class="meta-k">Spd</span>
+                              <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="library" data-lib-enc-id="${esc(enc.id)}" data-card-id="${esc(c.id)}" data-field="speed" data-type="number">
+                                <span class="inline-view meta-v" title="Click to edit">${c.speed}</span>
+                                <input class="inline-input inline-input-meta" type="number" min="0" value="${c.speed}" aria-label="Edit speed">
+                              </span>
+                            </div>
+                            <div class="meta-read-line">
+                              <span class="meta-k">${auxLabel}</span>
+                              <span class="inline-edit inline-edit-meta" data-inline-edit data-scope="library" data-lib-enc-id="${esc(enc.id)}" data-card-id="${esc(c.id)}" data-field="${auxField}" data-type="${auxType}">
+                                <span class="inline-view meta-v" title="Click to edit">${esc(String(auxValue))}</span>
+                                <input class="inline-input inline-input-meta" ${auxType === "number" ? 'type="number" min="1" max="20"' : 'type="text"'} value="${esc(String(auxValue))}" aria-label="Edit ${auxLabel}">
+                              </span>
+                            </div>
+                          </div>
+                          <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
+                        </div>
+                      </div>
+
+                      ${renderMonsterDetailsPanel(c)}
+                    </div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")
+        : "";
+
+      const editBlock = isEditing
+        ? `
+          <div class="boxed-subsection">
+            <div class="row">
+              <div class="col"><label>Name</label><input type="text" data-lib-enc-field="name" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.name)}"></div>
+              <div class="col"><label>Location</label><input type="text" data-lib-enc-field="location" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.location || "")}"></div>
+            </div>
+
+            <div class="boxed-subsection" style="margin-top:6px;">
+              <div class="boxed-subsection-header">
+                <div class="boxed-subsection-title">Encounter Calculator (2024)</div>
+                <span class="hint-text">Prep balance here before activating this encounter.</span>
+              </div>
+              <div class="difficulty-summary">
+                <div class="difficulty-line">
+                  <span><b>Party:</b> ${builderDifficulty.partyCount} combatant${builderDifficulty.partyCount === 1 ? "" : "s"}</span>
+                  <span><b>Enemies:</b> ${builderDifficulty.enemyCount}</span>
+                  <span><b>Enemy XP:</b> ${builderDifficulty.enemyXP.toLocaleString()}</span>
+                  <span class="difficulty-pill ${builderDifficulty.tierClass}">${builderDifficulty.tier}</span>
+                </div>
+                <div class="difficulty-track">
+                  <div class="difficulty-threshold low" style="left:${builderDifficulty.lowPct}%"></div>
+                  <div class="difficulty-threshold moderate" style="left:${builderDifficulty.moderatePct}%"></div>
+                  <div class="difficulty-fill ${builderDifficulty.tierClass}" style="width:${Math.min(100, builderDifficulty.pctOfHigh)}%"></div>
+                </div>
+                <div class="difficulty-legend">
+                  <span>Low ${builderDifficulty.budget.low.toLocaleString()}</span>
+                  <span>Moderate ${builderDifficulty.budget.moderate.toLocaleString()}</span>
+                  <span>High ${builderDifficulty.budget.high.toLocaleString()}</span>
+                  <span>${builderDifficulty.pctOfHigh}% of High</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="boxed-subsection">
+              <div class="boxed-subsection-header">
+                <div class="boxed-subsection-title">Quick add from party</div>
+                <span class="hint-text">Uses your saved party preset stats.</span>
+              </div>
+              <div class="party-row">
+                <span class="party-name">${esc(party?.name || "No party selected")}</span>
+                ${
+                  party
+                    ? party.members
+                        .map(
+                          (m) =>
+                            `<div class="party-chip">${esc(m.name)} <button data-lib-add-party-one="${esc(
+                              m.id
+                            )}" data-lib-enc-id="${esc(enc.id)}" title="Add">+</button></div>`
+                        )
+                        .join("")
+                    : ""
+                }
+                <button class="btn btn-xs" data-lib-add-full-party="${esc(enc.id)}">Add full party</button>
+              </div>
+            </div>
+
+            <div class="boxed-subsection">
+              <div class="boxed-subsection-header">
+                <div class="boxed-subsection-title">Add combatant</div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span class="hint-text">Auto-sorts by initiative. Use Lvl for PCs/NPCs, CR for enemies.</span>
+                  <button class="btn btn-secondary btn-xs" data-lib-open-vault="${esc(enc.id)}" ${hasMonsterVaultApi() ? "" : 'title="Load Monster Vault tool first"'}>Add from Monster Vault</button>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col"><label>Name</label><input type="text" id="libAddName_${esc(enc.id)}" value="${esc(state.libraryAddDraft.name)}" placeholder="Goblin, Veteran, Mage"></div>
+                <div class="col" style="max-width:84px;"><label>Type</label>
+                  <select id="libAddType_${esc(enc.id)}">
+                    <option ${state.libraryAddDraft.type === "PC" ? "selected" : ""}>PC</option>
+                    <option ${state.libraryAddDraft.type === "NPC" ? "selected" : ""}>NPC</option>
+                    <option ${state.libraryAddDraft.type === "Enemy" ? "selected" : ""}>Enemy</option>
+                  </select>
+                </div>
+                <div class="col" style="max-width:76px;"><label>Init</label><input type="number" min="0" id="libAddInit_${esc(enc.id)}" value="${state.libraryAddDraft.initiative}"></div>
+                <div class="col" style="max-width:70px;"><label>AC</label><input type="number" min="0" id="libAddAC_${esc(enc.id)}" value="${state.libraryAddDraft.ac}"></div>
+                <div class="col" style="max-width:90px;"><label>Speed</label><input type="number" min="0" id="libAddSpeed_${esc(enc.id)}" value="${state.libraryAddDraft.speed}"></div>
+                <div class="col" style="max-width:74px;"><label>Lvl</label><input type="number" min="1" max="20" id="libAddLevel_${esc(enc.id)}" value="${normalizeLevel(state.libraryAddDraft.level, 3)}"></div>
+                <div class="col" style="max-width:80px;"><label>CR</label><input type="text" id="libAddCR_${esc(enc.id)}" value="${esc(normalizeCR(state.libraryAddDraft.cr, "1"))}" placeholder="1/4"></div>
+                <div class="col" style="max-width:88px;"><label>HP Cur</label><input type="number" min="0" id="libAddHpCur_${esc(enc.id)}" value="${state.libraryAddDraft.hpCurrent}"></div>
+                <div class="col" style="max-width:88px;"><label>HP Max</label><input type="number" min="0" id="libAddHpMax_${esc(enc.id)}" value="${state.libraryAddDraft.hpMax}"></div>
+                <div class="col" style="max-width:80px;"><label>&nbsp;</label><button class="btn btn-xs" data-lib-add-combatant="${esc(enc.id)}">Add</button></div>
+              </div>
+            </div>
+
+            <div class="initiative-box">
+              <div class="section-heading-row">
+                <div class="section-title">Encounter combatants (${enc.combatants.length})</div>
+                <div class="hint-text">Drag to reorder.</div>
+              </div>
+              <div class="initiative-list" data-lib-initiative-list="${esc(enc.id)}">
+                ${editorCards || `<div class="hint-text">No combatants yet.</div>`}
+              </div>
+            </div>
+          </div>
+        `
+        : "";
+
+      return `
+        <div class="encounter-row ${isEditing ? "editing" : ""}" data-library-id="${esc(enc.id)}">
+          <div class="encounter-row-header">
+            <div>
+              <div class="encounter-name">${esc(enc.name)}</div>
+              <div class="hint-text">${enc.location ? esc(enc.location) : "No location set"}</div>
+              <div class="encounter-members">${esc(namesList)}</div>
+            </div>
+          </div>
+          <div class="encounter-actions">
+            ${
+              isActive
+                ? `<button class="btn btn-xs btn-active-status" type="button">Active</button>`
+                : `<button class="btn btn-secondary btn-xs" data-set-active="${esc(enc.id)}">Set active</button>`
+            }
+            <button class="btn btn-secondary btn-xs" data-toggle-edit-library="${esc(enc.id)}">${isEditing ? "Close edit" : "Edit"}</button>
+            <button class="btn btn-secondary btn-xs" data-delete-library="${esc(enc.id)}">Delete</button>
+          </div>
+          ${editBlock}
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="section-heading-row">
+      <div class="section-title">Encounter Library</div>
+      <div class="hint-text">Prep encounters here, then set one active when combat starts.</div>
+    </div>
+
+    <div class="boxed-subsection">
+      <div class="boxed-subsection-header">
+        <div class="boxed-subsection-title">Quick create encounter</div>
+        <span class="hint-text">Create a shell entry now, then edit combatants below.</span>
+      </div>
+      <div class="row">
+        <div class="col"><label>Name</label><input type="text" id="createName" placeholder="Ruined Tower Ambush" value="${esc(state.createName)}"></div>
+        <div class="col"><label>Location</label><input type="text" id="createLocation" placeholder="Onyx frontier road" value="${esc(state.createLocation)}"></div>
+        <div class="col" style="max-width:180px; display:flex; gap:6px; align-items:flex-end;">
+          <button class="btn btn-xs" id="quickCreateEncounterBtn">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="encounter-list">
+      ${rows || `<div class="hint-text">No encounters yet. Create one above.</div>`}
+    </div>
+  `;
+}
+
+function renderEditorModal() {
+  return "";
+}
+
+    function template() {
+      return `
       <style>
-        .mv-root {
+        :host {
+          --bg-main: #050608;
+          --bg-panel: #0b0f14;
+          --border-subtle: #232a33;
+          --accent-soft: #808890;
+          --accent-strong: #f5f5f5;
+          --danger: #ff5c5c;
+          --text-main: #e6e6e6;
+          --text-muted: #9ba1aa;
+          --hover: #151a22;
+          --radius-lg: 14px;
+          --radius-md: 10px;
+          --radius-sm: 6px;
+        }
+
+        * { box-sizing: border-box; }
+
+        .encounter-body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          background: radial-gradient(circle at top left, #151921 0, #050608 40%, #000000 100%);
+          color: var(--text-main);
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        .preview-shell {
+          width: 100%;
+          max-width: 100%;
+          background: var(--bg-panel);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border-subtle);
+          padding: 10px 12px;
+          box-shadow: 0 0 24px rgba(0,0,0,0.55);
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          color: #dbe4ff;
+          gap: 8px;
         }
 
-        .mv-topbar {
+        .header-line {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: baseline;
           gap: 8px;
           flex-wrap: wrap;
-          padding: 8px 10px;
-          border: 1px solid #2a3240;
-          border-radius: 10px;
-          background: #0b111a;
         }
 
-        .mv-title {
+        .title {
           font-size: 1rem;
-          font-weight: 700;
-          letter-spacing: .01em;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--accent-strong);
         }
 
-        .mv-counts {
-          font-size: .76rem;
-          color: #97a9ce;
+        .subtitle {
+          font-size: 0.8rem;
+          color: var(--text-muted);
         }
 
-        .mv-tabs {
-          display: flex;
-          gap: 6px;
-          border: 1px solid #2a3240;
-          border-radius: 10px;
-          background: #0b111a;
-          padding: 6px;
+        .label-pill {
+          font-size: 0.76rem;
+          padding: 3px 8px;
+          border-radius: 999px;
+          border: 1px solid var(--border-subtle);
+          background: #05070c;
+          color: var(--accent-soft);
+          white-space: nowrap;
         }
 
-        .mv-tab {
-          border: 1px solid #2c3750;
-          background: #0a111a;
-          color: #9eb2d7;
-          border-radius: 8px;
-          padding: 6px 10px;
-          font-size: .75rem;
-          font-weight: 600;
+        .tabs-row {
+          display: inline-flex;
+          border-radius: 999px;
+          border: 1px solid #303641;
+          overflow: hidden;
+          background: #05070c;
+          font-size: 0.78rem;
+        }
+
+        .tab {
+          padding: 4px 12px;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
           cursor: pointer;
         }
 
-        .mv-tab.active {
-          border-color: #4d6290;
-          color: #eef4ff;
-          background: #121c2b;
-          box-shadow: 0 0 0 1px rgba(106, 132, 183, 0.24);
+        .tab.active {
+          background: #181f2b;
+          color: var(--accent-strong);
         }
 
-        .mv-controls {
-          display: grid;
-          grid-template-columns: 1.4fr .6fr .5fr;
+        .panel-inner {
+          border-radius: var(--radius-md);
+          border: 1px solid #222832;
+          background: radial-gradient(circle at top left, #10151f, #05070c 70%);
+          padding: 8px 10px;
+          font-size: 0.82rem;
+          display: flex;
+          flex-direction: column;
           gap: 8px;
+          max-height: calc(100vh - 190px);
+          min-height: 220px;
+          overflow-y: auto;
         }
 
-        .mv-layout {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 10px;
-          min-height: 520px;
+        .row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: flex-end;
         }
 
-        .mv-hidden {
-          display: none !important;
+        .col {
+          flex: 1;
+          min-width: 120px;
         }
 
-        .mv-card {
-          border: 1px solid #2a3240;
+        label {
+          font-size: 0.76rem;
+          color: var(--text-muted);
+          display: block;
+          margin-bottom: 3px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+          width: 100%;
+          font-family: inherit;
+          font-size: 0.8rem;
+          padding: 5px 8px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border-subtle);
+          background: #05070c;
+          color: var(--text-main);
+        }
+
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+
+        input:focus, select:focus {
+          outline: none;
+          border-color: #9aa2af;
+          box-shadow: 0 0 0 1px rgba(192,192,192,0.4);
+        }
+
+        .btn {
+          font-family: inherit;
+          font-size: 0.78rem;
+          border-radius: 999px;
+          border: 1px solid transparent;
+          padding: 5px 10px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          background: #181f2b;
+          color: var(--accent-strong);
+        }
+        .btn:hover { filter: brightness(1.08); }
+
+        .btn-secondary {
+          background: #080b11;
+          border-color: #303641;
+          color: var(--text-muted);
+        }
+
+        .btn-xs {
+          font-size: 0.72rem;
+          padding: 3px 8px;
+        }
+
+        .btn-icon {
+          border-radius: 999px;
+          border: none;
+          background: transparent;
+          color: var(--accent-soft);
+          padding: 0 4px;
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+
+        .btn-icon:hover { color: #ff9999; }
+
+        .section-divider {
+          border: none;
+          border-top: 1px solid #1a2028;
+          margin: 4px 0;
+        }
+
+        .section-heading-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .section-title { font-size: 0.82rem; color: var(--accent-soft); }
+        .hint-text { font-size: 0.74rem; color: var(--text-muted); }
+
+        .boxed-subsection {
           border-radius: 10px;
-          background: #0a0f16;
-          padding: 8px;
-          min-width: 0;
-        }
-
-        .mv-card-editor {
-          max-height: 74vh;
-          overflow: auto;
-        }
-
-        .mv-list {
+          border: 1px solid #262c37;
+          background: rgba(5, 7, 12, 0.85);
+          padding: 6px 8px;
           display: flex;
           flex-direction: column;
           gap: 6px;
-          max-height: 650px;
+        }
+
+        .boxed-subsection-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .boxed-subsection-title {
+          font-size: 0.8rem;
+          color: var(--accent-soft);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .chevron { font-size: 0.9rem; color: var(--accent-soft); }
+
+        .initiative-box {
+          border-radius: 10px;
+          border: 1px solid #262c37;
+          background: #05070c;
+          padding: 6px 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .initiative-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-height: 18px;
+        }
+
+        .card {
+          border-radius: 10px;
+          border: 1px solid #222832;
+          padding: 4px 7px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          cursor: grab;
+        }
+
+        .card .inline-input,
+        .card input,
+        .card select {
+          cursor: text;
+        }
+
+        .card.dragging { opacity: 0.45; }
+
+        .pc-card { background: linear-gradient(120deg, #0b101c, #05070c); border-color: #2e3b57; }
+        .enemy-card { background: linear-gradient(120deg, #16090d, #05070c); border-color: #4a2028; }
+        .npc-card { background: linear-gradient(120deg, #101010, #05070c); border-color: #33363f; }
+
+        .card-main { display: flex; align-items: center; gap: 8px; }
+
+        .card-portrait {
+          flex-shrink: 0;
+          width: 41px;
+          height: 41px;
+          border-radius: 999px;
+          border: 1px solid #323949;
+          background: radial-gradient(circle at top left, #2a3244, #05070c);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--accent-strong);
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          outline: none;
+          padding: 0;
+          line-height: 1;
+          position: relative;
+          overflow: hidden;
+          background-size: cover;
+          background-position: center;
+          transition: border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+        }
+
+        .card-portrait:hover,
+        .card-portrait:focus-visible {
+          border-color: #5a6a89;
+          box-shadow: 0 0 0 1px rgba(122, 142, 183, 0.35);
+        }
+
+        .card-portrait.has-image {
+          color: transparent;
+          text-shadow: none;
+        }
+
+        .portrait-badge {
+          position: absolute;
+          right: -1px;
+          bottom: -1px;
+          width: 15px;
+          height: 15px;
+          border-radius: 999px;
+          border: 1px solid #2d3645;
+          background: #090d14;
+          color: #ced8ea;
+          font-size: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          opacity: 0.88;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+        }
+
+        .enemy-card .card-portrait { background: radial-gradient(circle at top left, #3a2025, #05070c); }
+
+        .card-content {
+          flex: 1;
+          display: grid;
+          grid-template-columns: minmax(170px,1.4fr) minmax(290px,1.2fr) minmax(160px,0.95fr) minmax(112px,0.85fr);
+          grid-template-areas: "name hp conds meta";
+          align-items: center;
+          column-gap: 8px;
+          row-gap: 3px;
+        }
+
+        .name-block {
+          min-width: 0;
+          grid-area: name;
+          display: flex;
+          justify-content: flex-start;
+        }
+        .name-row {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 6px;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .card-name {
+          min-width: 0;
+          font-weight: 680;
+          font-size: 0.98rem;
+          letter-spacing: 0.01em;
+          color: #eef3ff;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: inline-block;
+          max-width: 100%;
+          text-align: left;
+        }
+
+        .inline-edit {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+          max-width: 100%;
+          cursor: inherit;
+        }
+
+        .inline-view {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+          max-width: 100%;
+          cursor: inherit;
+        }
+
+        .inline-input {
+          display: none;
+          min-width: 0;
+          font-family: inherit;
+          background: #05070c;
+          color: var(--text-main);
+          border: 1px solid #414957;
+          border-radius: 6px;
+          padding: 2px 6px;
+        }
+
+        .inline-edit.editing .inline-view {
+          display: none;
+        }
+
+        .inline-edit.editing .inline-input {
+          display: inline-flex;
+        }
+
+
+        .inline-edit.editing,
+        .inline-edit.editing .inline-view,
+        .inline-edit.editing .inline-input {
+          cursor: text;
+        }
+
+        .card:active {
+          cursor: grabbing;
+        }
+
+        .inline-edit-name {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .inline-input-name {
+          width: min(260px, 100%);
+          font-size: 0.86rem;
+          line-height: 1.2;
+          padding: 3px 7px;
+        }
+
+        .inline-edit-meta {
+          min-width: 26px;
+          justify-content: flex-end;
+        }
+
+        .inline-input-meta {
+          width: 54px;
+          font-size: 0.78rem;
+          text-align: center;
+          padding: 2px 4px;
+        }
+
+        .card-tag {
+          font-size: 0.7rem;
+          line-height: 1;
+          padding: 3px 7px;
+          border-radius: 999px;
+          border: 1px solid #303641;
+          color: var(--text-muted);
+          background: #0a0f15;
+          white-space: nowrap;
+          flex-shrink: 0;
+          margin-left: 2px;
+        }
+
+        .pc-card .card-tag { border-color: #3b5678; color: #b8c8ff; background: #0b1420; }
+        .enemy-card .card-tag { border-color: #6b2c38; color: #ffb8c0; background: #190b10; }
+
+        .hp-block {
+          grid-area: hp;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          justify-self: center;
+          min-width: 0;
+          flex-wrap: wrap;
+          margin: 0 auto;
+        }
+
+        .hp-label { font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
+
+        .tiny-num {
+          width: 52px !important;
+          min-width: 52px;
+          padding: 3px 4px !important;
+          font-size: 0.75rem !important;
+          text-align: center;
+        }
+
+        .hp-amount-input {
+          width: 42px !important;
+          min-width: 41px;
+          padding: 3px 4px !important;
+          font-size: 0.72rem;
+          text-align: center;
+        }
+
+        .hp-buttons {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 2px;
+          white-space: nowrap;
+        }
+
+        .card-meta {
+          grid-area: meta;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          justify-self: end;
+        }
+
+        .card-meta-top {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .meta-k {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .meta-v {
+          font-size: 0.82rem;
+          color: #e6edf8;
+          font-weight: 650;
+          line-height: 1;
+        }
+
+        .meta-init-center {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-width: 44px;
+          gap: 2px;
+          align-self: center;
+          padding-top: 1px;
+        }
+
+        .meta-stack-read {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 68px;
+        }
+
+        .meta-read-line {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          min-width: 68px;
+        }
+
+        .card-meta-top .btn-icon {
+          margin-left: 2px;
+          align-self: center;
+        }
+
+        .card.active-turn {
+          border-color: #c0c0c0;
+          box-shadow: 0 0 0 1px rgba(192,192,192,0.25);
+          background: radial-gradient(circle at top left, #243046, #070a10);
+        }
+
+        .card.downed {
+          border-color: var(--danger);
+          background: #1a0506;
+          opacity: 0.95;
+        }
+
+        .monster-details {
+          grid-column: 1 / -1;
+          margin-top: 6px;
+          border-top: 1px solid #27303d;
+          padding-top: 7px;
+          display: grid;
+          gap: 6px;
+        }
+
+        .monster-detail-group {
+          border: 1px solid #263242;
+          background: #0c121b;
+          border-radius: 8px;
+          padding: 6px 8px;
+        }
+
+        .monster-detail-title {
+          font-size: 0.68rem;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #9ec1ec;
+          margin-bottom: 4px;
+          font-weight: 700;
+        }
+
+        .monster-detail-entry {
+          font-size: 0.72rem;
+          color: #d8dee8;
+          line-height: 1.35;
+          margin-bottom: 4px;
+        }
+
+        .monster-detail-entry:last-child {
+          margin-bottom: 0;
+        }
+
+        .monster-detail-name {
+          font-weight: 700;
+          margin-right: 4px;
+          color: #f1f4f8;
+        }
+
+        .monster-detail-text {
+          color: #c7d0de;
+        }
+
+        .encounter-list {
+          border-radius: 8px;
+          border: 1px solid #222832;
+          background: #05070c;
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .encounter-row {
+          border-radius: 8px;
+          border: 1px solid #262c37;
+          background: #080b11;
+          padding: 6px;
+          font-size: 0.8rem;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+                .encounter-row-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .encounter-name { font-weight: 600; }
+
+        .encounter-members {
+          margin-top: 2px;
+          font-size: 0.76rem;
+          color: #cfd5e2;
+          word-break: break-word;
+        }
+
+        .btn-active-status {
+          background: linear-gradient(120deg, #2d374b, #20293a);
+          border: 1px solid #7385ab;
+          color: #eef4ff;
+          box-shadow: 0 0 0 1px rgba(128, 150, 210, 0.35), 0 0 14px rgba(128, 150, 210, 0.2);
+          cursor: default;
+          font-weight: 650;
+        }
+
+        .encounter-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 2px;
+        }
+
+        .party-strip {
+          border-radius: 10px;
+          border: 1px solid #262c37;
+          background: #05070c;
+          padding: 6px 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .party-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .party-name {
+          font-size: 0.78rem;
+          color: var(--accent-soft);
+          font-weight: 500;
+          margin-right: 4px;
+        }
+
+        .party-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.76rem;
+          border-radius: 999px;
+          border: 1px solid #303641;
+          padding: 2px 6px;
+          background: #080b11;
+          color: #e6e6e6;
+        }
+
+        .party-chip button {
+          border: none;
+          background: transparent;
+          color: var(--accent-soft);
+          font-size: 0.78rem;
+          cursor: pointer;
+          padding: 0 2px;
+        }
+
+        .portrait-editor-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: rgba(3, 5, 8, 0.74);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 14px;
+          backdrop-filter: blur(3px);
+        }
+
+        .portrait-editor-modal {
+          width: min(92vw, 360px);
+          border-radius: 12px;
+          border: 1px solid #2b3444;
+          background: linear-gradient(150deg, #0d131d, #06090f 70%);
+          box-shadow: 0 12px 38px rgba(0, 0, 0, 0.55);
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .portrait-editor-head {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .portrait-editor-title {
+          font-size: 0.92rem;
+          font-weight: 650;
+          letter-spacing: 0.01em;
+          color: #ebf1ff;
+        }
+
+        .portrait-editor-canvas-wrap {
+          border-radius: 12px;
+          border: 1px solid #2d3443;
+          background: radial-gradient(circle at top left, #182133, #090d14);
+          padding: 8px;
+          display: grid;
+          place-items: center;
+        }
+
+        #portraitEditorCanvas {
+          width: ${PORTRAIT_EDITOR_PREVIEW_SIZE}px;
+          height: ${PORTRAIT_EDITOR_PREVIEW_SIZE}px;
+          max-width: 100%;
+          border-radius: 8px;
+          border: 1px solid #2c3340;
+          background: #070b11;
+          cursor: grab;
+          touch-action: none;
+          image-rendering: auto;
+          user-select: none;
+        }
+
+        #portraitEditorCanvas.dragging {
+          cursor: grabbing;
+        }
+
+        .portrait-editor-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .portrait-editor-controls label {
+          font-size: 0.73rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-muted);
+        }
+
+        .portrait-editor-controls input[type="range"] {
+          width: 100%;
+        }
+
+        .portrait-editor-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 6px;
+        }
+
+        .monster-picker-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.72);
+          display: grid;
+          place-items: center;
+          z-index: 1700;
+          padding: 14px;
+        }
+
+        .monster-picker-modal {
+          width: min(920px, calc(100vw - 20px));
+          max-height: min(780px, calc(100vh - 20px));
+          overflow: hidden;
+          display: grid;
+          grid-template-rows: auto auto auto minmax(160px, 1fr) auto;
+          gap: 8px;
+          background: #0a0f15;
+          border: 1px solid #2b3644;
+          border-radius: 14px;
+          box-shadow: 0 20px 46px rgba(0,0,0,0.5);
+          padding: 10px;
+        }
+
+        .monster-picker-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 2px;
+        }
+
+        .monster-picker-filters {
+          display: grid;
+          grid-template-columns: 1fr auto auto;
+          gap: 8px;
+          align-items: end;
+        }
+
+        .monster-picker-count {
+          font-size: 0.72rem;
+          color: #9aa6b5;
+        }
+
+        .monster-picker-list {
+          border: 1px solid #263141;
+          border-radius: 10px;
+          background: #070b10;
+          overflow: auto;
+          padding: 6px;
+          display: grid;
+          gap: 6px;
+        }
+
+        .monster-picker-row {
+          border: 1px solid #263344;
+          background: #0c1219;
+          border-radius: 8px;
+          padding: 7px 8px;
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .monster-picker-main {
+          min-width: 0;
+        }
+
+        .monster-picker-name {
+          font-size: 0.86rem;
+          font-weight: 700;
+          color: #e9edf4;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .monster-picker-meta {
+          font-size: 0.68rem;
+          color: #9fb0c4;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-top: 2px;
+        }
+
+        .condition-row {
+          grid-area: conds;
+          margin-top: 0;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: center;
+          gap: 4px;
+          min-height: 0;
+          width: 100%;
+          max-width: 190px;
+          max-height: 86px;
           overflow: auto;
           padding-right: 2px;
         }
 
-        .mv-row-wrap {
-          border: 1px solid #233046;
-          border-radius: 9px;
-          background: #0c131f;
+        .condition-chip {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          border-radius: 999px;
+          border: 1px solid #2f3845;
+          background: #0a1018;
+          color: #d6e2f8;
+          font-size: 0.73rem;
+          line-height: 1;
+          padding: 4px 9px;
+          white-space: nowrap;
+          width: 100%;
         }
 
-        .mv-row-wrap.open {
-          border-color: #43557a;
-          box-shadow: 0 0 0 1px rgba(99, 129, 183, 0.22);
+        .condition-chip.exhaustion {
+          border-color: #7d5e2f;
+          background: #1a1408;
+          color: #ffdca3;
         }
 
-        .mv-row {
+        .condition-editor-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          background: rgba(2, 4, 8, 0.72);
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          padding: 7px 8px;
+          justify-content: center;
+          padding: 14px;
+          backdrop-filter: blur(3px);
         }
 
-        .mv-main {
-          min-width: 0;
+        .condition-editor-modal {
+          width: min(94vw, 560px);
+          max-height: 90vh;
+          overflow: auto;
+          border-radius: 12px;
+          border: 1px solid #2b3444;
+          background: linear-gradient(150deg, #0d131d, #06090f 70%);
+          box-shadow: 0 12px 38px rgba(0, 0, 0, 0.55);
+          padding: 12px;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 10px;
         }
 
-        .mv-name {
-          font-size: .84rem;
-          color: #edf3ff;
-          font-weight: 650;
-        }
-
-        .mv-meta {
-          font-size: .72rem;
-          color: #9bb0d7;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 640px;
-        }
-
-        .mv-submeta {
-          font-size: .70rem;
-          color: #7d92bb;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 700px;
-        }
-
-        .mv-actions {
+        .condition-editor-head {
           display: flex;
-          align-items: center;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .condition-picker-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
           gap: 6px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
         }
 
-        .mv-actions .btn:disabled {
-          opacity: 0.6;
-          cursor: default;
+        .condition-toggle {
+          border: 1px solid #303845;
+          background: #0a1018;
+          color: #d6dfef;
+          border-radius: 8px;
+          padding: 6px 8px;
+          font-size: 0.75rem;
+          text-align: center;
+          cursor: pointer;
+          transition: background 0.15s ease, border-color 0.15s ease;
         }
 
-        .mv-source-tag {
-          border: 1px solid #2f3c53;
-          border-radius: 999px;
-          padding: 2px 7px;
-          font-size: .7rem;
-          color: #9fb2d8;
+        .condition-toggle:hover {
+          border-color: #4b5b74;
+          background: #101725;
         }
 
-        .mv-details {
-          border-top: 1px solid #28354d;
+        .condition-toggle.active {
+          border-color: #5e7cac;
+          background: #18253b;
+          color: #edf4ff;
+          box-shadow: 0 0 0 1px rgba(94,124,172,0.33);
+        }
+
+        .condition-editor-block {
+          border: 1px solid #222a36;
+          border-radius: 10px;
+          background: #05080f;
           padding: 8px;
           display: flex;
           flex-direction: column;
-          gap: 7px;
-          background: linear-gradient(180deg, rgba(8, 13, 21, .8), rgba(8, 13, 21, .35));
-        }
-
-        .mv-details-grid {
-          display: grid;
           gap: 6px;
-          grid-template-columns: repeat(8, minmax(0, 1fr));
         }
 
-        .mv-statline {
-          border: 1px solid #2c3950;
-          border-radius: 7px;
-          padding: 4px 5px;
-          display: flex;
-          flex-direction: column;
+        .condition-active-row {
+          display: grid;
+          grid-template-columns: minmax(80px, 1fr) auto minmax(72px, 90px) auto;
+          gap: 6px;
           align-items: center;
-          gap: 2px;
-          background: #0a111d;
         }
 
-        .mv-statline span {
-          font-size: .62rem;
-          color: #94aad6;
-          letter-spacing: .03em;
+        .condition-active-name {
+          font-size: 0.78rem;
+          color: #ebf2ff;
+          font-weight: 500;
+        }
+
+        .condition-active-row label {
+          font-size: 0.7rem;
+          color: var(--text-muted);
           text-transform: uppercase;
+          letter-spacing: 0.03em;
         }
 
-        .mv-statline b {
-          font-size: .76rem;
-          color: #eef4ff;
-        }
-
-        .mv-detail-lines {
-          display: grid;
-          gap: 4px;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .mv-detail-line {
-          border: 1px solid #253248;
-          border-radius: 7px;
-          background: #0a1019;
-          padding: 4px 6px;
+        .difficulty-summary {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          gap: 8px;
         }
 
-        .mv-detail-line span {
-          font-size: .63rem;
-          color: #8ea2c8;
-          text-transform: uppercase;
-          letter-spacing: .03em;
-        }
-
-        .mv-detail-line b {
-          font-size: .71rem;
-          color: #dfe9ff;
-          font-weight: 560;
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
-
-        .mv-detail-section {
-          border: 1px solid #253248;
-          border-radius: 8px;
-          padding: 6px 7px;
-          background: #090f18;
-        }
-
-        .mv-detail-heading {
-          font-size: .68rem;
-          color: #9eb2d8;
-          text-transform: uppercase;
-          letter-spacing: .04em;
-          margin-bottom: 4px;
-        }
-
-        .mv-feature-list {
-          margin: 0;
-          padding-left: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .mv-feature-list li {
-          font-size: .74rem;
-          color: #dbe4f7;
-          line-height: 1.35;
-        }
-
-        .mv-editor-title {
-          font-size: .8rem;
-          color: #a8bde3;
-          font-weight: 700;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: .03em;
-        }
-
-        .mv-form-grid {
-          display: grid;
-          gap: 7px;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .mv-form-grid .full {
-          grid-column: 1 / -1;
-        }
-
-        .mv-stat-grid {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 6px;
-          margin-top: 2px;
-        }
-
-        .mv-btn-row {
+        .difficulty-line {
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 8px;
-          justify-content: flex-end;
+          gap: 12px;
+          align-items: center;
+          font-size: 0.78rem;
+          color: #d8e1f1;
         }
 
-        .mv-muted {
-          font-size: .74rem;
-          color: #8ca1c9;
-        }
-
-        .mv-help {
-          font-size: .71rem;
-          color: #90a4ca;
-          margin-top: 2px;
-        }
-
-        textarea.mv-textarea {
-          width: 100%;
-          min-height: 74px;
-          resize: vertical;
-          font-family: inherit;
-          font-size: .76rem;
-          color: #dfe9fb;
+        .difficulty-pill {
+          margin-left: auto;
+          padding: 3px 8px;
+          border-radius: 999px;
+          border: 1px solid #374153;
           background: #0a1018;
-          border: 1px solid #26344a;
-          border-radius: 8px;
-          padding: 6px 7px;
+          font-size: 0.72rem;
+          font-weight: 650;
+          letter-spacing: 0.01em;
         }
 
-        @media (max-width: 1120px) {
-          .mv-controls {
-            grid-template-columns: 1fr;
-          }
-          .mv-details-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-          }
+        .tier-none { border-color: #4d5562; color: #d0d7e2; }
+        .tier-low { border-color: #2f6b56; color: #b7ffe2; background: #082117; }
+        .tier-moderate { border-color: #5d6f33; color: #e4f2b8; background: #1a220b; }
+        .tier-high { border-color: #8b6d2d; color: #ffe5aa; background: #261b08; }
+        .tier-above { border-color: #8b4f2d; color: #ffd1ad; background: #2a1308; }
+        .tier-extreme { border-color: #8f2e2e; color: #ffc7c7; background: #2b0b0b; }
+
+        .difficulty-track {
+          position: relative;
+          height: 10px;
+          border-radius: 999px;
+          border: 1px solid #2a3342;
+          background: #09101a;
+          overflow: hidden;
         }
 
-        @media (max-width: 680px) {
-          .mv-detail-lines {
+        .difficulty-fill {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 0;
+          background: linear-gradient(90deg, #3b8f7a, #8f8d3b);
+        }
+
+        .difficulty-fill.tier-high,
+        .difficulty-fill.tier-above {
+          background: linear-gradient(90deg, #8f7c3b, #8f503b);
+        }
+
+        .difficulty-fill.tier-extreme {
+          background: linear-gradient(90deg, #8f4f3b, #8f2f3b);
+        }
+
+        .difficulty-threshold {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: rgba(220, 232, 255, 0.75);
+          transform: translateX(-1px);
+          z-index: 2;
+        }
+
+        .difficulty-threshold.low { background: rgba(164, 236, 199, 0.9); }
+        .difficulty-threshold.moderate { background: rgba(252, 238, 159, 0.9); }
+
+        .difficulty-legend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          font-size: 0.72rem;
+          color: var(--text-muted);
+        }
+
+        @media (max-width: 640px) {
+          .card-content {
             grid-template-columns: 1fr;
+            grid-template-areas:
+              "name"
+              "hp"
+              "conds"
+              "meta";
+            row-gap: 4px;
           }
-          .mv-stat-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+          .name-block,
+          .name-row { justify-content: center; }
+          .card-meta { justify-self: center; align-items: center; }
+          .hp-block,
+          .condition-row { justify-self: center; }
+          .condition-row {
+            max-width: 100%;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
           }
-          .mv-details-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
+          .monster-picker-filters { grid-template-columns: 1fr; }
+        }
+
+        .encounter-row.editing {
+          border-color: #4e5e7f;
+          box-shadow: 0 0 0 1px rgba(120,140,190,0.25);
         }
       </style>
 
-      <div class="mv-root">
-        <div class="mv-topbar">
-          <div>
-            <div class="mv-title">Monster Vault</div>
-            <div class="mv-counts">SRD 5.2.1 monsters: ${SRD_BASE.length} · Homebrew: ${state.homebrew.length} · Total: ${all.length}</div>
-          </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-xs" id="mvExportBtn">Export Homebrew</button>
-            <button class="btn btn-secondary btn-xs" id="mvImportBtn">Import Homebrew</button>
-            <input id="mvImportInput" type="file" accept="application/json,.json" style="display:none;" />
-          </div>
-        </div>
-
-        <div class="mv-tabs">
-          <button class="mv-tab ${state.activeTab === "vault" ? "active" : ""}" data-mv-tab="vault">Vault</button>
-          <button class="mv-tab ${state.activeTab === "homebrew" ? "active" : ""}" data-mv-tab="homebrew">${state.editingId ? "Edit Homebrew" : "Create Homebrew"}</button>
-        </div>
-
-        <div class="mv-controls ${state.activeTab === "homebrew" ? "mv-hidden" : ""}">
-          <div>
-            <label for="mvSearch">Search</label>
-            <input id="mvSearch" type="text" placeholder="Search monsters, attacks, traits..." value="${esc(state.search)}">
-          </div>
-          <div>
-            <label for="mvSourceFilter">Source</label>
-            <select id="mvSourceFilter">
-              <option value="all" ${state.sourceFilter === "all" ? "selected" : ""}>All</option>
-              <option value="srd" ${state.sourceFilter === "srd" ? "selected" : ""}>SRD</option>
-              <option value="homebrew" ${state.sourceFilter === "homebrew" ? "selected" : ""}>Homebrew</option>
-            </select>
-          </div>
-          <div>
-            <label for="mvCrFilter">CR</label>
-            <select id="mvCrFilter">
-              <option value="all" ${state.crFilter === "all" ? "selected" : ""}>All</option>
-              ${crOptions.map((cr) => `<option value="${esc(cr)}" ${state.crFilter === cr ? "selected" : ""}>${esc(cr)}</option>`).join("")}
-            </select>
-          </div>
-        </div>
-
-        <div class="mv-layout">
-          <div class="mv-card ${state.activeTab === "vault" ? "" : "mv-hidden"}">
-            <div class="mv-muted" style="margin-bottom:8px;">${filtered.length} result${filtered.length === 1 ? "" : "s"}${filtered.length > 420 ? " (showing first 420)" : ""}</div>
-            <div class="mv-list">
-              ${renderMonsterRows(filtered) || `<div class="mv-muted">No monsters match your filters.</div>`}
+      <div class="encounter-body">
+        <div class="preview-shell">
+          <div class="header-line">
+            <div>
+              <div class="title">Encounter / Initiative</div>
+              <div class="subtitle">Quick initiative tracker & encounter builder – right panel tool.</div>
             </div>
+            <div class="label-pill">Tool · Functional</div>
           </div>
 
-          <div class="mv-card mv-card-editor ${state.activeTab === "homebrew" ? "" : "mv-hidden"}">
-            <div class="mv-editor-title">${state.editingId ? "Edit homebrew monster" : "Create homebrew monster"}</div>
-            <div class="mv-form-grid">
-              <div class="full">
-                <label for="mvName">Name</label>
-                <input id="mvName" type="text" value="${esc(state.draft.name)}" placeholder="Frostbound Ravager">
-              </div>
+          ${renderTopTabs()}
 
-              <div class="full">
-                <label for="mvSizeType">Size & type</label>
-                <input id="mvSizeType" type="text" value="${esc(state.draft.sizeType)}" placeholder="Large Monstrosity, Chaotic Evil">
-              </div>
-
-              <div>
-                <label for="mvCr">CR</label>
-                <input id="mvCr" type="text" value="${esc(state.draft.cr)}" placeholder="5">
-              </div>
-
-              <div>
-                <label for="mvXp">XP</label>
-                <input id="mvXp" type="number" min="0" value="${state.draft.xp}">
-              </div>
-
-              <div>
-                <label for="mvType">Tag</label>
-                <select id="mvType">
-                  <option value="Enemy" ${state.draft.type === "Enemy" ? "selected" : ""}>Enemy</option>
-                  <option value="NPC" ${state.draft.type === "NPC" ? "selected" : ""}>NPC</option>
-                  <option value="PC" ${state.draft.type === "PC" ? "selected" : ""}>PC</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="mvAc">AC</label>
-                <input id="mvAc" type="number" min="0" value="${state.draft.ac}">
-              </div>
-
-              <div>
-                <label for="mvHp">HP</label>
-                <input id="mvHp" type="number" min="1" value="${state.draft.hp}">
-              </div>
-
-              <div>
-                <label for="mvSpeed">Speed</label>
-                <input id="mvSpeed" type="number" min="0" value="${state.draft.speed}">
-              </div>
-
-              <div>
-                <label for="mvSpeedText">Speed text</label>
-                <input id="mvSpeedText" type="text" value="${esc(state.draft.speedText)}" placeholder="30 ft., Fly 60 ft.">
-              </div>
-
-              <div>
-                <label for="mvInitiative">Initiative</label>
-                <input id="mvInitiative" type="number" min="0" value="${state.draft.initiative}">
-              </div>
-
-              <div>
-                <label for="mvPb">PB</label>
-                <input id="mvPb" type="number" min="0" value="${state.draft.pb}">
-              </div>
-
-              <div class="full">
-                <label>Ability scores</label>
-                <div class="mv-stat-grid">
-                  <input id="mvStr" type="number" min="1" max="30" value="${state.draft.str}" title="STR" placeholder="STR">
-                  <input id="mvDex" type="number" min="1" max="30" value="${state.draft.dex}" title="DEX" placeholder="DEX">
-                  <input id="mvCon" type="number" min="1" max="30" value="${state.draft.con}" title="CON" placeholder="CON">
-                  <input id="mvInt" type="number" min="1" max="30" value="${state.draft.int}" title="INT" placeholder="INT">
-                  <input id="mvWis" type="number" min="1" max="30" value="${state.draft.wis}" title="WIS" placeholder="WIS">
-                  <input id="mvCha" type="number" min="1" max="30" value="${state.draft.cha}" title="CHA" placeholder="CHA">
-                </div>
-              </div>
-
-              <div class="full">
-                <label for="mvSaves">Saving throws</label>
-                <input id="mvSaves" type="text" value="${esc(state.draft.savingThrows)}" placeholder="Dex +6, Wis +3">
-              </div>
-
-              <div class="full">
-                <label for="mvSkills">Skills</label>
-                <input id="mvSkills" type="text" value="${esc(state.draft.skills)}" placeholder="Stealth +8, Perception +4">
-              </div>
-
-              <div class="full">
-                <label for="mvResists">Damage resistances</label>
-                <input id="mvResists" type="text" value="${esc(state.draft.damageResistances)}" placeholder="cold, fire">
-              </div>
-
-              <div class="full">
-                <label for="mvImmunities">Damage immunities</label>
-                <input id="mvImmunities" type="text" value="${esc(state.draft.damageImmunities)}" placeholder="poison">
-              </div>
-
-              <div class="full">
-                <label for="mvVuln">Damage vulnerabilities</label>
-                <input id="mvVuln" type="text" value="${esc(state.draft.damageVulnerabilities)}" placeholder="radiant">
-              </div>
-
-              <div class="full">
-                <label for="mvCondImm">Condition immunities</label>
-                <input id="mvCondImm" type="text" value="${esc(state.draft.conditionImmunities)}" placeholder="charmed, frightened">
-              </div>
-
-              <div>
-                <label for="mvSenses">Senses</label>
-                <input id="mvSenses" type="text" value="${esc(state.draft.senses)}" placeholder="darkvision 60 ft.">
-              </div>
-
-              <div>
-                <label for="mvLanguages">Languages</label>
-                <input id="mvLanguages" type="text" value="${esc(state.draft.languages)}" placeholder="Common, Draconic">
-              </div>
-
-              <div class="full">
-                <label for="mvChallengeNote">Challenge notes</label>
-                <input id="mvChallengeNote" type="text" value="${esc(state.draft.challengeNote)}" placeholder="Mythic trait active in phase 2">
-              </div>
-
-              <div class="full">
-                <label for="mvTraits">Traits (one per line)</label>
-                <textarea id="mvTraits" class="mv-textarea" placeholder="Pack Tactics :: The monster has advantage on attack rolls while an ally is within 5 feet.">${esc(state.draft.traitsText)}</textarea>
-              </div>
-
-              <div class="full">
-                <label for="mvActions">Actions / attacks (one per line)</label>
-                <textarea id="mvActions" class="mv-textarea" placeholder="Bite :: Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 11 (2d6+4) piercing damage.">${esc(state.draft.actionsText)}</textarea>
-                <div class="mv-help">Format: <b>Name :: description</b> or <b>Name. description</b>. This is what your encounter card "Details" toggle will use.</div>
-              </div>
-
-              <div class="full">
-                <label for="mvBonusActions">Bonus actions</label>
-                <textarea id="mvBonusActions" class="mv-textarea" placeholder="Dash :: The monster moves up to its speed.">${esc(state.draft.bonusActionsText)}</textarea>
-              </div>
-
-              <div class="full">
-                <label for="mvReactions">Reactions</label>
-                <textarea id="mvReactions" class="mv-textarea" placeholder="Parry :: The monster adds +2 AC against one melee attack that would hit.">${esc(state.draft.reactionsText)}</textarea>
-              </div>
-
-              <div class="full">
-                <label for="mvLegendary">Legendary actions</label>
-                <textarea id="mvLegendary" class="mv-textarea" placeholder="Tail Swipe :: The monster makes one tail attack.">${esc(state.draft.legendaryActionsText)}</textarea>
-              </div>
-
-              <div class="full">
-                <label for="mvSource">Source label</label>
-                <input id="mvSource" type="text" value="${esc(state.draft.source)}" placeholder="Homebrew">
-              </div>
-            </div>
-
-            <div class="mv-btn-row">
-              <button class="btn btn-secondary btn-xs" id="mvClearDraftBtn">${state.editingId ? "Cancel edit" : "Clear"}</button>
-              <button class="btn btn-xs" id="mvSaveDraftBtn">${state.editingId ? "Update homebrew monster" : "Add homebrew monster"}</button>
-            </div>
+          <div class="panel-inner">
+            ${state.tab === "active" ? renderActiveTab() : renderLibraryTab()}
           </div>
+          <input id="portraitUploadInput" type="file" accept="image/*" style="display:none;" aria-hidden="true">
         </div>
       </div>
-    `;
+      ${renderPortraitEditorModal()}
+      ${renderConditionEditorModal()}
+      ${renderMonsterVaultPickerModal()}
+      `;
+    }
 
-    const search = panel.querySelector("#mvSearch");
-    if (search) {
-      search.addEventListener("input", () => {
-        state.search = search.value || "";
-        saveState(state);
-        renderMonsterVaultTool();
+    function bindInlineEditEvents() {
+      shadow.querySelectorAll("[data-inline-edit]").forEach((editor) => {
+        const view = editor.querySelector(".inline-view");
+        const input = editor.querySelector(".inline-input");
+        if (!view || !input) return;
+
+        const openEditor = () => {
+          editor.classList.add("editing");
+          input.focus();
+          input.select();
+        };
+
+        const cancelEditor = () => {
+          editor.classList.remove("editing");
+          input.value = view.textContent?.trim() || "";
+        };
+
+        const commitEditor = () => {
+          const scope = editor.getAttribute("data-scope");
+          const field = editor.getAttribute("data-field");
+          const type = editor.getAttribute("data-type");
+          const cardId = editor.getAttribute("data-card-id");
+
+          if (!scope || !field || !cardId) {
+            editor.classList.remove("editing");
+            return;
+          }
+
+          let target = null;
+          if (scope === "active") {
+            target = state.activeCombatants.find((c) => c.id === cardId) || null;
+          } else if (scope === "library") {
+            const encId = editor.getAttribute("data-lib-enc-id");
+            const enc = state.library.find((e) => e.id === encId);
+            if (enc) target = enc.combatants.find((c) => c.id === cardId) || null;
+          }
+
+          if (!target) {
+            editor.classList.remove("editing");
+            persistAndRender();
+            return;
+          }
+
+          let nextValue;
+          if (field === "name") {
+            nextValue = String(input.value || "").trim() || "Unnamed";
+          } else if (field === "cr") {
+            nextValue = normalizeCR(input.value, target.cr || "1");
+          } else if (field === "level") {
+            nextValue = normalizeLevel(input.value, target.level || 3);
+          } else if (type === "text") {
+            nextValue = String(input.value || "").trim();
+          } else {
+            nextValue = Math.max(0, intOr(input.value, target[field]));
+          }
+
+          target[field] = nextValue;
+          if (field === "hpMax") target.hpCurrent = clamp(target.hpCurrent, 0, target.hpMax);
+          if (field === "hpCurrent") target.hpCurrent = clamp(target.hpCurrent, 0, target.hpMax);
+          if (field === "type") {
+            if (target.type === "Enemy") target.cr = normalizeCR(target.cr, "1");
+            else target.level = normalizeLevel(target.level, 3);
+          }
+          editor.classList.remove("editing");
+          persistAndRender();
+        };
+
+        view.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        view.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openEditor();
+        });
+
+        input.addEventListener("mousedown", (e) => e.stopPropagation());
+        input.addEventListener("click", (e) => e.stopPropagation());
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            input.blur();
+            return;
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            cancelEditor();
+          }
+        });
+
+        input.addEventListener("blur", () => {
+          if (!editor.classList.contains("editing")) return;
+          commitEditor();
+        });
       });
     }
 
-    const sourceSel = panel.querySelector("#mvSourceFilter");
-    if (sourceSel) {
-      sourceSel.addEventListener("change", () => {
-        state.sourceFilter = sourceSel.value || "all";
-        saveState(state);
-        renderMonsterVaultTool();
+    function bindGeneralEvents() {
+      // tabs
+      shadow.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.tab = btn.getAttribute("data-tab") === "library" ? "library" : "active";
+          persistAndRender();
+        });
       });
-    }
 
-    const crSel = panel.querySelector("#mvCrFilter");
-    if (crSel) {
-      crSel.addEventListener("change", () => {
-        state.crFilter = crSel.value || "all";
-        saveState(state);
-        renderMonsterVaultTool();
+
+      // portrait upload + editor (active, library, party cards)
+      const portraitInput = shadow.getElementById("portraitUploadInput");
+      if (portraitInput) {
+        shadow.querySelectorAll("[data-portrait-upload]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const scope = btn.getAttribute("data-scope");
+            const cardId = btn.getAttribute("data-card-id");
+            const encId = btn.getAttribute("data-lib-enc-id") || null;
+            const partyId = btn.getAttribute("data-party-id") || null;
+            if (!scope || !cardId) return;
+
+            openPortraitEditor({ scope, cardId, encId, partyId });
+          });
+        });
+
+        portraitInput.addEventListener("change", async () => {
+          const file = portraitInput.files?.[0];
+          portraitInput.value = "";
+          if (!file || !portraitEditor.open) return;
+
+          try {
+            const dataUrl = await processPortraitFile(file);
+            if (!dataUrl) return;
+            loadPortraitEditorImage(dataUrl, true);
+            const zoom = shadow.getElementById("portraitEditorZoom");
+            if (zoom) zoom.value = String(PORTRAIT_EDITOR_MIN_ZOOM);
+
+            const removeBtn = shadow.getElementById("portraitEditorRemoveBtn");
+            if (removeBtn) removeBtn.disabled = false;
+
+            const saveBtn = shadow.getElementById("portraitEditorSaveBtn");
+            if (saveBtn) saveBtn.disabled = false;
+          } catch (err) {
+            console.warn("Encounter tool: failed portrait upload", err);
+          }
+        });
+      }
+
+      const editorBackdrop = shadow.getElementById("portraitEditorBackdrop");
+      if (editorBackdrop) {
+        editorBackdrop.addEventListener("click", (e) => {
+          if (e.target === editorBackdrop) closePortraitEditor();
+        });
+      }
+
+      const editorCancelBtn = shadow.getElementById("portraitEditorCancelBtn");
+      if (editorCancelBtn) {
+        editorCancelBtn.addEventListener("click", () => {
+          closePortraitEditor();
+        });
+      }
+
+      const editorUploadBtn = shadow.getElementById("portraitEditorUploadBtn");
+      if (editorUploadBtn && portraitInput) {
+        editorUploadBtn.addEventListener("click", () => {
+          portraitInput.value = "";
+          portraitInput.click();
+        });
+      }
+
+      const editorSaveBtn = shadow.getElementById("portraitEditorSaveBtn");
+      if (editorSaveBtn) {
+        editorSaveBtn.addEventListener("click", () => {
+          savePortraitFromEditor();
+        });
+      }
+
+      const editorRemoveBtn = shadow.getElementById("portraitEditorRemoveBtn");
+      if (editorRemoveBtn) {
+        editorRemoveBtn.addEventListener("click", () => {
+          removePortraitFromEditor();
+        });
+      }
+
+      const editorZoom = shadow.getElementById("portraitEditorZoom");
+      if (editorZoom) {
+        editorZoom.addEventListener("input", () => {
+          portraitEditor.zoom = clamp(
+            Number(editorZoom.value) || PORTRAIT_EDITOR_MIN_ZOOM,
+            PORTRAIT_EDITOR_MIN_ZOOM,
+            PORTRAIT_EDITOR_MAX_ZOOM
+          );
+          clampPortraitEditorOffsets();
+          drawPortraitEditorCanvas();
+        });
+      }
+
+      const editorCanvas = shadow.getElementById("portraitEditorCanvas");
+      if (editorCanvas) {
+        drawPortraitEditorCanvas();
+
+        editorCanvas.addEventListener("pointerdown", (e) => {
+          if (!portraitEditor.image) return;
+          portraitEditor.dragging = true;
+          portraitEditor.pointerId = e.pointerId;
+          portraitEditor.pointerStartX = e.clientX;
+          portraitEditor.pointerStartY = e.clientY;
+          portraitEditor.startOffsetX = portraitEditor.offsetX;
+          portraitEditor.startOffsetY = portraitEditor.offsetY;
+          editorCanvas.classList.add("dragging");
+          try {
+            editorCanvas.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        });
+
+        editorCanvas.addEventListener("pointermove", (e) => {
+          if (!portraitEditor.dragging || portraitEditor.pointerId !== e.pointerId) return;
+          portraitEditor.offsetX = portraitEditor.startOffsetX + (e.clientX - portraitEditor.pointerStartX);
+          portraitEditor.offsetY = portraitEditor.startOffsetY + (e.clientY - portraitEditor.pointerStartY);
+          clampPortraitEditorOffsets();
+          drawPortraitEditorCanvas();
+        });
+
+        const stopDrag = (e) => {
+          if (portraitEditor.pointerId !== e.pointerId) return;
+          portraitEditor.dragging = false;
+          portraitEditor.pointerId = null;
+          editorCanvas.classList.remove("dragging");
+          try {
+            editorCanvas.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+        };
+
+        editorCanvas.addEventListener("pointerup", stopDrag);
+        editorCanvas.addEventListener("pointercancel", stopDrag);
+
+        editorCanvas.addEventListener(
+          "wheel",
+          (e) => {
+            if (!portraitEditor.image) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.08 : 0.08;
+            portraitEditor.zoom = clamp(
+              (Number(portraitEditor.zoom) || PORTRAIT_EDITOR_MIN_ZOOM) + delta,
+              PORTRAIT_EDITOR_MIN_ZOOM,
+              PORTRAIT_EDITOR_MAX_ZOOM
+            );
+            if (editorZoom) editorZoom.value = String(portraitEditor.zoom);
+            clampPortraitEditorOffsets();
+            drawPortraitEditorCanvas();
+          },
+          { passive: false }
+        );
+      }
+
+      // active name & round
+      const activeNameInput = shadow.getElementById("activeEncounterName");
+      if (activeNameInput) {
+        activeNameInput.addEventListener("input", () => {
+          state.activeEncounterName = activeNameInput.value;
+          saveState(state);
+        });
+      }
+
+      const roundInput = shadow.getElementById("roundInput");
+      if (roundInput) {
+        roundInput.addEventListener("input", () => {
+          state.round = Math.max(1, intOr(roundInput.value, state.round));
+          saveState(state);
+        });
+      }
+
+      const prevTurnBtn = shadow.getElementById("prevTurnBtn");
+      if (prevTurnBtn) {
+        prevTurnBtn.addEventListener("click", () => {
+          if (!state.activeCombatants.length) return;
+          if (state.turnIndex === 0) {
+            state.turnIndex = state.activeCombatants.length - 1;
+            state.round = Math.max(1, state.round - 1);
+          } else {
+            state.turnIndex -= 1;
+          }
+          persistAndRender();
+        });
+      }
+
+      const nextTurnBtn = shadow.getElementById("nextTurnBtn");
+      if (nextTurnBtn) {
+        nextTurnBtn.addEventListener("click", () => {
+          if (!state.activeCombatants.length) return;
+          state.turnIndex = (state.turnIndex + 1) % state.activeCombatants.length;
+          if (state.turnIndex === 0) state.round += 1;
+          persistAndRender();
+        });
+      }
+
+      const nextRoundBtn = shadow.getElementById("nextRoundBtn");
+      if (nextRoundBtn) {
+        nextRoundBtn.addEventListener("click", () => {
+          state.round += 1;
+          state.turnIndex = 0;
+          state.activeCombatants.forEach((c) => {
+            c.conditions = (c.conditions || [])
+              .map((cond) => {
+                if (!cond.duration || cond.duration <= 0) return { ...cond, duration: cond.duration || null };
+                const next = cond.duration - 1;
+                return next > 0 ? { ...cond, duration: next } : null;
+              })
+              .filter(Boolean);
+          });
+          persistAndRender();
+        });
+      }
+
+      const toggleAddSectionBtn = shadow.getElementById("toggleAddSectionBtn");
+      if (toggleAddSectionBtn) {
+        toggleAddSectionBtn.addEventListener("click", () => {
+          state.addExpanded = !state.addExpanded;
+          persistAndRender();
+        });
+      }
+
+      const togglePartyManagerBtn = shadow.getElementById("togglePartyManagerBtn");
+      if (togglePartyManagerBtn) {
+        togglePartyManagerBtn.addEventListener("click", () => {
+          state.partyManagerOpen = !state.partyManagerOpen;
+          persistAndRender();
+        });
+      }
+
+      const openVaultActiveBtn = shadow.getElementById("openVaultActiveBtn");
+      if (openVaultActiveBtn) {
+        openVaultActiveBtn.addEventListener("click", () => {
+          if (!hasMonsterVaultApi()) {
+            window.alert("Open the Monster Vault tool first, then try again.");
+            return;
+          }
+          openMonsterPicker("active");
+        });
+      }
+
+      // add combatant draft sync
+      const addInputs = [
+        ["addName", "name", (v) => v],
+        ["addInit", "initiative", (v) => Math.max(0, intOr(v, 10))],
+        ["addAC", "ac", (v) => Math.max(0, intOr(v, 15))],
+        ["addSpeed", "speed", (v) => Math.max(0, intOr(v, 30))],
+        ["addLevel", "level", (v) => normalizeLevel(v, state.addDraft.level || 3)],
+        ["addCR", "cr", (v) => normalizeCR(v, state.addDraft.cr || "1")],
+        ["addHpCur", "hpCurrent", (v) => Math.max(0, intOr(v, state.addDraft.hpCurrent))],
+        ["addHpMax", "hpMax", (v) => Math.max(0, intOr(v, state.addDraft.hpMax))]
+      ];
+      addInputs.forEach(([id, key, transform]) => {
+        const el = shadow.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", () => {
+          const next = transform ? transform(el.value) : el.value;
+          if (key === "name") state.addDraft.name = String(next);
+          else if (key === "cr") state.addDraft.cr = normalizeCR(next, state.addDraft.cr || "1");
+          else if (key === "level") state.addDraft.level = normalizeLevel(next, state.addDraft.level || 3);
+          else state.addDraft[key] = next;
+          saveState(state);
+        });
       });
-    }
 
-    panel.querySelectorAll("[data-mv-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const next = btn.getAttribute("data-mv-tab");
-        if (!next) return;
-        state.activeTab = next === "homebrew" ? "homebrew" : "vault";
-        saveState(state);
-        renderMonsterVaultTool();
-      });
-    });
+      const addTypeEl = shadow.getElementById("addType");
+      if (addTypeEl) {
+        addTypeEl.addEventListener("change", () => {
+          state.addDraft.type = addTypeEl.value;
+          if (state.addDraft.type === "Enemy") state.addDraft.cr = normalizeCR(state.addDraft.cr, "1");
+          else state.addDraft.level = normalizeLevel(state.addDraft.level, 3);
+          saveState(state);
+        });
+      }
 
-    const exportBtn = panel.querySelector("#mvExportBtn");
-    if (exportBtn) exportBtn.addEventListener("click", exportHomebrew);
+      const addCombatantBtn = shadow.getElementById("addCombatantBtn");
+      if (addCombatantBtn) {
+        addCombatantBtn.addEventListener("click", () => {
+          const nameEl = shadow.getElementById("addName");
+          const initEl = shadow.getElementById("addInit");
+          const acEl = shadow.getElementById("addAC");
+          const speedEl = shadow.getElementById("addSpeed");
+          const levelEl = shadow.getElementById("addLevel");
+          const crEl = shadow.getElementById("addCR");
+          const hpCurEl = shadow.getElementById("addHpCur");
+          const hpMaxEl = shadow.getElementById("addHpMax");
+          const typeEl = shadow.getElementById("addType");
 
-    const importBtn = panel.querySelector("#mvImportBtn");
-    const importInput = panel.querySelector("#mvImportInput");
-    if (importBtn && importInput) {
-      importBtn.addEventListener("click", () => importInput.click());
-      importInput.addEventListener("change", () => {
-        const file = importInput.files && importInput.files[0];
-        if (file) importHomebrewFromFile(file);
-        importInput.value = "";
-      });
-    }
+          state.addDraft.name = String(nameEl?.value ?? state.addDraft.name);
+          state.addDraft.initiative = Math.max(0, intOr(initEl?.value, state.addDraft.initiative));
+          state.addDraft.ac = Math.max(0, intOr(acEl?.value, state.addDraft.ac));
+          state.addDraft.speed = Math.max(0, intOr(speedEl?.value, state.addDraft.speed));
+          state.addDraft.level = normalizeLevel(levelEl?.value, state.addDraft.level || 3);
+          state.addDraft.cr = normalizeCR(crEl?.value, state.addDraft.cr || "1");
+          state.addDraft.hpCurrent = Math.max(0, intOr(hpCurEl?.value, state.addDraft.hpCurrent));
+          state.addDraft.hpMax = Math.max(0, intOr(hpMaxEl?.value, state.addDraft.hpMax));
+          state.addDraft.type = typeEl?.value || state.addDraft.type || "NPC";
 
-    panel.querySelectorAll("[data-mv-toggle]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-mv-toggle");
-        if (!id) return;
-        await toggleDetailsWithFetch(id);
-        renderMonsterVaultTool();
-      });
-    });
-    panel.querySelectorAll("[data-mv-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-mv-edit");
-        if (!id) return;
-        const mon = state.homebrew.find((m) => m.id === id);
-        if (!mon) return;
-        setDraftFromMonster(mon, "edit");
-        state.activeTab = "homebrew";
-        saveState(state);
-        renderMonsterVaultTool();
-      });
-    });
+          const hpMax = Math.max(0, state.addDraft.hpMax);
+          const hpCur = clamp(Math.max(0, state.addDraft.hpCurrent), 0, hpMax);
 
-    panel.querySelectorAll("[data-mv-clone]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-mv-clone");
-        if (!id) return;
-        const mon = allMonsters().find((m) => m.id === id);
-        if (!mon) return;
-        setDraftFromMonster(mon, "clone");
-        state.activeTab = "homebrew";
-        saveState(state);
-        renderMonsterVaultTool();
-      });
-    });
+          const c = mkCombatant({
+            name: state.addDraft.name || "New Combatant",
+            type: state.addDraft.type || "NPC",
+            initiative: state.addDraft.initiative,
+            ac: state.addDraft.ac,
+            speed: state.addDraft.speed,
+            level: state.addDraft.level,
+            cr: state.addDraft.cr,
+            hpCurrent: hpCur,
+            hpMax
+          });
 
-    panel.querySelectorAll("[data-mv-delete]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-mv-delete");
-        if (!id) return;
-        if (!window.confirm("Delete this homebrew monster from the vault?")) return;
-        deleteHomebrew(id);
-        renderMonsterVaultTool();
-      });
-    });
+          state.activeCombatants.push(c);
+          sortByInitiativeDesc(state.activeCombatants);
+          if (state.turnIndex >= state.activeCombatants.length) state.turnIndex = Math.max(0, state.activeCombatants.length - 1);
+          persistAndRender();
+        });
+      }
+      const addNameEl = shadow.getElementById("addName");
+      if (addNameEl) {
+        addNameEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addCombatantBtn?.click();
+          }
+        });
+      }
 
-    const saveDraftBtn = panel.querySelector("#mvSaveDraftBtn");
-    if (saveDraftBtn) {
-      saveDraftBtn.addEventListener("click", () => {
-        const g = (id) => panel.querySelector(`#${id}`);
+      // party quick-add / full add
+      const party = getSelectedParty();
+      if (party) {
+        shadow.querySelectorAll("[data-party-add-one]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const memberId = btn.getAttribute("data-party-add-one");
+            const member = party.members.find((m) => m.id === memberId);
+            if (!member) return;
+            state.activeCombatants.push(cloneCombatant(member, true));
+            state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+            state.turnIndex = 0;
+            persistAndRender();
+          });
+        });
 
-        state.draft.name = String(g("mvName")?.value || "").trim();
-        state.draft.sizeType = String(g("mvSizeType")?.value || "").trim() || "Medium Creature, Unaligned";
-        state.draft.cr = normalizeCR(g("mvCr")?.value, "1/2");
-        state.draft.xp = Math.max(0, intOr(g("mvXp")?.value, normalizeXP(undefined, state.draft.cr)));
-        state.draft.type = String(g("mvType")?.value || "Enemy");
-        state.draft.ac = clamp(intOr(g("mvAc")?.value, 13), 0, 99);
-        state.draft.hp = Math.max(1, intOr(g("mvHp")?.value, 10));
-        state.draft.speed = Math.max(0, intOr(g("mvSpeed")?.value, 30));
-        state.draft.speedText = String(g("mvSpeedText")?.value || `${state.draft.speed} ft.`).trim() || `${state.draft.speed} ft.`;
-        state.draft.initiative = clamp(intOr(g("mvInitiative")?.value, 10), 0, 99);
-        state.draft.pb = clamp(intOr(g("mvPb")?.value, 2), 0, 20);
-        state.draft.source = String(g("mvSource")?.value || "Homebrew").trim() || "Homebrew";
-
-        state.draft.str = clamp(intOr(g("mvStr")?.value, 10), 1, 30);
-        state.draft.dex = clamp(intOr(g("mvDex")?.value, 10), 1, 30);
-        state.draft.con = clamp(intOr(g("mvCon")?.value, 10), 1, 30);
-        state.draft.int = clamp(intOr(g("mvInt")?.value, 10), 1, 30);
-        state.draft.wis = clamp(intOr(g("mvWis")?.value, 10), 1, 30);
-        state.draft.cha = clamp(intOr(g("mvCha")?.value, 10), 1, 30);
-
-        state.draft.savingThrows = String(g("mvSaves")?.value || "").trim();
-        state.draft.skills = String(g("mvSkills")?.value || "").trim();
-        state.draft.damageResistances = String(g("mvResists")?.value || "").trim();
-        state.draft.damageImmunities = String(g("mvImmunities")?.value || "").trim();
-        state.draft.damageVulnerabilities = String(g("mvVuln")?.value || "").trim();
-        state.draft.conditionImmunities = String(g("mvCondImm")?.value || "").trim();
-        state.draft.senses = String(g("mvSenses")?.value || "").trim();
-        state.draft.languages = String(g("mvLanguages")?.value || "").trim();
-        state.draft.challengeNote = String(g("mvChallengeNote")?.value || "").trim();
-
-        state.draft.traitsText = String(g("mvTraits")?.value || "").trim();
-        state.draft.actionsText = String(g("mvActions")?.value || "").trim();
-        state.draft.bonusActionsText = String(g("mvBonusActions")?.value || "").trim();
-        state.draft.reactionsText = String(g("mvReactions")?.value || "").trim();
-        state.draft.legendaryActionsText = String(g("mvLegendary")?.value || "").trim();
-
-        if (!state.draft.name) {
-          window.alert("Please give the monster a name.");
-          return;
+        const addFullPartyBtn = shadow.getElementById("addFullPartyBtn");
+        if (addFullPartyBtn) {
+          addFullPartyBtn.addEventListener("click", () => {
+            party.members.forEach((m) => state.activeCombatants.push(cloneCombatant(m, true)));
+            state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+            state.turnIndex = 0;
+            persistAndRender();
+          });
         }
+      }
 
-        upsertHomebrewFromDraft();
-        state.activeTab = "vault";
-        renderMonsterVaultTool();
-      });
-    }
+      // party manager controls
+      const partyNameInput = shadow.getElementById("partyNameInput");
+      if (partyNameInput && party) {
+        partyNameInput.addEventListener("input", () => {
+          party.name = partyNameInput.value || "Party";
+          saveState(state);
+        });
+      }
 
-    const clearBtn = panel.querySelector("#mvClearDraftBtn");
-    if (clearBtn) {
-      clearBtn.addEventListener("click", () => {
-        clearDraft();
-        saveState(state);
-        renderMonsterVaultTool();
+      const partyAddMemberBtn = shadow.getElementById("partyAddMemberBtn");
+      if (partyAddMemberBtn && party) {
+        partyAddMemberBtn.addEventListener("click", () => {
+          party.members.push(
+            mkCombatant({
+              id: uid("m"),
+              name: "New Member",
+              type: "PC",
+              initiative: 10,
+              ac: 10,
+              speed: 30,
+              hpCurrent: 10,
+              hpMax: 10
+            })
+          );
+          persistAndRender();
+        });
+      }
+
+      shadow.querySelectorAll("[data-party-field]").forEach((el) => {
+        el.addEventListener("input", () => {
+          const memberId = el.getAttribute("data-member-id");
+          const field = el.getAttribute("data-party-field");
+          const p = getSelectedParty();
+          if (!p) return;
+          const m = p.members.find((x) => x.id === memberId);
+          if (!m) return;
+
+          if (field === "name" || field === "type") {
+            m[field] = String(el.value);
+          } else if (field === "cr") {
+            m.cr = normalizeCR(el.value, m.cr || "1");
+          } else if (field === "level") {
+            m.level = normalizeLevel(el.value, m.level || 3);
+          } else {
+            m[field] = Math.max(0, intOr(el.value, m[field]));
+            if (field === "hpMax") m.hpCurrent = clamp(m.hpCurrent, 0, m.hpMax);
+            if (field === "hpCurrent") m.hpCurrent = clamp(m.hpCurrent, 0, m.hpMax);
+          }
+
+          if (field === "type") {
+            if (m.type === "Enemy") {
+              m.cr = normalizeCR(m.cr, "1");
+            } else {
+              m.level = normalizeLevel(m.level, 3);
+            }
+          }
+
+          saveState(state);
+        });
       });
-    }
+
+      shadow.querySelectorAll("[data-party-remove]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const memberId = btn.getAttribute("data-party-remove");
+          const p = getSelectedParty();
+          if (!p) return;
+          p.members = p.members.filter((m) => m.id !== memberId);
+          persistAndRender();
+        });
+      });
+
+      // card edits
+      shadow.querySelectorAll("[data-card-field]").forEach((el) => {
+        el.addEventListener("input", () => {
+          const id = el.getAttribute("data-card-id");
+          const field = el.getAttribute("data-card-field");
+          const c = state.activeCombatants.find((x) => x.id === id);
+          if (!c) return;
+          c[field] = Math.max(0, intOr(el.value, c[field]));
+          if (field === "hpMax") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
+          if (field === "hpCurrent") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
+          saveState(state);
+        });
+      });
+
+      bindInlineEditEvents();
+
+      shadow.querySelectorAll("[data-toggle-monster-details]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const scope = btn.getAttribute("data-toggle-scope") || "active";
+          const cardId = btn.getAttribute("data-toggle-monster-details");
+          if (!cardId) return;
+
+          if (scope === "library") {
+            const encId = btn.getAttribute("data-lib-enc-id");
+            const enc = state.library.find((e) => e.id === encId);
+            const c = enc?.combatants?.find((x) => x.id === cardId);
+            if (!c) return;
+            c.showMonsterDetails = !c.showMonsterDetails;
+            persistAndRender();
+            return;
+          }
+
+          const c = state.activeCombatants.find((x) => x.id === cardId);
+          if (!c) return;
+          c.showMonsterDetails = !c.showMonsterDetails;
+          persistAndRender();
+        });
+      });
+
+      shadow.querySelectorAll("[data-remove-card]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-remove-card");
+          const idx = state.activeCombatants.findIndex((c) => c.id === id);
+          if (idx < 0) return;
+          state.activeCombatants.splice(idx, 1);
+          if (state.turnIndex >= idx) state.turnIndex = Math.max(0, state.turnIndex - 1);
+          ensureTurnIndex();
+          persistAndRender();
+        });
+      });
+
+      shadow.querySelectorAll("[data-dmg]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-dmg");
+          const c = state.activeCombatants.find((x) => x.id === id);
+          if (!c) return;
+          const amountEl = shadow.querySelector(`[data-amount-for="${id}"]`);
+          const amount = Math.max(1, intOr(amountEl?.value, 1));
+          c.hpCurrent = clamp(c.hpCurrent - amount, 0, c.hpMax);
+          persistAndRender();
+        });
+      });
+
+      shadow.querySelectorAll("[data-heal]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-heal");
+          const c = state.activeCombatants.find((x) => x.id === id);
+          if (!c) return;
+          const amountEl = shadow.querySelector(`[data-amount-for="${id}"]`);
+          const amount = Math.max(1, intOr(amountEl?.value, 1));
+          c.hpCurrent = clamp(c.hpCurrent + amount, 0, c.hpMax);
+          persistAndRender();
+        });
+      });
+
+      shadow.querySelectorAll("[data-open-conds]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-open-conds");
+          if (!id) return;
+          openConditionEditor(id);
+        });
+      });
+
+      const conditionBackdrop = shadow.getElementById("conditionEditorBackdrop");
+      if (conditionBackdrop) {
+        conditionBackdrop.addEventListener("click", (e) => {
+          if (e.target === conditionBackdrop) closeConditionEditor();
+        });
+      }
+
+      const condCloseBtn = shadow.getElementById("condCloseBtn");
+      if (condCloseBtn) condCloseBtn.addEventListener("click", closeConditionEditor);
+
+      const condClearAllBtn = shadow.getElementById("condClearAllBtn");
+      if (condClearAllBtn) {
+        condClearAllBtn.addEventListener("click", () => {
+          if (!conditionEditor.cardId) return;
+          clearAllConditions(conditionEditor.cardId);
+        });
+      }
+
+      const condExhaustionInput = shadow.getElementById("condExhaustionInput");
+      if (condExhaustionInput) {
+        condExhaustionInput.addEventListener("input", () => {
+          if (!conditionEditor.cardId) return;
+          setExhaustionLevel(conditionEditor.cardId, condExhaustionInput.value);
+        });
+      }
+
+      shadow.querySelectorAll("[data-cond-toggle]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (!conditionEditor.cardId) return;
+          toggleCondition(conditionEditor.cardId, btn.getAttribute("data-cond-toggle"));
+        });
+      });
+
+      shadow.querySelectorAll("[data-cond-duration]").forEach((input) => {
+        input.addEventListener("input", () => {
+          if (!conditionEditor.cardId) return;
+          setConditionDuration(conditionEditor.cardId, input.getAttribute("data-cond-duration"), input.value);
+        });
+      });
+
+      shadow.querySelectorAll("[data-cond-remove]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (!conditionEditor.cardId) return;
+          removeCondition(conditionEditor.cardId, btn.getAttribute("data-cond-remove"));
+        });
+      });
+
+      // drag and drop active list
+      const initiativeList = shadow.getElementById("initiativeList");
+      if (initiativeList) {
+        const cards = Array.from(initiativeList.querySelectorAll("[data-card-id]"));
+        cards.forEach((card) => {
+          const id = card.getAttribute("data-card-id");
+          card.addEventListener("dragstart", (e) => {
+            dragActiveId = id;
+            card.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", id || "");
+          });
+          card.addEventListener("dragend", () => {
+            card.classList.remove("dragging");
+          });
+          card.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          });
+          card.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const targetId = card.getAttribute("data-card-id");
+            if (!dragActiveId || !targetId) return;
+            state.activeCombatants = moveItem(state.activeCombatants, dragActiveId, targetId);
+            state.turnIndex = clamp(state.turnIndex, 0, Math.max(0, state.activeCombatants.length - 1));
+            dragActiveId = null;
+            persistAndRender();
+          });
+        });
+
+        initiativeList.addEventListener("dragover", (e) => {
+          e.preventDefault();
+        });
+
+        initiativeList.addEventListener("drop", (e) => {
+          const targetCard = e.target.closest("[data-card-id]");
+          if (targetCard || !dragActiveId) return;
+          state.activeCombatants = moveToEnd(state.activeCombatants, dragActiveId);
+          dragActiveId = null;
+          persistAndRender();
+        });
+      }
+
+
+  const monsterPickerBackdrop = shadow.getElementById("monsterPickerBackdrop");
+  if (monsterPickerBackdrop) {
+    monsterPickerBackdrop.addEventListener("click", (e) => {
+      if (e.target === monsterPickerBackdrop) closeMonsterPicker();
+    });
   }
 
-  function init() {
-    if (typeof window.registerTool === "function") {
-      window.registerTool({
-        id: TOOL_ID,
-        name: TOOL_NAME,
-        description: "SRD monsters + homebrew vault for encounter prep.",
-        render: renderMonsterVaultTool
+  const monsterPickerCloseBtn = shadow.getElementById("monsterPickerCloseBtn");
+  if (monsterPickerCloseBtn) {
+    monsterPickerCloseBtn.addEventListener("click", () => closeMonsterPicker());
+  }
+
+  const monsterPickerSearch = shadow.getElementById("monsterPickerSearch");
+  if (monsterPickerSearch) {
+    monsterPickerSearch.addEventListener("input", () => {
+      monsterPicker.query = monsterPickerSearch.value || "";
+      render();
+    });
+  }
+
+  const monsterPickerCr = shadow.getElementById("monsterPickerCr");
+  if (monsterPickerCr) {
+    monsterPickerCr.addEventListener("change", () => {
+      monsterPicker.cr = monsterPickerCr.value || "all";
+      render();
+    });
+  }
+
+  const monsterPickerSource = shadow.getElementById("monsterPickerSource");
+  if (monsterPickerSource) {
+    monsterPickerSource.addEventListener("change", () => {
+      monsterPicker.source = monsterPickerSource.value || "all";
+      render();
+    });
+  }
+
+  shadow.querySelectorAll("[data-picker-add-monster]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-picker-add-monster");
+      addMonsterFromVault(id);
+    });
+  });
+
+  // library creation and actions
+  const createName = shadow.getElementById("createName");
+  const createLocation = shadow.getElementById("createLocation");
+  if (createName) {
+    createName.addEventListener("input", () => {
+      state.createName = createName.value;
+      saveState(state);
+    });
+  }
+  if (createLocation) {
+    createLocation.addEventListener("input", () => {
+      state.createLocation = createLocation.value;
+      saveState(state);
+    });
+  }
+
+  const quickCreateEncounterBtn = shadow.getElementById("quickCreateEncounterBtn");
+  if (quickCreateEncounterBtn) {
+    quickCreateEncounterBtn.addEventListener("click", () => {
+      const name = String(state.createName || "Untitled Encounter").trim() || "Untitled Encounter";
+      const location = String(state.createLocation || "").trim();
+      const encounter = { id: uid("e"), name, location, combatants: [] };
+      state.library.push(encounter);
+      state.libraryEditId = encounter.id;
+      state.tab = "library";
+      state.createName = "";
+      state.createLocation = "";
+      persistAndRender();
+    });
+  }
+
+  shadow.querySelectorAll("[data-set-active]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-set-active");
+      const enc = state.library.find((e) => e.id === id);
+      if (!enc) return;
+      state.activeLibraryId = enc.id;
+      state.activeEncounterName = enc.name || "Current Encounter";
+      state.activeCombatants = enc.combatants.map((c) => cloneCombatant(c, true));
+      state.turnIndex = 0;
+      state.round = 1;
+      state.tab = "active";
+      persistAndRender();
+    });
+  });
+
+  shadow.querySelectorAll("[data-toggle-edit-library]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-toggle-edit-library");
+      state.libraryEditId = state.libraryEditId === id ? null : id;
+      persistAndRender();
+    });
+  });
+
+  shadow.querySelectorAll("[data-delete-library]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-delete-library");
+      state.library = state.library.filter((e) => e.id !== id);
+      if (state.activeLibraryId === id) state.activeLibraryId = null;
+      if (state.libraryEditId === id) state.libraryEditId = null;
+      if (monsterPicker.scope === "library" && monsterPicker.encounterId === id) {
+        monsterPicker.open = false;
+        monsterPicker.encounterId = null;
+      }
+      persistAndRender();
+    });
+  });
+
+  // inline library encounter editing
+  shadow.querySelectorAll("[data-lib-enc-field]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const id = el.getAttribute("data-lib-enc-id");
+      const field = el.getAttribute("data-lib-enc-field");
+      const enc = state.library.find((e) => e.id === id);
+      if (!enc) return;
+      enc[field] = el.value;
+      saveState(state);
+    });
+  });
+
+  shadow.querySelectorAll("[data-lib-card-field]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const encId = el.getAttribute("data-lib-enc-id");
+      const cardId = el.getAttribute("data-lib-card-id");
+      const field = el.getAttribute("data-lib-card-field");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
+      const c = enc.combatants.find((x) => x.id === cardId);
+      if (!c) return;
+      c[field] = Math.max(0, intOr(el.value, c[field]));
+      if (field === "hpMax") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
+      if (field === "hpCurrent") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
+      saveState(state);
+    });
+  });
+
+  shadow.querySelectorAll("[data-lib-remove-card]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const encId = btn.getAttribute("data-lib-enc-id");
+      const cardId = btn.getAttribute("data-lib-remove-card");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
+      enc.combatants = enc.combatants.filter((c) => c.id !== cardId);
+      persistAndRender();
+    });
+  });
+
+  const partyForLibrary = getSelectedParty();
+  if (partyForLibrary) {
+    shadow.querySelectorAll("[data-lib-add-party-one]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const encId = btn.getAttribute("data-lib-enc-id");
+        const memberId = btn.getAttribute("data-lib-add-party-one");
+        const enc = state.library.find((e) => e.id === encId);
+        const member = partyForLibrary.members.find((m) => m.id === memberId);
+        if (!enc || !member) return;
+        enc.combatants.push(cloneCombatant(member, true));
+        enc.combatants = sortByInitiativeDesc(enc.combatants);
+        persistAndRender();
+      });
+    });
+
+    shadow.querySelectorAll("[data-lib-add-full-party]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const encId = btn.getAttribute("data-lib-add-full-party");
+        const enc = state.library.find((e) => e.id === encId);
+        if (!enc) return;
+        partyForLibrary.members.forEach((m) => enc.combatants.push(cloneCombatant(m, true)));
+        enc.combatants = sortByInitiativeDesc(enc.combatants);
+        persistAndRender();
+      });
+    });
+  }
+
+  state.library.forEach((enc) => {
+    const libAddInputs = [
+      ["libAddName", "name", (v) => v],
+      ["libAddInit", "initiative", (v) => Math.max(0, intOr(v, 10))],
+      ["libAddAC", "ac", (v) => Math.max(0, intOr(v, 13))],
+      ["libAddSpeed", "speed", (v) => Math.max(0, intOr(v, 30))],
+      ["libAddLevel", "level", (v) => normalizeLevel(v, state.libraryAddDraft.level || 3)],
+      ["libAddCR", "cr", (v) => normalizeCR(v, state.libraryAddDraft.cr || "1")],
+      ["libAddHpCur", "hpCurrent", (v) => Math.max(0, intOr(v, state.libraryAddDraft.hpCurrent))],
+      ["libAddHpMax", "hpMax", (v) => Math.max(0, intOr(v, state.libraryAddDraft.hpMax))]
+    ];
+
+    libAddInputs.forEach(([baseId, key, transform]) => {
+      const el = shadow.getElementById(`${baseId}_${enc.id}`);
+      if (!el) return;
+      el.addEventListener("input", () => {
+        const next = transform(el.value);
+        if (key === "name" || key === "cr") state.libraryAddDraft[key] = String(next);
+        else state.libraryAddDraft[key] = next;
+        saveState(state);
+      });
+    });
+
+    const typeEl = shadow.getElementById(`libAddType_${enc.id}`);
+    if (typeEl) {
+      typeEl.addEventListener("change", () => {
+        state.libraryAddDraft.type = typeEl.value;
+        saveState(state);
       });
     }
+  });
 
-    publishApi();
+  shadow.querySelectorAll("[data-lib-open-vault]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const encId = btn.getAttribute("data-lib-open-vault");
+      if (!hasMonsterVaultApi()) {
+        window.alert("Open the Monster Vault tool first, then try again.");
+        return;
+      }
+      if (!encId || !state.library.some((e) => e.id === encId)) return;
+      openMonsterPicker("library", encId);
+    });
+  });
 
-    if (typeof window.renderToolsNav === "function") {
-      window.renderToolsNav();
-    }
+  shadow.querySelectorAll("[data-lib-add-combatant]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const encId = btn.getAttribute("data-lib-add-combatant");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
 
-    const prevRender = window.renderToolPanel;
-    if (typeof prevRender === "function" && !prevRender.__monsterVaultWrapped) {
-      const wrappedRender = function (toolId) {
-        if (toolId === TOOL_ID) {
-          renderMonsterVaultTool();
-          return;
-        }
-        return prevRender(toolId);
+      const getVal = (idSuffix, fallback = "") => {
+        const el = shadow.getElementById(`${idSuffix}_${encId}`);
+        return el ? el.value : fallback;
       };
-      wrappedRender.__monsterVaultWrapped = true;
-      window.renderToolPanel = wrappedRender;
+
+      const draft = {
+        name: getVal("libAddName", state.libraryAddDraft.name),
+        type: getVal("libAddType", state.libraryAddDraft.type),
+        initiative: intOr(getVal("libAddInit", state.libraryAddDraft.initiative), state.libraryAddDraft.initiative),
+        ac: intOr(getVal("libAddAC", state.libraryAddDraft.ac), state.libraryAddDraft.ac),
+        speed: intOr(getVal("libAddSpeed", state.libraryAddDraft.speed), state.libraryAddDraft.speed),
+        level: normalizeLevel(getVal("libAddLevel", state.libraryAddDraft.level), state.libraryAddDraft.level || 3),
+        cr: normalizeCR(getVal("libAddCR", state.libraryAddDraft.cr), state.libraryAddDraft.cr || "1"),
+        hpCurrent: intOr(getVal("libAddHpCur", state.libraryAddDraft.hpCurrent), state.libraryAddDraft.hpCurrent),
+        hpMax: intOr(getVal("libAddHpMax", state.libraryAddDraft.hpMax), state.libraryAddDraft.hpMax)
+      };
+
+      state.libraryAddDraft = {
+        name: draft.name,
+        type: ["PC", "NPC", "Enemy"].includes(draft.type) ? draft.type : "Enemy",
+        initiative: Math.max(0, intOr(draft.initiative, 10)),
+        ac: Math.max(0, intOr(draft.ac, 13)),
+        speed: Math.max(0, intOr(draft.speed, 30)),
+        level: normalizeLevel(draft.level, 3),
+        cr: normalizeCR(draft.cr, "1"),
+        hpCurrent: Math.max(0, intOr(draft.hpCurrent, 10)),
+        hpMax: Math.max(0, intOr(draft.hpMax, 10))
+      };
+
+      const hpMax = Math.max(0, intOr(draft.hpMax, 10));
+      const hpCur = clamp(intOr(draft.hpCurrent, hpMax), 0, hpMax);
+
+      enc.combatants.push(
+        mkCombatant({
+          name: draft.name || "New Combatant",
+          type: draft.type || "Enemy",
+          initiative: draft.initiative,
+          ac: draft.ac,
+          speed: draft.speed,
+          level: draft.level,
+          cr: draft.cr,
+          hpCurrent: hpCur,
+          hpMax
+        })
+      );
+      enc.combatants = sortByInitiativeDesc(enc.combatants);
+      state.libraryAddDraft.name = "";
+      persistAndRender();
+    });
+  });
+
+  // drag reorder for library editor cards
+  let dragLibrary = { encId: null, cardId: null };
+  shadow.querySelectorAll("[data-lib-card-id]").forEach((card) => {
+    const cardId = card.getAttribute("data-lib-card-id");
+    const encId = card.getAttribute("data-lib-enc-id");
+    card.addEventListener("dragstart", (e) => {
+      dragLibrary = { encId, cardId };
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", cardId || "");
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+    });
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    });
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const targetCardId = card.getAttribute("data-lib-card-id");
+      const targetEncId = card.getAttribute("data-lib-enc-id");
+      if (!dragLibrary.cardId || !targetCardId || dragLibrary.encId !== targetEncId) return;
+      const enc = state.library.find((x) => x.id === targetEncId);
+      if (!enc) return;
+      enc.combatants = moveItem(enc.combatants, dragLibrary.cardId, targetCardId);
+      dragLibrary = { encId: null, cardId: null };
+      persistAndRender();
+    });
+  });
+
+  shadow.querySelectorAll("[data-lib-initiative-list]").forEach((list) => {
+    list.addEventListener("dragover", (e) => e.preventDefault());
+    list.addEventListener("drop", (e) => {
+      const targetCard = e.target.closest("[data-lib-card-id]");
+      if (targetCard || !dragLibrary.cardId) return;
+      const listEncId = list.getAttribute("data-lib-initiative-list");
+      if (!listEncId || dragLibrary.encId !== listEncId) return;
+      const enc = state.library.find((x) => x.id === listEncId);
+      if (!enc) return;
+      enc.combatants = moveToEnd(enc.combatants, dragLibrary.cardId);
+      dragLibrary = { encId: null, cardId: null };
+      persistAndRender();
+    });
+  });
+}
+
+function bindEditorEvents() {
+  return;
+}
+
+
+    function render() {
+      shadow.innerHTML = template();
+      bindGeneralEvents();
     }
+
+    return { render };
   }
 
-  init();
+  registerEncounterTool();
+  injectPanelOverrideCss();
+
+
+  if (typeof window.renderToolsNav === "function") {
+    window.renderToolsNav();
+  }
+
+  const prevRender = window.renderToolPanel;
+  if (typeof prevRender === "function" && !prevRender.__encounterToolWrapped) {
+    const wrappedRender = function (toolId) {
+      const panel = document.getElementById("generatorPanel");
+      if (panel) panel.classList.remove("encounter-tool-panel");
+
+      if (toolId === TOOL_ID) {
+        renderEncounterTool();
+        return;
+      }
+
+      return prevRender(toolId);
+    };
+    wrappedRender.__encounterToolWrapped = true;
+    window.renderToolPanel = wrappedRender;
+  }
 })();
