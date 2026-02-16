@@ -418,9 +418,9 @@
 
     if (!api || typeof api !== "object") return [];
     const attempts = [
-      () => (typeof api.getMonsterIndex === "function" ? api.getMonsterIndex() : null),
       () => (typeof api.getAllMonsters === "function" ? api.getAllMonsters() : null),
-      () => (typeof api.searchMonsters === "function" ? api.searchMonsters("") : null)
+      () => (typeof api.searchMonsters === "function" ? api.searchMonsters("") : null),
+      () => (typeof api.getMonsterIndex === "function" ? api.getMonsterIndex() : null)
     ];
 
     for (const fn of attempts) {
@@ -709,8 +709,7 @@
   }
 
   async function ensureMonsterDataForCard(card) {
-    if (!isMonsterCombatant(card)) return false;
-    if (hasMonsterFeatureGroups(card) || hasMonsterStatBlock(card)) return false;
+    if (!isMonsterCombatant(card) || !isVaultImportedMonster(card)) return false;
 
     const api = monsterVaultApi();
     if (!api) return false;
@@ -743,15 +742,25 @@
     const hydrated = toEncounterFromRawMonster(raw, idKey || card.sourceMonsterName || card.name);
     let changed = false;
 
-    if ((!card.details || typeof card.details !== "object") && hydrated.details && typeof hydrated.details === "object") {
-      card.details = hydrated.details;
-      changed = true;
+    if (hydrated.details && typeof hydrated.details === "object") {
+      const curDetails = card.details && typeof card.details === "object" ? card.details : null;
+      const curSize = curDetails ? JSON.stringify(curDetails).length : 0;
+      const nextSize = JSON.stringify(hydrated.details).length;
+      const curHasBlock = !!curDetails && hasMonsterStatBlock({ type: "Enemy", details: curDetails });
+      const nextHasBlock = hasMonsterStatBlock({ type: "Enemy", details: hydrated.details });
+      if (!curDetails || (nextHasBlock && !curHasBlock) || nextSize > curSize + 24) {
+        card.details = hydrated.details;
+        changed = true;
+      }
     }
 
     ["traits", "actions", "bonusActions", "reactions", "legendaryActions"].forEach((field) => {
       const cur = Array.isArray(card[field]) ? card[field] : [];
       const next = Array.isArray(hydrated[field]) ? hydrated[field] : [];
-      if (!cur.length && next.length) {
+      const curScore = cur.reduce((n, e) => n + toPlainText(e?.text ?? e?.description ?? e).length, 0);
+      const nextScore = next.reduce((n, e) => n + toPlainText(e?.text ?? e?.description ?? e).length, 0);
+      const shouldReplace = next.length && (!cur.length || next.length > cur.length || nextScore > curScore + 20);
+      if (shouldReplace) {
         card[field] = next;
         changed = true;
       }
@@ -1268,7 +1277,7 @@
       const token = ++monsterStatPreview.token;
       render();
 
-      if (!(hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c))) {
+      if (!hasMonsterStatBlock(c) || !hasMonsterFeatureGroups(c)) {
         const changed = await ensureMonsterDataForCard(c);
 
         if (token !== monsterStatPreview.token) return;
@@ -1992,7 +2001,7 @@
       }
     }
 
-    function renderConditionPopover(c) {
+    function renderConditionColumn(c) {
       const chips = [];
       (c.conditions || []).forEach((cond) => {
         const label = cond.duration ? `${cond.name} · ${cond.duration}r` : cond.name;
@@ -2002,11 +2011,15 @@
       if ((c.exhaustionLevel || 0) > 0) {
         chips.push(`<span class="condition-chip exhaustion" title="${esc(CONDITION_INFO_2024.Exhaustion)}">Exhaustion ${c.exhaustionLevel}</span>`);
       }
-      if (!chips.length) return "";
+
+      const body = chips.length
+        ? chips.join("")
+        : `<span class="conditions-none">—</span>`;
+
       return `
-        <div class="condition-pop-wrap" title="Active conditions">
-          <span class="condition-pop-trigger">Cond ${chips.length}</span>
-          <div class="condition-pop-panel">${chips.join("")}</div>
+        <div class="conditions-col" title="Active conditions">
+          <div class="conditions-col-head">Conditions</div>
+          <div class="conditions-inline-list">${body}</div>
         </div>
       `;
     }
@@ -2550,19 +2563,23 @@
                   </div>
 
                   <div class="hp-block">
-                    ${renderMonsterStatHoverControl(c, "active")}
-                    <span class="hp-label">HP:</span>
-                    <input class="tiny-num" type="number" min="0" data-card-field="hpCurrent" data-card-id="${esc(c.id)}" value="${c.hpCurrent}">
-                    <span>/</span>
-                    <input class="tiny-num" type="number" min="0" data-card-field="hpMax" data-card-id="${esc(c.id)}" value="${c.hpMax}">
+                    <div class="hp-stat-slot">${renderMonsterStatHoverControl(c, "active")}</div>
+                    <div class="hp-main-row">
+                      <span class="hp-label">HP:</span>
+                      <input class="tiny-num" type="number" min="0" data-card-field="hpCurrent" data-card-id="${esc(c.id)}" value="${c.hpCurrent}">
+                      <span>/</span>
+                      <input class="tiny-num" type="number" min="0" data-card-field="hpMax" data-card-id="${esc(c.id)}" value="${c.hpMax}">
 
-                    <input class="hp-amount-input" type="number" min="1" step="1" placeholder="1" data-amount-for="${esc(c.id)}">
-                    <div class="hp-buttons">
-                      <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
-                      <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
-                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
+                      <input class="hp-amount-input" type="number" min="1" step="1" placeholder="1" data-amount-for="${esc(c.id)}">
+                      <div class="hp-buttons">
+                        <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
+                        <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
+                        <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
+                      </div>
                     </div>
                   </div>
+
+                  ${renderConditionColumn(c)}
 
                   <div class="card-meta">
                     <div class="card-meta-top">
@@ -2596,7 +2613,6 @@
                           </span>
                         </div>
                       </div>
-                      ${renderConditionPopover(c)}
                       <button class="btn-icon" title="Remove" data-remove-card="${esc(c.id)}">×</button>
                     </div>
                   </div>
@@ -2697,12 +2713,15 @@ function renderLibraryTab() {
                         <div class="card-submeta">${esc(c.sizeType || "—")} · ${esc(c.source || (c.type === "Enemy" ? "Monster Vault" : c.type))}${hasMonsterDetails(c) ? ` · Details ${(c.actions?.length || 0) + (c.bonusActions?.length || 0) + (c.reactions?.length || 0) + (c.legendaryActions?.length || 0)}` : ""}</div>
                       </div>
                       <div class="hp-block">
-                        ${renderMonsterStatHoverControl(c, "library", enc.id)}
-                        <span class="hp-label">HP:</span>
-                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpCurrent" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpCurrent}">
-                        <span>/</span>
-                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpMax" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpMax}">
-                    </div>
+                        <div class="hp-stat-slot">${renderMonsterStatHoverControl(c, "library", enc.id)}</div>
+                        <div class="hp-main-row">
+                          <span class="hp-label">HP:</span>
+                          <input class="tiny-num" type="number" min="0" data-lib-card-field="hpCurrent" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpCurrent}">
+                          <span>/</span>
+                          <input class="tiny-num" type="number" min="0" data-lib-card-field="hpMax" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpMax}">
+                        </div>
+                      </div>
+                      ${renderConditionColumn(c)}
                       <div class="card-meta">
                         <div class="card-meta-top">
                           <div class="meta-init-center">
@@ -2735,8 +2754,7 @@ function renderLibraryTab() {
                               </span>
                             </div>
                           </div>
-                          ${renderConditionPopover(c)}
-                          <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
+                              <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
                         </div>
                       </div>
                     </div>
@@ -3241,8 +3259,8 @@ function renderEditorModal() {
         .card-content {
           flex: 1;
           display: grid;
-          grid-template-columns: minmax(220px,1.55fr) minmax(290px,1.1fr) minmax(136px,0.9fr);
-          grid-template-areas: "name hp meta";
+          grid-template-columns: minmax(220px,1.55fr) minmax(290px,1.1fr) minmax(168px,0.85fr) minmax(136px,0.9fr);
+          grid-template-areas: "name hp cond meta";
           align-items: center;
           column-gap: 8px;
           row-gap: 3px;
@@ -3378,15 +3396,28 @@ function renderEditorModal() {
 
         .hp-block {
           grid-area: hp;
-          position: relative;
-          display: inline-flex;
+          display: grid;
+          grid-template-columns: 86px minmax(0, 1fr);
           align-items: center;
-          justify-content: center;
-          gap: 4px;
+          column-gap: 6px;
           justify-self: start;
           min-width: 0;
-          flex-wrap: wrap;
           margin: 0;
+        }
+
+        .hp-stat-slot {
+          min-height: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+        }
+
+        .hp-main-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
+          flex-wrap: wrap;
         }
 
         .hp-label { font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
@@ -3415,6 +3446,43 @@ function renderEditorModal() {
           white-space: nowrap;
         }
 
+        .conditions-col {
+          grid-area: cond;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-width: 0;
+          gap: 3px;
+          padding: 1px 0;
+        }
+
+        .conditions-col-head {
+          font-size: 0.62rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #91a0ba;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .conditions-inline-list {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: center;
+          gap: 4px;
+          min-height: 18px;
+          max-width: 100%;
+          overflow: hidden;
+        }
+
+        .conditions-none {
+          font-size: 0.72rem;
+          color: #7f8ea8;
+          line-height: 1;
+        }
+
         .card-meta {
           grid-area: meta;
           display: flex;
@@ -3432,62 +3500,19 @@ function renderEditorModal() {
           gap: 8px;
         }
 
-        .condition-pop-wrap {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-        }
-
-        .condition-pop-trigger {
-          font-size: 0.64rem;
-          line-height: 1;
-          padding: 4px 6px;
-          border-radius: 999px;
-          border: 1px solid #3a4760;
-          color: #dce6f7;
-          background: #0b1018;
-          text-transform: uppercase;
-          letter-spacing: .04em;
-          cursor: default;
-          white-space: nowrap;
-        }
-
-        .condition-pop-panel {
-          position: absolute;
-          right: 0;
-          top: calc(100% + 6px);
-          z-index: 12;
-          min-width: 170px;
-          max-width: 260px;
-          border-radius: 10px;
-          border: 1px solid #354055;
-          background: #070c15;
-          box-shadow: 0 10px 24px rgba(0,0,0,0.4);
-          padding: 7px;
-          display: none;
-          flex-wrap: wrap;
-          gap: 5px;
-        }
-
-        .condition-pop-wrap:hover .condition-pop-panel,
-        .condition-pop-wrap:focus-within .condition-pop-panel {
-          display: flex;
-        }
-
         .monster-stat-pop-wrap {
-          position: absolute;
-          left: -92px;
-          top: 50%;
-          transform: translateY(-50%);
           display: inline-flex;
           align-items: center;
-          pointer-events: none;
-          z-index: 4;
+          pointer-events: auto;
+          min-width: 82px;
         }
 
         .monster-stat-hover-trigger {
           pointer-events: auto;
           white-space: nowrap;
+          width: 82px;
+          justify-content: center;
+          text-align: center;
         }
 
         .monster-stat-global-layer {
@@ -4313,6 +4338,7 @@ function renderEditorModal() {
             grid-template-areas:
               "name"
               "hp"
+              "cond"
               "meta";
             row-gap: 6px;
           }
@@ -4322,12 +4348,18 @@ function renderEditorModal() {
           }
           .name-row { justify-content: flex-start; }
           .card-meta { justify-self: flex-start; align-items: flex-start; }
-          .hp-block { justify-self: flex-start; }
-          .monster-stat-pop-wrap {
-            position: static;
-            transform: none;
+          .hp-block {
+            justify-self: flex-start;
+            grid-template-columns: auto 1fr;
+          }
+          .hp-stat-slot {
             margin-right: 2px;
-            pointer-events: auto;
+          }
+          .conditions-col {
+            align-items: flex-start;
+          }
+          .conditions-inline-list {
+            justify-content: flex-start;
           }
           .monster-picker-filters { grid-template-columns: 1fr; }
         }
