@@ -648,6 +648,14 @@
     return isMonsterCombatant(c) && (hasMonsterFeatureGroups(c) || hasMonsterStatBlock(c) || !!c?.sourceMonsterId || !!c?.sourceMonsterName);
   }
 
+  function isVaultImportedMonster(c) {
+    if (!isMonsterCombatant(c)) return false;
+    const linkedId = String(c?.sourceMonsterId || "").trim();
+    if (linkedId) return true;
+    const linkedName = String(c?.sourceMonsterName || "").trim();
+    return !!linkedName;
+  }
+
   function signedInt(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return "0";
@@ -1973,8 +1981,10 @@
       `;
     }
 
-    function renderMonsterStatBlockPanel(c) {
-      if (!isMonsterCombatant(c) || !c.showMonsterStatBlock) return "";
+    function renderMonsterStatBlockContent(c, options = {}) {
+      const title = toPlainText(options.title || "Full Stat Block") || "Full Stat Block";
+      const showTitle = options.showTitle !== false;
+      const emptyMessage = toPlainText(options.emptyMessage || "No full stat block data is available on this monster record.");
 
       const d = c?.details && typeof c.details === "object" ? c.details : {};
       const abilities = d?.abilityScores && typeof d.abilityScores === "object" ? d.abilityScores : {};
@@ -2035,64 +2045,97 @@
 
       if (!hasAnyData) {
         return `
-          <div class="monster-details monster-statblock">
-            <div class="monster-detail-group">
-              <div class="monster-detail-title">Full Stat Block</div>
-              <div class="monster-detail-entry">
-                <span class="monster-detail-text">No full stat block data is available on this monster record.</span>
-              </div>
+          <div class="monster-detail-group">
+            ${showTitle ? `<div class="monster-detail-title">${esc(title)}</div>` : ""}
+            <div class="monster-detail-entry">
+              <span class="monster-detail-text">${esc(emptyMessage)}</span>
             </div>
           </div>
         `;
       }
 
       return `
-        <div class="monster-details monster-statblock">
-          <div class="monster-detail-group">
-            <div class="monster-detail-title">Full Stat Block</div>
-            <div class="monster-stat-core">${coreMeta}</div>
-            ${abilityCells ? `<div class="monster-stat-ability-grid">${abilityCells}</div>` : ""}
-            ${
-              miscRows.length
-                ? `
-              <div class="monster-stat-list">
-                ${miscRows
+        <div class="monster-detail-group">
+          ${showTitle ? `<div class="monster-detail-title">${esc(title)}</div>` : ""}
+          <div class="monster-stat-core">${coreMeta}</div>
+          ${abilityCells ? `<div class="monster-stat-ability-grid">${abilityCells}</div>` : ""}
+          ${
+            miscRows.length
+              ? `
+            <div class="monster-stat-list">
+              ${miscRows
+                .map(
+                  ([k, v]) => `
+                <div class="monster-stat-line">
+                  <span class="monster-stat-k">${esc(k)}</span>
+                  <span class="monster-stat-v">${esc(v)}</span>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          `
+              : ""
+          }
+        </div>
+
+        ${groups
+          .map(
+            (group) => `
+              <div class="monster-detail-group">
+                <div class="monster-detail-title">${esc(group.title)}</div>
+                ${group.entries
                   .map(
-                    ([k, v]) => `
-                  <div class="monster-stat-line">
-                    <span class="monster-stat-k">${esc(k)}</span>
-                    <span class="monster-stat-v">${esc(v)}</span>
-                  </div>
-                `
+                    (entry) => `
+                      <div class="monster-detail-entry">
+                        <span class="monster-detail-name">${esc(toPlainText(entry?.name) || "Feature")}</span>
+                        <span class="monster-detail-text">${esc(toPlainText(entry?.text ?? entry?.description ?? entry))}</span>
+                      </div>
+                    `
                   )
                   .join("")}
               </div>
             `
-                : ""
-            }
-          </div>
+          )
+          .join("")}
+      `;
+    }
 
-          ${groups
-            .map(
-              (group) => `
-                <div class="monster-detail-group">
-                  <div class="monster-detail-title">${esc(group.title)}</div>
-                  ${group.entries
-                    .map(
-                      (entry) => `
-                        <div class="monster-detail-entry">
-                          <span class="monster-detail-name">${esc(toPlainText(entry?.name) || "Feature")}</span>
-                          <span class="monster-detail-text">${esc(toPlainText(entry?.text ?? entry?.description ?? entry))}</span>
-                        </div>
-                      `
-                    )
-                    .join("")}
-                </div>
-              `
-            )
-            .join("")}
+    function renderMonsterStatHoverControl(c, scope = "active", encounterId = null) {
+      if (!isVaultImportedMonster(c)) return "";
+      const hasData = hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c);
+
+      const panelInner = hasData
+        ? renderMonsterStatBlockContent(c, { title: "Stat Block" })
+        : `
+          <div class="monster-detail-group">
+            <div class="monster-detail-title">Stat Block</div>
+            <div class="monster-detail-entry">
+              <span class="monster-detail-text">Loading from Monster Vault…</span>
+            </div>
+          </div>
+        `;
+
+      return `
+        <div class="monster-stat-pop-wrap">
+          <button
+            class="btn btn-secondary btn-xs"
+            type="button"
+            data-hover-monster-stat="${esc(c.id)}"
+            data-hover-scope="${esc(scope)}"
+            ${encounterId ? `data-lib-enc-id="${esc(encounterId)}"` : ""}
+            title="Hover to preview full stat block"
+          >Stat Block</button>
+          <div class="monster-stat-pop-panel">
+            <div class="monster-stat-pop-inner">${panelInner}</div>
+          </div>
         </div>
       `;
+    }
+
+    function renderMonsterStatBlockPanel(c) {
+      if (!isMonsterCombatant(c) || !c.showMonsterStatBlock) return "";
+      return `<div class="monster-details monster-statblock">${renderMonsterStatBlockContent(c, { title: "Full Stat Block" })}</div>`;
     }
 
     function renderConditionEditorModal() {
@@ -2408,6 +2451,7 @@
                   </div>
 
                   <div class="hp-block">
+                    ${renderMonsterStatHoverControl(c, "active")}
                     <span class="hp-label">HP:</span>
                     <input class="tiny-num" type="number" min="0" data-card-field="hpCurrent" data-card-id="${esc(c.id)}" value="${c.hpCurrent}">
                     <span>/</span>
@@ -2418,13 +2462,8 @@
                       <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
                       <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
                       <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
-                      ${isMonsterCombatant(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="active">${c.showMonsterDetails ? "Hide Details" : "Details"}</button>` : ""}
-                      ${isMonsterCombatant(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-statblock="${esc(c.id)}" data-toggle-scope="active">${c.showMonsterStatBlock ? "Hide Block" : "Stat Block"}</button>` : ""}
                     </div>
                   </div>
-
-                  ${renderMonsterDetailsPanel(c)}
-                  ${renderMonsterStatBlockPanel(c)}
 
                   <div class="card-meta">
                     <div class="card-meta-top">
@@ -2559,14 +2598,11 @@ function renderLibraryTab() {
                         <div class="card-submeta">${esc(c.sizeType || "—")} · ${esc(c.source || (c.type === "Enemy" ? "Monster Vault" : c.type))}${hasMonsterDetails(c) ? ` · Details ${(c.actions?.length || 0) + (c.bonusActions?.length || 0) + (c.reactions?.length || 0) + (c.legendaryActions?.length || 0)}` : ""}</div>
                       </div>
                       <div class="hp-block">
+                        ${renderMonsterStatHoverControl(c, "library", enc.id)}
                         <span class="hp-label">HP:</span>
                         <input class="tiny-num" type="number" min="0" data-lib-card-field="hpCurrent" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpCurrent}">
                         <span>/</span>
                         <input class="tiny-num" type="number" min="0" data-lib-card-field="hpMax" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpMax}">
-                                            <div class="hp-buttons">
-                        ${isMonsterCombatant(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="library" data-lib-enc-id="${esc(enc.id)}">${c.showMonsterDetails ? "Hide Details" : "Details"}</button>` : ""}
-                        ${isMonsterCombatant(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-statblock="${esc(c.id)}" data-toggle-scope="library" data-lib-enc-id="${esc(enc.id)}">${c.showMonsterStatBlock ? "Hide Block" : "Stat Block"}</button>` : ""}
-                      </div>
                     </div>
                       <div class="card-meta">
                         <div class="card-meta-top">
@@ -2604,10 +2640,6 @@ function renderLibraryTab() {
                           <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
                         </div>
                       </div>
-
-                      ${renderMonsterDetailsPanel(c)}
-
-                      ${renderMonsterStatBlockPanel(c)}
                     </div>
                   </div>
                 </div>
@@ -3340,6 +3372,39 @@ function renderEditorModal() {
         .condition-pop-wrap:hover .condition-pop-panel,
         .condition-pop-wrap:focus-within .condition-pop-panel {
           display: flex;
+        }
+
+        .monster-stat-pop-wrap {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          margin-right: 2px;
+        }
+
+        .monster-stat-pop-panel {
+          position: absolute;
+          left: 0;
+          top: calc(100% + 6px);
+          z-index: 28;
+          width: min(620px, 82vw);
+          max-height: 68vh;
+          overflow: auto;
+          border-radius: 10px;
+          border: 1px solid #354055;
+          background: #070c15;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+          padding: 8px;
+          display: none;
+        }
+
+        .monster-stat-pop-inner {
+          display: grid;
+          gap: 8px;
+        }
+
+        .monster-stat-pop-wrap:hover .monster-stat-pop-panel,
+        .monster-stat-pop-wrap:focus-within .monster-stat-pop-panel {
+          display: block;
         }
 
         .meta-k {
@@ -4598,6 +4663,39 @@ function renderEditorModal() {
       });
 
       bindInlineEditEvents();
+
+      shadow.querySelectorAll("[data-hover-monster-stat]").forEach((btn) => {
+        const hydrate = async () => {
+          const scope = btn.getAttribute("data-hover-scope") || "active";
+          const cardId = btn.getAttribute("data-hover-monster-stat");
+          if (!cardId) return;
+          if (btn.dataset.loading === "1") return;
+
+          const findCard = () => {
+            if (scope === "library") {
+              const encId = btn.getAttribute("data-lib-enc-id");
+              const enc = state.library.find((e) => e.id === encId);
+              return enc?.combatants?.find((x) => x.id === cardId) || null;
+            }
+            return state.activeCombatants.find((x) => x.id === cardId) || null;
+          };
+
+          const c = findCard();
+          if (!c || !isVaultImportedMonster(c)) return;
+          if (hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c)) return;
+
+          btn.dataset.loading = "1";
+          try {
+            const changed = await ensureMonsterDataForCard(c);
+            if (changed) persistAndRender();
+          } finally {
+            btn.dataset.loading = "";
+          }
+        };
+
+        btn.addEventListener("mouseenter", hydrate);
+        btn.addEventListener("focus", hydrate);
+      });
 
       shadow.querySelectorAll("[data-toggle-monster-details]").forEach((btn) => {
         btn.addEventListener("click", async () => {
