@@ -206,6 +206,37 @@
     return /^data:image\//i.test(s) ? s : "";
   }
 
+  let monsterVaultIndexCache = [];
+
+  function monsterTextValue(value, depth = 0) {
+    if (value == null) return "";
+    if (depth > 5) return "";
+    if (typeof value === "string") {
+      const s = value.trim();
+      if (!s || /^\[object Object\]$/i.test(s)) return "";
+      return s;
+    }
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => monsterTextValue(v, depth + 1))
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (typeof value === "object") {
+      const parts = Object.entries(value)
+        .map(([k, v]) => {
+          const inner = monsterTextValue(v, depth + 1);
+          if (!inner) return "";
+          const key = String(k || "").replace(/_/g, " ").trim();
+          return key ? `${key}: ${inner}` : inner;
+        })
+        .filter(Boolean);
+      return parts.join(", ");
+    }
+    return String(value).trim();
+  }
+
   function monsterVaultApi() {
     const api = window.VrahuneMonsterVault;
     if (!api || typeof api !== "object") return null;
@@ -221,12 +252,8 @@
     const api = monsterVaultApi();
     if (!api) return [];
 
-    if (
-      !forceRefresh &&
-      Array.isArray(monsterPicker?.cachedList) &&
-      monsterPicker.cachedList.length
-    ) {
-      return monsterPicker.cachedList;
+    if (!forceRefresh && Array.isArray(monsterVaultIndexCache) && monsterVaultIndexCache.length) {
+      return monsterVaultIndexCache;
     }
 
     let mons = [];
@@ -259,10 +286,7 @@
       }))
       .filter((m) => m.id);
 
-    if (monsterPicker) {
-      monsterPicker.cachedList = normalized;
-    }
-
+    monsterVaultIndexCache = normalized;
     return normalized;
   }
 
@@ -298,8 +322,12 @@
     const normalizeFeatures = (list) =>
       (Array.isArray(list) ? list : [])
         .map((entry) => {
-          const name = String(entry?.name || "").trim();
-          const text = String(entry?.text || entry?.description || "").trim();
+          if (typeof entry === "string") {
+            const textOnly = monsterTextValue(entry);
+            return textOnly ? { name: "Feature", text: textOnly } : null;
+          }
+          const name = monsterTextValue(entry?.name).trim();
+          const text = monsterTextValue(entry?.text ?? entry?.description).trim();
           if (!name && !text) return null;
           return { name: name || "Feature", text };
         })
@@ -3183,7 +3211,7 @@ function renderEditorModal() {
           color: var(--text-muted);
         }
 
-        @media (max-width: 860px) {
+        @media (max-width: 640px) {
           .card-content {
             grid-template-columns: 1fr;
             grid-template-areas:
