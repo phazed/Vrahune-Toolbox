@@ -65,16 +65,30 @@
 
   function flattenText(value, depth = 0) {
     if (value == null) return "";
-    if (depth > 4) return "";
+    if (depth > 6) return "";
 
-    if (typeof value === "string") return value.trim();
+    if (typeof value === "string") {
+      const s = value.trim();
+      if (!s) return "";
+      if (/^\[object Object\](,\s*\[object Object\])*$/i.test(s)) return "";
+      if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) {
+        try {
+          return flattenText(JSON.parse(s), depth + 1);
+        } catch (_) {
+          // keep original string if not valid JSON
+        }
+      }
+      return s;
+    }
+
     if (typeof value === "number" || typeof value === "boolean") return String(value);
 
     if (Array.isArray(value)) {
-      return value
+      const joined = value
         .map((v) => flattenText(v, depth + 1))
         .filter(Boolean)
         .join(", ");
+      return joined;
     }
 
     if (typeof value === "object") {
@@ -90,6 +104,104 @@
     }
 
     return String(value).trim();
+  }
+
+  const SAVE_KEY_MAP = {
+    str: "Str",
+    strength: "Str",
+    dex: "Dex",
+    dexterity: "Dex",
+    con: "Con",
+    constitution: "Con",
+    int: "Int",
+    intelligence: "Int",
+    wis: "Wis",
+    wisdom: "Wis",
+    cha: "Cha",
+    charisma: "Cha"
+  };
+
+  function normalizeSaveKey(rawKey) {
+    const key = String(rawKey || "")
+      .toLowerCase()
+      .replace(/saving throw|save|throws?/g, "")
+      .replace(/[^a-z]/g, "")
+      .trim();
+    return SAVE_KEY_MAP[key] || "";
+  }
+
+  function formatModifier(raw) {
+    if (raw == null) return "";
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw >= 0 ? `+${raw}` : String(raw);
+    }
+    if (typeof raw === "string") {
+      const s = raw.trim();
+      if (!s || /^\[object Object\]$/i.test(s)) return "";
+      if (/^[+-]?\d+$/.test(s)) {
+        const n = Number(s);
+        return n >= 0 ? `+${n}` : String(n);
+      }
+      return s;
+    }
+    if (typeof raw === "object") {
+      const candidate = raw.modifier ?? raw.mod ?? raw.bonus ?? raw.value ?? raw.total ?? raw.score;
+      if (candidate != null) return formatModifier(candidate);
+    }
+    return flattenText(raw);
+  }
+
+  function formatSavingThrows(value) {
+    if (value == null) return "";
+
+    if (typeof value === "string") {
+      const s = value.trim();
+      if (!s || /^\[object Object\](,\s*\[object Object\])*$/i.test(s)) return "";
+      if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) {
+        try {
+          return formatSavingThrows(JSON.parse(s));
+        } catch (_) {
+          // fall through
+        }
+      }
+      return s;
+    }
+
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((item) => {
+          if (item == null) return "";
+          if (typeof item === "string") return item.trim();
+          if (typeof item === "number") return formatModifier(item);
+          if (typeof item === "object") {
+            const rawKey = item.ability || item.ability_score?.name || item.name || item.proficiency?.name || item.key || item.save;
+            const key = normalizeSaveKey(rawKey);
+            const mod = formatModifier(item.value ?? item.modifier ?? item.mod ?? item.bonus ?? item.total ?? item.score);
+            if (key && mod) return `${key} ${mod}`;
+            if (key) return key;
+            return flattenText(item);
+          }
+          return flattenText(item);
+        })
+        .filter(Boolean);
+      return parts.join(", ");
+    }
+
+    if (typeof value === "object") {
+      const keys = Object.keys(value);
+      const mapped = keys
+        .map((k) => {
+          const key = normalizeSaveKey(k);
+          if (!key) return "";
+          const mod = formatModifier(value[k]);
+          return mod ? `${key} ${mod}` : "";
+        })
+        .filter(Boolean);
+      if (mapped.length) return mapped.join(", ");
+      return flattenText(value);
+    }
+
+    return flattenText(value);
   }
 
   function clamp(n, min, max) {
@@ -245,7 +357,7 @@
           ? null
           : clamp(intOr(details.proficiencyBonus ?? details.pb, 2), 0, 20),
       abilityScores: normalizeAbilities(abilitiesSource),
-      savingThrows: flattenText(details.savingThrows ?? details.saves),
+      savingThrows: formatSavingThrows(details.savingThrows ?? details.saves),
       skills: flattenText(details.skills),
       damageVulnerabilities: flattenText(details.damageVulnerabilities ?? details.vulnerabilities),
       damageResistances: flattenText(details.damageResistances ?? details.resistances),
@@ -545,7 +657,7 @@
         wis: raw.wisdom ?? raw.wis,
         cha: raw.charisma ?? raw.cha
       }),
-      savingThrows: flattenText(raw.saving_throws ?? raw.saves ?? raw.proficiencies),
+      savingThrows: formatSavingThrows(raw.saving_throws ?? raw.saves ?? raw.proficiencies),
       skills: flattenText(raw.skills),
       damageVulnerabilities: flattenText(raw.damage_vulnerabilities),
       damageResistances: flattenText(raw.damage_resistances),
