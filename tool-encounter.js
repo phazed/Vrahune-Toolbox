@@ -522,7 +522,16 @@
               (details?.legendaryActions?.length || 0));
 
           return {
-            id: String(m.id || ""),
+            id: String(
+  m?.id ||
+  m?.index ||
+  m?.slug ||
+  m?.monsterId ||
+  m?.monster_id ||
+  (typeof m?.url === "string" ? m.url.split("/").filter(Boolean).pop() : "") ||
+  ""
+).trim(),
+
             name: String(m.name || "Unnamed Monster"),
             type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
             cr: normalizeCR(m.cr, "1/8"),
