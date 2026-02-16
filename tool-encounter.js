@@ -1203,11 +1203,89 @@
       source: "all"
     };
 
+    const monsterStatPreview = {
+      open: false,
+      scope: "active",
+      cardId: null,
+      encounterId: null,
+      hideTimer: null,
+      hoverPanel: false,
+      token: 0
+    };
+
+    function clearMonsterStatPreviewHideTimer() {
+      if (monsterStatPreview.hideTimer) {
+        clearTimeout(monsterStatPreview.hideTimer);
+        monsterStatPreview.hideTimer = null;
+      }
+    }
+
+    function getScopedCombatant(scope, cardId, encounterId = null) {
+      if (!cardId) return null;
+      if (scope === "library") {
+        const enc = state.library.find((e) => e.id === encounterId);
+        return enc?.combatants?.find((x) => x.id === cardId) || null;
+      }
+      return state.activeCombatants.find((x) => x.id === cardId) || null;
+    }
+
+    function closeMonsterStatPreview({ immediate = false } = {}) {
+      clearMonsterStatPreviewHideTimer();
+
+      const applyClose = () => {
+        if (!monsterStatPreview.open) return;
+        monsterStatPreview.open = false;
+        monsterStatPreview.hoverPanel = false;
+        render();
+      };
+
+      if (immediate) {
+        applyClose();
+        return;
+      }
+
+      monsterStatPreview.hideTimer = setTimeout(() => {
+        if (monsterStatPreview.hoverPanel) return;
+        applyClose();
+      }, 110);
+    }
+
+    async function openMonsterStatPreview(scope, cardId, encounterId = null) {
+      if (!cardId) return;
+      clearMonsterStatPreviewHideTimer();
+
+      const c = getScopedCombatant(scope, cardId, encounterId);
+      if (!c || !isVaultImportedMonster(c)) {
+        closeMonsterStatPreview({ immediate: true });
+        return;
+      }
+
+      monsterStatPreview.scope = scope === "library" ? "library" : "active";
+      monsterStatPreview.cardId = cardId;
+      monsterStatPreview.encounterId = encounterId || null;
+      monsterStatPreview.open = true;
+
+      const token = ++monsterStatPreview.token;
+      render();
+
+      if (!(hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c))) {
+        const changed = await ensureMonsterDataForCard(c);
+
+        if (token !== monsterStatPreview.token) return;
+
+        if (changed) {
+          saveState(state);
+        }
+        render();
+      }
+    }
+
     encounterUiRefreshHook = () => {
       if (monsterPicker.open) render();
     };
 
     function openMonsterPicker(scope, encounterId = null) {
+      closeMonsterStatPreview({ immediate: true });
       monsterPicker.open = true;
       monsterPicker.scope = scope === "library" ? "library" : "active";
       monsterPicker.encounterId = encounterId || null;
@@ -1981,132 +2059,155 @@
       `;
     }
 
+    function renderVaultFeatureList(label, list) {
+      const arr = normalizeFeatureEntries(list);
+      if (!arr.length) return "";
+
+      return `
+        <div class="mv-detail-section">
+          <div class="mv-detail-heading">${esc(label)} (${arr.length})</div>
+          <ul class="mv-feature-list">
+            ${arr
+              .map((f) => {
+                const name = String(f?.name || "Feature").trim();
+                const body = toPlainText(f?.text ?? f?.description ?? f).trim();
+                if (!body) return "";
+                return `<li><b>${esc(name)}.</b> ${esc(body)}</li>`;
+              })
+              .join("")}
+          </ul>
+        </div>
+      `;
+    }
+
     function renderMonsterStatBlockContent(c, options = {}) {
-      const title = toPlainText(options.title || "Full Stat Block") || "Full Stat Block";
       const showTitle = options.showTitle !== false;
+      const title = toPlainText(options.title || "Stat Block") || "Stat Block";
       const emptyMessage = toPlainText(options.emptyMessage || "No full stat block data is available on this monster record.");
 
       const d = c?.details && typeof c.details === "object" ? c.details : {};
-      const abilities = d?.abilityScores && typeof d.abilityScores === "object" ? d.abilityScores : {};
-      const abilityKeys = ["str", "dex", "con", "int", "wis", "cha"];
-
-      const abilityCells = abilityKeys
-        .map((key) => {
-          const raw = Number(abilities[key]);
-          if (!Number.isFinite(raw)) return "";
-          const score = clamp(Math.trunc(raw), 1, 30);
-          const mod = abilityMod(score);
-          return `
-            <div class="monster-stat-ability-cell">
-              <span class="monster-stat-ability-key">${key.toUpperCase()}</span>
-              <span class="monster-stat-ability-score">${score}</span>
-              <span class="monster-stat-ability-mod">(${signedInt(mod)})</span>
-            </div>
-          `;
-        })
-        .filter(Boolean)
-        .join("");
+      const baseAbilities = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+      const srcAbilities = d?.abilityScores && typeof d.abilityScores === "object" ? d.abilityScores : {};
+      const hasAbilityScoresFromSource = ["str", "dex", "con", "int", "wis", "cha"].some((k) => Number.isFinite(Number(srcAbilities[k])));
+      const a = {
+        str: intOr(srcAbilities.str, baseAbilities.str),
+        dex: intOr(srcAbilities.dex, baseAbilities.dex),
+        con: intOr(srcAbilities.con, baseAbilities.con),
+        int: intOr(srcAbilities.int, baseAbilities.int),
+        wis: intOr(srcAbilities.wis, baseAbilities.wis),
+        cha: intOr(srcAbilities.cha, baseAbilities.cha)
+      };
 
       const miscRows = [
         ["Saving Throws", d.savingThrows],
         ["Skills", d.skills],
-        ["Damage Vulnerabilities", d.damageVulnerabilities],
-        ["Damage Resistances", d.damageResistances],
-        ["Damage Immunities", d.damageImmunities],
+        ["Vulnerabilities", d.damageVulnerabilities],
+        ["Resistances", d.damageResistances],
+        ["Immunities", d.damageImmunities],
         ["Condition Immunities", d.conditionImmunities],
         ["Senses", d.senses],
         ["Languages", d.languages],
-        ["Challenge", d.challengeNote]
+        ["Challenge Notes", d.challengeNote]
       ]
-        .map(([k, v]) => [k, toPlainText(v).trim()])
+        .map(([k, v]) => [k, toPlainText(v)])
         .filter(([, v]) => v);
 
-      const groups = [
-        { title: "Traits", entries: normalizeFeatureEntries(d.traits || c.traits) },
-        { title: "Actions", entries: normalizeFeatureEntries(d.actions || c.actions) },
-        { title: "Bonus Actions", entries: normalizeFeatureEntries(d.bonusActions || c.bonusActions) },
-        { title: "Reactions", entries: normalizeFeatureEntries(d.reactions || c.reactions) },
-        { title: "Legendary Actions", entries: normalizeFeatureEntries(d.legendaryActions || c.legendaryActions) }
-      ].filter((g) => g.entries.length);
+      const traits = d.traits || c?.traits || [];
+      const actions = d.actions || c?.actions || [];
+      const bonusActions = d.bonusActions || c?.bonusActions || [];
+      const reactions = d.reactions || c?.reactions || [];
+      const legendaryActions = d.legendaryActions || c?.legendaryActions || [];
 
-      const coreMeta = [
-        `AC ${Math.max(0, intOr(c.ac, 0))}`,
-        `HP ${Math.max(0, intOr(c.hpCurrent, 0))}/${Math.max(0, intOr(c.hpMax, 0))}`,
-        `Speed ${Math.max(0, intOr(c.speed, 0))} ft`,
-        `CR ${normalizeCR(c.cr, "0")}`,
-        c.xp > 0 ? `XP ${intOr(c.xp, 0).toLocaleString()}` : "",
-        d.proficiencyBonus != null ? `PB ${signedInt(d.proficiencyBonus)}` : ""
-      ]
-        .filter(Boolean)
-        .map((item) => `<span class="monster-stat-core-pill">${esc(item)}</span>`)
-        .join("");
+      const actionCount =
+        (Array.isArray(actions) ? actions.length : 0) +
+        (Array.isArray(bonusActions) ? bonusActions.length : 0) +
+        (Array.isArray(reactions) ? reactions.length : 0) +
+        (Array.isArray(legendaryActions) ? legendaryActions.length : 0);
 
-      const hasAnyData = !!coreMeta || !!abilityCells || miscRows.length || groups.length;
+      const hasAnyData =
+        hasMonsterStatBlock(c) ||
+        hasMonsterFeatureGroups(c) ||
+        miscRows.length > 0 ||
+        d.proficiencyBonus != null ||
+        hasAbilityScoresFromSource;
 
       if (!hasAnyData) {
         return `
           <div class="monster-detail-group">
             ${showTitle ? `<div class="monster-detail-title">${esc(title)}</div>` : ""}
-            <div class="monster-detail-entry">
-              <span class="monster-detail-text">${esc(emptyMessage)}</span>
-            </div>
+            <div class="monster-detail-entry"><span class="monster-detail-text">${esc(emptyMessage)}</span></div>
           </div>
         `;
       }
 
       return `
-        <div class="monster-detail-group">
-          ${showTitle ? `<div class="monster-detail-title">${esc(title)}</div>` : ""}
-          <div class="monster-stat-core">${coreMeta}</div>
-          ${abilityCells ? `<div class="monster-stat-ability-grid">${abilityCells}</div>` : ""}
+        ${showTitle ? `<div class="monster-detail-title">${esc(title)}</div>` : ""}
+        <div class="mv-details">
+          <div class="mv-details-grid">
+            <div class="mv-statline"><span>STR</span><b>${intOr(a.str, 10)}</b></div>
+            <div class="mv-statline"><span>DEX</span><b>${intOr(a.dex, 10)}</b></div>
+            <div class="mv-statline"><span>CON</span><b>${intOr(a.con, 10)}</b></div>
+            <div class="mv-statline"><span>INT</span><b>${intOr(a.int, 10)}</b></div>
+            <div class="mv-statline"><span>WIS</span><b>${intOr(a.wis, 10)}</b></div>
+            <div class="mv-statline"><span>CHA</span><b>${intOr(a.cha, 10)}</b></div>
+            <div class="mv-statline"><span>PB</span><b>${d.proficiencyBonus == null ? "—" : signedInt(d.proficiencyBonus)}</b></div>
+            <div class="mv-statline"><span>XP</span><b>${Number(c?.xp || 0).toLocaleString()}</b></div>
+          </div>
+
+          ${miscRows.length
+            ? `<div class="mv-detail-lines">${miscRows
+                .map(([k, v]) => `<div class="mv-detail-line"><span>${esc(k)}</span><b>${esc(v)}</b></div>`)
+                .join("")}</div>`
+            : ""}
+
+          ${renderVaultFeatureList("Traits", traits)}
+
           ${
-            miscRows.length
+            actionCount
               ? `
-            <div class="monster-stat-list">
-              ${miscRows
-                .map(
-                  ([k, v]) => `
-                <div class="monster-stat-line">
-                  <span class="monster-stat-k">${esc(k)}</span>
-                  <span class="monster-stat-v">${esc(v)}</span>
-                </div>
-              `
-                )
-                .join("")}
-            </div>
+            ${renderVaultFeatureList("Actions", actions)}
+            ${renderVaultFeatureList("Bonus Actions", bonusActions)}
+            ${renderVaultFeatureList("Reactions", reactions)}
+            ${renderVaultFeatureList("Legendary Actions", legendaryActions)}
           `
-              : ""
+              : `<div class="mv-muted" style="margin-top:4px;">No actions recorded for this entry yet. Add them in homebrew editor to use attack/details toggles in encounter cards.</div>`
           }
         </div>
-
-        ${groups
-          .map(
-            (group) => `
-              <div class="monster-detail-group">
-                <div class="monster-detail-title">${esc(group.title)}</div>
-                ${group.entries
-                  .map(
-                    (entry) => `
-                      <div class="monster-detail-entry">
-                        <span class="monster-detail-name">${esc(toPlainText(entry?.name) || "Feature")}</span>
-                        <span class="monster-detail-text">${esc(toPlainText(entry?.text ?? entry?.description ?? entry))}</span>
-                      </div>
-                    `
-                  )
-                  .join("")}
-              </div>
-            `
-          )
-          .join("")}
       `;
     }
 
     function renderMonsterStatHoverControl(c, scope = "active", encounterId = null) {
       if (!isVaultImportedMonster(c)) return "";
-      const hasData = hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c);
+      return `
+        <div class="monster-stat-pop-wrap">
+          <button
+            class="btn btn-secondary btn-xs monster-stat-hover-trigger"
+            type="button"
+            data-hover-monster-stat="${esc(c.id)}"
+            data-hover-scope="${esc(scope)}"
+            ${encounterId ? `data-lib-enc-id="${esc(encounterId)}"` : ""}
+            title="Hover to preview full stat block"
+          >Stat Block</button>
+        </div>
+      `;
+    }
 
-      const panelInner = hasData
-        ? renderMonsterStatBlockContent(c, { title: "Stat Block" })
+    function renderGlobalMonsterStatPreview() {
+      if (!monsterStatPreview.open || !monsterStatPreview.cardId) return "";
+
+      const c = getScopedCombatant(monsterStatPreview.scope, monsterStatPreview.cardId, monsterStatPreview.encounterId);
+      if (!c || !isVaultImportedMonster(c)) return "";
+
+      const hasData = hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c);
+      const headerMeta = [
+        `CR ${normalizeCR(c.cr, "0")}`,
+        `AC ${Math.max(0, intOr(c.ac, 0))}`,
+        `HP ${Math.max(0, intOr(c.hpCurrent, 0))}/${Math.max(0, intOr(c.hpMax, 0))}`,
+        `Spd ${Math.max(0, intOr(c.speed, 0))}`
+      ].join(" · ");
+
+      const body = hasData
+        ? renderMonsterStatBlockContent(c, { showTitle: false })
         : `
           <div class="monster-detail-group">
             <div class="monster-detail-title">Stat Block</div>
@@ -2117,17 +2218,15 @@
         `;
 
       return `
-        <div class="monster-stat-pop-wrap">
-          <button
-            class="btn btn-secondary btn-xs"
-            type="button"
-            data-hover-monster-stat="${esc(c.id)}"
-            data-hover-scope="${esc(scope)}"
-            ${encounterId ? `data-lib-enc-id="${esc(encounterId)}"` : ""}
-            title="Hover to preview full stat block"
-          >Stat Block</button>
-          <div class="monster-stat-pop-panel">
-            <div class="monster-stat-pop-inner">${panelInner}</div>
+        <div class="monster-stat-global-layer" data-monster-stat-global-layer>
+          <div class="monster-stat-global-panel" data-monster-stat-global-panel tabindex="0">
+            <div class="monster-stat-global-header">
+              <div class="monster-stat-global-name">${esc(c.name || "Monster")}</div>
+              <div class="monster-stat-global-meta">${esc(headerMeta)}</div>
+            </div>
+            <div class="monster-stat-global-body">
+              ${body}
+            </div>
           </div>
         </div>
       `;
@@ -3279,6 +3378,7 @@ function renderEditorModal() {
 
         .hp-block {
           grid-area: hp;
+          position: relative;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -3375,36 +3475,67 @@ function renderEditorModal() {
         }
 
         .monster-stat-pop-wrap {
-          position: relative;
+          position: absolute;
+          left: -92px;
+          top: 50%;
+          transform: translateY(-50%);
           display: inline-flex;
           align-items: center;
-          margin-right: 2px;
+          pointer-events: none;
+          z-index: 4;
         }
 
-        .monster-stat-pop-panel {
-          position: absolute;
-          left: 0;
-          top: calc(100% + 6px);
-          z-index: 28;
-          width: min(620px, 82vw);
-          max-height: 68vh;
+        .monster-stat-hover-trigger {
+          pointer-events: auto;
+          white-space: nowrap;
+        }
+
+        .monster-stat-global-layer {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          pointer-events: none;
+        }
+
+        .monster-stat-global-panel {
+          width: min(960px, 94vw);
+          max-height: min(86vh, 920px);
+          border-radius: 12px;
+          border: 1px solid #3a4560;
+          background: #060b14;
+          box-shadow: 0 18px 44px rgba(0,0,0,0.62);
           overflow: auto;
-          border-radius: 10px;
-          border: 1px solid #354055;
-          background: #070c15;
-          box-shadow: 0 10px 24px rgba(0,0,0,0.45);
-          padding: 8px;
-          display: none;
-        }
-
-        .monster-stat-pop-inner {
+          pointer-events: auto;
           display: grid;
           gap: 8px;
+          padding: 10px 12px;
         }
 
-        .monster-stat-pop-wrap:hover .monster-stat-pop-panel,
-        .monster-stat-pop-wrap:focus-within .monster-stat-pop-panel {
-          display: block;
+        .monster-stat-global-header {
+          border-bottom: 1px solid #25324a;
+          padding-bottom: 6px;
+          margin-bottom: 2px;
+        }
+
+        .monster-stat-global-name {
+          font-size: 1.02rem;
+          font-weight: 700;
+          color: #edf3ff;
+        }
+
+        .monster-stat-global-meta {
+          margin-top: 2px;
+          font-size: 0.74rem;
+          color: #9db0d4;
+        }
+
+        .monster-stat-global-body {
+          display: grid;
+          gap: 8px;
         }
 
         .meta-k {
@@ -3508,6 +3639,112 @@ function renderEditorModal() {
 
         .monster-detail-text {
           color: #c7d0de;
+        }
+
+
+        /* Monster Vault detail styling (kept 1:1 with vault detail panel) */
+        .mv-details {
+          border-top: 1px solid #28354d;
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+          background: linear-gradient(180deg, rgba(8, 13, 21, .8), rgba(8, 13, 21, .35));
+        }
+
+        .mv-details-grid {
+          display: grid;
+          gap: 6px;
+          grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+
+        .mv-statline {
+          border: 1px solid #2c3950;
+          border-radius: 7px;
+          padding: 4px 5px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: #0a111d;
+        }
+
+        .mv-statline span {
+          font-size: .62rem;
+          color: #94aad6;
+          letter-spacing: .03em;
+          text-transform: uppercase;
+        }
+
+        .mv-statline b {
+          font-size: .76rem;
+          color: #eef4ff;
+        }
+
+        .mv-detail-lines {
+          display: grid;
+          gap: 4px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mv-detail-line {
+          border: 1px solid #253248;
+          border-radius: 7px;
+          background: #0a1019;
+          padding: 4px 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+
+        .mv-detail-line span {
+          font-size: .63rem;
+          color: #8ea2c8;
+          text-transform: uppercase;
+          letter-spacing: .03em;
+        }
+
+        .mv-detail-line b {
+          font-size: .71rem;
+          color: #dfe9ff;
+          font-weight: 560;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .mv-detail-section {
+          border: 1px solid #253248;
+          border-radius: 8px;
+          padding: 6px 7px;
+          background: #090f18;
+        }
+
+        .mv-detail-heading {
+          font-size: .68rem;
+          color: #9eb2d8;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+          margin-bottom: 4px;
+        }
+
+        .mv-feature-list {
+          margin: 0;
+          padding-left: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .mv-feature-list li {
+          font-size: .74rem;
+          color: #dbe4f7;
+          line-height: 1.35;
+        }
+
+        .mv-muted {
+          font-size: .72rem;
+          color: #9eb2d8;
+          line-height: 1.35;
         }
 
         .monster-details.monster-statblock {
@@ -4086,6 +4323,12 @@ function renderEditorModal() {
           .name-row { justify-content: flex-start; }
           .card-meta { justify-self: flex-start; align-items: flex-start; }
           .hp-block { justify-self: flex-start; }
+          .monster-stat-pop-wrap {
+            position: static;
+            transform: none;
+            margin-right: 2px;
+            pointer-events: auto;
+          }
           .monster-picker-filters { grid-template-columns: 1fr; }
         }
 
@@ -4116,6 +4359,7 @@ function renderEditorModal() {
       ${renderPortraitEditorModal()}
       ${renderConditionEditorModal()}
       ${renderMonsterVaultPickerModal()}
+      ${renderGlobalMonsterStatPreview()}
       `;
     }
 
@@ -4665,37 +4909,44 @@ function renderEditorModal() {
       bindInlineEditEvents();
 
       shadow.querySelectorAll("[data-hover-monster-stat]").forEach((btn) => {
-        const hydrate = async () => {
-          const scope = btn.getAttribute("data-hover-scope") || "active";
-          const cardId = btn.getAttribute("data-hover-monster-stat");
-          if (!cardId) return;
-          if (btn.dataset.loading === "1") return;
+        const scope = btn.getAttribute("data-hover-scope") || "active";
+        const cardId = btn.getAttribute("data-hover-monster-stat");
+        const encId = btn.getAttribute("data-lib-enc-id");
 
-          const findCard = () => {
-            if (scope === "library") {
-              const encId = btn.getAttribute("data-lib-enc-id");
-              const enc = state.library.find((e) => e.id === encId);
-              return enc?.combatants?.find((x) => x.id === cardId) || null;
-            }
-            return state.activeCombatants.find((x) => x.id === cardId) || null;
-          };
+        btn.addEventListener("mouseenter", () => {
+          monsterStatPreview.hoverPanel = false;
+          openMonsterStatPreview(scope, cardId, encId);
+        });
 
-          const c = findCard();
-          if (!c || !isVaultImportedMonster(c)) return;
-          if (hasMonsterStatBlock(c) || hasMonsterFeatureGroups(c)) return;
+        btn.addEventListener("focus", () => {
+          monsterStatPreview.hoverPanel = false;
+          openMonsterStatPreview(scope, cardId, encId);
+        });
 
-          btn.dataset.loading = "1";
-          try {
-            const changed = await ensureMonsterDataForCard(c);
-            if (changed) persistAndRender();
-          } finally {
-            btn.dataset.loading = "";
-          }
-        };
-
-        btn.addEventListener("mouseenter", hydrate);
-        btn.addEventListener("focus", hydrate);
+        btn.addEventListener("mouseleave", () => closeMonsterStatPreview());
+        btn.addEventListener("blur", () => closeMonsterStatPreview());
       });
+
+      const globalStatPanel = shadow.querySelector("[data-monster-stat-global-panel]");
+      if (globalStatPanel) {
+        globalStatPanel.addEventListener("mouseenter", () => {
+          clearMonsterStatPreviewHideTimer();
+          monsterStatPreview.hoverPanel = true;
+        });
+        globalStatPanel.addEventListener("mouseleave", () => {
+          monsterStatPreview.hoverPanel = false;
+          closeMonsterStatPreview();
+        });
+      }
+
+      const globalStatLayer = shadow.querySelector("[data-monster-stat-global-layer]");
+      if (globalStatLayer) {
+        globalStatLayer.addEventListener("click", (e) => {
+          if (e.target === globalStatLayer) {
+            closeMonsterStatPreview({ immediate: true });
+          }
+        });
+      }
 
       shadow.querySelectorAll("[data-toggle-monster-details]").forEach((btn) => {
         btn.addEventListener("click", async () => {
