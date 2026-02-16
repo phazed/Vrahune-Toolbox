@@ -1,3 +1,4 @@
+// vault-fix-r3
 // tool-monster-vault.js
 (() => {
   const TOOL_ID = "monsterVaultTool";
@@ -846,34 +847,24 @@
         return mon ? JSON.parse(JSON.stringify(mon)) : null;
       },
       getMonsterIndex() {
-        return allMonsters()
-          .filter(Boolean)
-          .map((m) => {
-            const details = m && typeof m === "object" ? (m.details || {}) : {};
-            const actionCount =
-              (Array.isArray(details.actions) ? details.actions.length : 0) +
-              (Array.isArray(details.bonusActions) ? details.bonusActions.length : 0) +
-              (Array.isArray(details.reactions) ? details.reactions.length : 0) +
-              (Array.isArray(details.legendaryActions) ? details.legendaryActions.length : 0);
-
-            return {
-              id: String(m?.id || ""),
-              name: String(m?.name || "Unnamed Monster"),
-              type: ["PC", "NPC", "Enemy"].includes(m?.type) ? m.type : "Enemy",
-              cr: normalizeCR(m?.cr, "1/8"),
-              ac: Math.max(0, intOr(m?.ac, 10)),
-              hp: Math.max(1, intOr(m?.hp ?? m?.hpMax, 1)),
-              speed: Math.max(0, intOr(m?.speed, 30)),
-              initiative: Math.max(0, intOr(m?.initiative, 10)),
-              source: m?.isHomebrew ? "Homebrew" : "SRD 2024",
-              sourceType: m?.isHomebrew ? "homebrew" : "srd",
-              sizeType: String(m?.sizeType || ""),
-              actionsCount: actionCount
-            };
-          })
-          .filter((m) => m.id && m.name);
+        return allMonsters().map((m) => {
+          const actionCount = (m.details?.actions?.length || 0) + (m.details?.bonusActions?.length || 0) + (m.details?.reactions?.length || 0) + (m.details?.legendaryActions?.length || 0);
+          return {
+            id: String(m.id || ""),
+            name: String(m.name || "Unnamed Monster"),
+            type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
+            cr: normalizeCR(m.cr, "1/8"),
+            ac: Math.max(0, intOr(m.ac, 10)),
+            hp: Math.max(1, intOr(m.hp, 1)),
+            speed: Math.max(0, intOr(m.speed, 30)),
+            initiative: Math.max(0, intOr(m.initiative, 10)),
+            sizeType: String(m.sizeType || ""),
+            source: m.isHomebrew ? "Homebrew" : "SRD 2024",
+            sourceType: m.isHomebrew ? "homebrew" : "srd",
+            actionsCount: actionCount
+          };
+        });
       },
-
       searchMonsters(query = "") {
         const q = String(query || "").trim().toLowerCase();
         if (!q) return this.getAllMonsters();
@@ -907,7 +898,12 @@
       }
     };
 
+    // Compatibility aliases for older integrations.
+    window.MonsterVault = window.VrahuneMonsterVault;
+    window.vrahuneMonsterVault = window.VrahuneMonsterVault;
+
     window.dispatchEvent(new CustomEvent("vrahune-monster-vault-updated"));
+    window.dispatchEvent(new CustomEvent("vrahune-monster-vault-ready"));
   }
 
   function renderFeatureList(label, list) {
