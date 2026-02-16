@@ -1731,23 +1731,41 @@
       }
     }
 
-    function renderConditionPopover(c) {
-      const chips = [];
-      (c.conditions || []).forEach((cond) => {
-        const label = cond.duration ? `${cond.name} · ${cond.duration}r` : cond.name;
-        const tip = CONDITION_INFO_2024[cond.name] || "";
-        chips.push(`<span class="condition-chip" title="${esc(tip)}">${esc(label)}</span>`);
+    function getConditionBadges(c) {
+      const badges = [];
+
+      (Array.isArray(c?.conditions) ? c.conditions : []).forEach((cond) => {
+        const name = String(cond?.name || "").trim();
+        if (!name) return;
+        const duration = Math.max(0, intOr(cond?.duration, 0));
+        badges.push(duration > 0 ? `${name} · ${duration}r` : name);
       });
-      if ((c.exhaustionLevel || 0) > 0) {
-        chips.push(`<span class="condition-chip exhaustion" title="${esc(CONDITION_INFO_2024.Exhaustion)}">Exhaustion ${c.exhaustionLevel}</span>`);
-      }
-      if (!chips.length) return "";
+
+      const exhaustion = Math.max(0, intOr(c?.exhaustionLevel, 0));
+      if (exhaustion > 0) badges.push(`Exhaustion ${exhaustion}`);
+
+      return badges;
+    }
+
+    function renderConditionInline(c) {
+      const badges = getConditionBadges(c);
+      if (!badges.length) return "";
+
       return `
-        <div class="condition-pop-wrap" title="Active conditions">
-          <span class="condition-pop-trigger">Cond ${chips.length}</span>
-          <div class="condition-pop-panel">${chips.join("")}</div>
-        </div>
+        <span class="enc-cond-inline" style="display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:8px;vertical-align:middle;">
+          ${badges
+            .map(
+              (text) =>
+                `<span class="enc-cond-chip" style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;border:1px solid var(--vt-line, rgba(255,255,255,.25));font-size:12px;line-height:1.6;">${esc(text)}</span>`
+            )
+            .join("")}
+        </span>
       `;
+    }
+
+    // Legacy output location (right-side meta) intentionally blank now.
+    function renderConditionPopover(c) {
+      return "";
     }
 
     function renderMonsterDetailsPanel(c) {
@@ -2108,7 +2126,7 @@
                     <div class="hp-buttons">
                       <button class="btn btn-xs" data-dmg="${esc(c.id)}">Damage</button>
                       <button class="btn btn-secondary btn-xs" data-heal="${esc(c.id)}">Heal</button>
-                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>
+                      <button class="btn btn-secondary btn-xs" data-open-conds="${esc(c.id)}">Conditions</button>${renderConditionInline(c)}
                       ${hasMonsterDetails(c) ? `<button class="btn btn-secondary btn-xs" data-toggle-monster-details="${esc(c.id)}" data-toggle-scope="active">${c.showMonsterDetails ? "Hide" : "Info"}</button>` : ""}
                     </div>
                   </div>
