@@ -69,6 +69,51 @@
   };
 
 
+
+  let encounterUiRefreshHook = null;
+  function requestEncounterUiRefreshFromVault() {
+    if (typeof encounterUiRefreshHook === "function") {
+      try {
+        encounterUiRefreshHook();
+      } catch (_) {}
+    }
+  }
+
+  function toPlainText(value, depth = 0) {
+    if (value == null) return "";
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return String(value).trim();
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => toPlainText(v, depth + 1))
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+    if (typeof value === "object") {
+      if (depth > 4) return "";
+      const preferred = [
+        value.text,
+        value.description,
+        value.desc,
+        value.effect,
+        value.summary,
+        value.note,
+        value.value,
+        value.entries
+      ];
+      const picked = preferred.map((v) => toPlainText(v, depth + 1)).filter(Boolean).join(" ").trim();
+      if (picked) return picked;
+      return Object.values(value)
+        .map((v) => toPlainText(v, depth + 1))
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+    return "";
+  }
+
   const CR_XP_BY_RATING = {
     "0": 0,
     "1/8": 25,
@@ -311,7 +356,7 @@
         monsterVaultIndexCache.list = list;
         monsterVaultIndexCache.crValues = [...new Set(list.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
         monsterVaultIndexCache.ready = true;
-        if (monsterPicker.open) render();
+        requestEncounterUiRefreshFromVault();
       })
       .catch(() => {});
   }
@@ -385,8 +430,11 @@
 
   function hasMonsterVaultApi() {
     const api = monsterVaultApi();
-    if (!api) return false;
-    return getVaultRawList(api).length > 0;
+    if (api && getVaultRawList(api).length > 0) return true;
+    const snapshot = pickArrayish(window.__vrahuneMonsterVaultIndex).length
+      ? pickArrayish(window.__vrahuneMonsterVaultIndex)
+      : pickArrayish(window.__vrahuneMonsterVaultMonsters);
+    return Array.isArray(snapshot) && snapshot.length > 0;
   }
 
   const monsterVaultIndexCache = {
@@ -404,8 +452,53 @@
   function monsterVaultMonsters(forceRefresh = false) {
     const api = monsterVaultApi();
     if (!api) {
-      resetMonsterVaultCache();
-      return [];
+      const fallbackRaw =
+        pickArrayish(window.__vrahuneMonsterVaultIndex).length
+          ? pickArrayish(window.__vrahuneMonsterVaultIndex)
+          : pickArrayish(window.__vrahuneMonsterVaultMonsters);
+      if (!fallbackRaw.length) {
+        resetMonsterVaultCache();
+        return [];
+      }
+      try {
+        const list = (fallbackRaw || [])
+          .map((m) => {
+            const sourceType = m.sourceType
+              ? String(m.sourceType).toLowerCase()
+              : (m.isHomebrew || /homebrew/i.test(String(m.source || "")) ? "homebrew" : "srd");
+            const source = sourceType === "homebrew" ? "Homebrew" : String(m.source || "SRD 2024");
+            const details = m.details && typeof m.details === "object" ? m.details : null;
+            const actionsCount =
+              Math.max(0, intOr(m.actionsCount, 0)) ||
+              ((details?.actions?.length || 0) +
+                (details?.bonusActions?.length || 0) +
+                (details?.reactions?.length || 0) +
+                (details?.legendaryActions?.length || 0));
+
+            return {
+              id: String(m.id || ""),
+              name: String(m.name || "Unnamed Monster"),
+              type: ["PC", "NPC", "Enemy"].includes(m.type) ? m.type : "Enemy",
+              cr: normalizeCR(m.cr, "1/8"),
+              ac: Math.max(0, intOr(m.ac, 10)),
+              hp: Math.max(1, intOr(m.hp ?? m.hpMax ?? m.hpCurrent, 1)),
+              speed: Math.max(0, intOr(m.speed, 30)),
+              initiative: Math.max(0, intOr(m.initiative, 10)),
+              source,
+              sourceType,
+              sizeType: String(m.sizeType || ""),
+              actionsCount
+            };
+          })
+          .filter((m) => m.id && m.name);
+        monsterVaultIndexCache.list = list;
+        monsterVaultIndexCache.crValues = [...new Set(list.map((m) => m.cr).filter(Boolean))].sort((a, b) => crToFloat(a) - crToFloat(b));
+        monsterVaultIndexCache.ready = list.length > 0;
+        return list;
+      } catch (_) {
+        resetMonsterVaultCache();
+        return [];
+      }
     }
 
     if (!forceRefresh && monsterVaultIndexCache.ready) {
@@ -463,11 +556,11 @@
 
   window.addEventListener("vrahune-monster-vault-updated", () => {
     resetMonsterVaultCache();
-    if (monsterPicker.open) render();
+    requestEncounterUiRefreshFromVault();
   });
   window.addEventListener("vrahune-monster-vault-ready", () => {
     resetMonsterVaultCache();
-    if (monsterPicker.open) render();
+    requestEncounterUiRefreshFromVault();
   });
 
   function initialParties() {
@@ -497,7 +590,7 @@
       (Array.isArray(list) ? list : [])
         .map((entry) => {
           const name = String(entry?.name || "").trim();
-          const text = String(entry?.text || entry?.description || "").trim();
+          const text = toPlainText(entry?.text ?? entry?.description ?? entry?.desc ?? entry?.effect ?? entry?.entries ?? entry);
           if (!name && !text) return null;
           return { name: name || "Feature", text };
         })
@@ -832,6 +925,7 @@
 
     const shadow = host.attachShadow({ mode: "open" });
     const state = loadState();
+    encounterUiRefreshHook = null;
 
     const app = createApp(shadow, state);
     app.render();
@@ -875,6 +969,10 @@
       query: "",
       cr: "all",
       source: "all"
+    };
+
+    encounterUiRefreshHook = () => {
+      if (monsterPicker.open) render();
     };
 
     function openMonsterPicker(scope, encounterId = null) {
@@ -1626,7 +1724,7 @@
                       (entry) => `
                         <div class="monster-detail-entry">
                           <span class="monster-detail-name">${esc(entry.name || "Feature")}</span>
-                          <span class="monster-detail-text">${esc(entry.text || "")}</span>
+                          <span class="monster-detail-text">${esc(toPlainText(entry?.text ?? entry?.description ?? entry))}</span>
                         </div>
                       `
                     )
