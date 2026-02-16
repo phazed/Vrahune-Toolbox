@@ -1732,7 +1732,7 @@
                     .map(
                       (entry) => `
                         <div class="monster-detail-entry">
-                          <span class="monster-detail-name">${esc(entry.name || "Feature")}</span>
+                          <span class="monster-detail-name">${esc(toPlainText(entry?.name) || "Feature")}</span>
                           <span class="monster-detail-text">${esc(toPlainText(entry?.text ?? entry?.description ?? entry))}</span>
                         </div>
                       `
