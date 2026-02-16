@@ -64,6 +64,42 @@
       .replace(/'/g, "&#39;");
   }
 
+
+  function toPlainText(value, depth = 0) {
+    if (value == null) return "";
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return String(value).trim();
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => toPlainText(v, depth + 1))
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+    if (typeof value === "object") {
+      if (depth > 5) return "";
+      const preferred = [
+        value.text,
+        value.description,
+        value.desc,
+        value.effect,
+        value.summary,
+        value.note,
+        value.value,
+        value.entries
+      ];
+      const picked = preferred.map((v) => toPlainText(v, depth + 1)).filter(Boolean).join(" ").trim();
+      if (picked) return picked;
+      return Object.values(value)
+        .map((v) => toPlainText(v, depth + 1))
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+    return "";
+  }
+
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
   }
@@ -108,7 +144,7 @@
   }
 
   function parseFeatureText(text) {
-    const lines = String(text || "")
+    const lines = toPlainText(text)
       .split(/\r?\n/)
       .map((x) => x.trim())
       .filter(Boolean);
@@ -155,9 +191,9 @@
           const name = String(
             item.name || item.title || item.label || item.action || "Feature"
           ).trim() || "Feature";
-          const text = String(
-            item.text || item.desc || item.description || item.effect || ""
-          ).trim();
+          const text = toPlainText(
+            item.text ?? item.desc ?? item.description ?? item.effect ?? item.entries ?? item
+          );
           if (!text) return null;
           return {
             name,
@@ -503,8 +539,8 @@
       : String(raw.senses || "");
 
     const asStringList = (v) => {
-      if (Array.isArray(v)) return v.map((x) => String(x)).filter(Boolean).join(", ");
-      return String(v || "");
+      if (Array.isArray(v)) return v.map((x) => toPlainText(x)).filter(Boolean).join(", ");
+      return toPlainText(v);
     };
 
     const details = {
@@ -548,9 +584,9 @@
     if (!slug) return null;
 
     const candidates = [
-      `https://www.dnd5eapi.co/api/2024/monsters/${slug}`,
       `https://www.dnd5eapi.co/api/2014/monsters/${slug}`,
-      `https://www.dnd5eapi.co/api/monsters/${slug}`
+      `https://www.dnd5eapi.co/api/monsters/${slug}`,
+      `https://www.dnd5eapi.co/api/2024/monsters/${slug}`
     ];
 
     for (const url of candidates) {
@@ -942,7 +978,7 @@
           ${arr
             .map((f) => {
               const name = String(f?.name || "Feature").trim();
-              const text = String(f?.text || "").trim();
+              const text = toPlainText(f?.text ?? f?.description ?? f);
               if (!text) return "";
               return `<li><b>${esc(name)}.</b> ${esc(text)}</li>`;
             })
