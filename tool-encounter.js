@@ -6,7 +6,7 @@
 
   const TOOL_ID = "encounterTool";
   const TOOL_NAME = "Encounter / Initiative";
-  const STORAGE_KEY = "vrahuneEncounterToolStateV5";
+  const STORAGE_KEY = "vrahuneEncounterToolStateV6";
   const LEGACY_KEYS = ["vrahuneEncounterToolStateV4", "vrahuneEncounterToolStateV3", "vrahuneEncounterToolStateV2"];
 
   function uid(prefix = "id") {
@@ -50,11 +50,13 @@
     const hpMax = Math.max(0, intOr(raw.hpMax, 10));
     const hpCurrent = clamp(intOr(raw.hpCurrent, hpMax), 0, hpMax);
     const type = ["PC", "NPC", "Enemy"].includes(raw.type) ? raw.type : "NPC";
+    const initiative = Math.max(0, intOr(raw.initiative, 10));
 
     return {
       id: raw.id || uid("c"),
       name: String(raw.name || "Unnamed").trim() || "Unnamed",
       type,
+      initiative,
       ac: Math.max(0, intOr(raw.ac, 10)),
       speed: Math.max(0, intOr(raw.speed, 30)),
       hpCurrent,
@@ -133,14 +135,25 @@
       createName: "",
       createTags: "",
       createLocation: "",
+      libraryEditId: null,
       // add form for active
       addDraft: {
         name: "",
         type: "NPC",
+        initiative: 10,
         ac: 15,
         speed: 30,
         hpCurrent: 12,
         hpMax: 12
+      },
+      libraryAddDraft: {
+        name: "",
+        type: "Enemy",
+        initiative: 10,
+        ac: 13,
+        speed: 30,
+        hpCurrent: 10,
+        hpMax: 10
       },
       // editor modal
       editorOpen: false,
@@ -150,7 +163,7 @@
         tags: "",
         location: "",
         combatants: [],
-        addDraft: { name: "", type: "Enemy", ac: 13, speed: 30, hpCurrent: 10, hpMax: 10 }
+        addDraft: { name: "", type: "Enemy", initiative: 10, ac: 13, speed: 30, hpCurrent: 10, hpMax: 10 }
       }
     };
   }
@@ -212,14 +225,29 @@
     state.createName = String(state.createName || "");
     state.createTags = String(state.createTags || "");
     state.createLocation = String(state.createLocation || "");
+    state.libraryEditId = state.libraryEditId || null;
+    if (state.libraryEditId && !state.library.some((e) => e.id === state.libraryEditId)) {
+      state.libraryEditId = null;
+    }
 
     state.addDraft = {
       name: String(state.addDraft?.name || ""),
       type: ["PC", "NPC", "Enemy"].includes(state.addDraft?.type) ? state.addDraft.type : "NPC",
+      initiative: Math.max(0, intOr(state.addDraft?.initiative, 10)),
       ac: Math.max(0, intOr(state.addDraft?.ac, 15)),
       speed: Math.max(0, intOr(state.addDraft?.speed, 30)),
       hpCurrent: Math.max(0, intOr(state.addDraft?.hpCurrent, 10)),
       hpMax: Math.max(0, intOr(state.addDraft?.hpMax, 10))
+    };
+
+    state.libraryAddDraft = {
+      name: String(state.libraryAddDraft?.name || ""),
+      type: ["PC", "NPC", "Enemy"].includes(state.libraryAddDraft?.type) ? state.libraryAddDraft.type : "Enemy",
+      initiative: Math.max(0, intOr(state.libraryAddDraft?.initiative, 10)),
+      ac: Math.max(0, intOr(state.libraryAddDraft?.ac, 13)),
+      speed: Math.max(0, intOr(state.libraryAddDraft?.speed, 30)),
+      hpCurrent: Math.max(0, intOr(state.libraryAddDraft?.hpCurrent, 10)),
+      hpMax: Math.max(0, intOr(state.libraryAddDraft?.hpMax, 10))
     };
 
     state.editorOpen = !!state.editorOpen;
@@ -233,6 +261,7 @@
       addDraft: {
         name: String(ed.addDraft?.name || ""),
         type: ["PC", "NPC", "Enemy"].includes(ed.addDraft?.type) ? ed.addDraft.type : "Enemy",
+        initiative: Math.max(0, intOr(ed.addDraft?.initiative, 10)),
         ac: Math.max(0, intOr(ed.addDraft?.ac, 13)),
         speed: Math.max(0, intOr(ed.addDraft?.speed, 30)),
         hpCurrent: Math.max(0, intOr(ed.addDraft?.hpCurrent, 10)),
@@ -372,6 +401,14 @@
       return copy;
     }
 
+    function sortByInitiativeDesc(arr) {
+      return [...arr].sort((a, b) => {
+        const diff = intOr(b.initiative, 0) - intOr(a.initiative, 0);
+        return diff;
+      });
+    }
+
+
     function serializeActiveAsEncounter(existing = null) {
       const baseName = state.activeEncounterName?.trim() || "Current Encounter";
       return {
@@ -400,7 +437,7 @@
         tags: enc.tags || "",
         location: enc.location || "",
         combatants: (enc.combatants || []).map((c) => cloneCombatant(c, true)),
-        addDraft: { name: "", type: "Enemy", ac: 13, speed: 30, hpCurrent: 10, hpMax: 10 }
+        addDraft: { name: "", type: "Enemy", initiative: 10, ac: 13, speed: 30, hpCurrent: 10, hpMax: 10 }
       };
       persistAndRender();
     }
@@ -443,6 +480,7 @@
                   <option ${m.type === "Enemy" ? "selected" : ""}>Enemy</option>
                 </select>
               </div>
+              <div class="col" style="max-width:78px;"><label>Init</label><input type="number" min="0" data-party-field="initiative" data-member-id="${esc(m.id)}" value="${intOr(m.initiative, 0)}"></div>
               <div class="col" style="max-width:70px;"><label>AC</label><input type="number" min="0" data-party-field="ac" data-member-id="${esc(m.id)}" value="${m.ac}"></div>
               <div class="col" style="max-width:90px;"><label>Speed</label><input type="number" min="0" data-party-field="speed" data-member-id="${esc(m.id)}" value="${m.speed}"></div>
               <div class="col" style="max-width:90px;"><label>HP Cur</label><input type="number" min="0" data-party-field="hpCurrent" data-member-id="${esc(m.id)}" value="${m.hpCurrent}"></div>
@@ -485,6 +523,10 @@
             <div class="col">
               <label>Name</label>
               <input type="text" id="addName" placeholder="Vesper, Goblin Scout, Frostclaw Wolf" value="${esc(state.addDraft.name)}">
+            </div>
+            <div class="col" style="max-width:85px;">
+              <label>Init</label>
+              <input type="number" min="0" id="addInit" value="${state.addDraft.initiative}">
             </div>
             <div class="col" style="max-width:85px;">
               <label>AC</label>
@@ -575,6 +617,8 @@
 
                   <div class="card-meta">
                     <div class="card-meta-top">
+                      <span>Init:</span>
+                      <input class="tiny-num" type="number" min="0" data-card-field="initiative" data-card-id="${esc(c.id)}" value="${intOr(c.initiative, 0)}">
                       <span>AC:</span>
                       <input class="tiny-num" type="number" min="0" data-card-field="ac" data-card-id="${esc(c.id)}" value="${c.ac}">
                       <span>Spd:</span>
@@ -608,7 +652,8 @@
             <label>Current turn</label>
             <input type="text" value="${esc(currentTurnName())}" readonly>
           </div>
-          <div class="col" style="display:flex; gap:4px; justify-content:flex-end; max-width:220px;">
+          <div class="col" style="display:flex; gap:4px; justify-content:flex-end; max-width:320px;">
+            <button class="btn btn-secondary btn-xs" id="prevTurnBtn">Previous turn</button>
             <button class="btn btn-xs" id="nextTurnBtn">Next turn</button>
             <button class="btn btn-secondary btn-xs" id="nextRoundBtn">Next round</button>
           </div>
@@ -638,142 +683,69 @@
     }
 
     
-    function renderLibraryTab() {
-      const rows = state.library
-        .map((enc) => {
-          const isActive = enc.id === state.activeLibraryId;
-          const namesList = enc.combatants.length
-            ? enc.combatants.map((c) => c.name).join(" · ")
-            : "No combatants saved";
+    
+function renderLibraryTab() {
+  const party = getSelectedParty();
+  const editingId = state.libraryEditId;
 
-          return `
-            <div class="encounter-row" data-library-id="${esc(enc.id)}">
-              <div class="encounter-row-header">
-                <div>
-                  <div class="encounter-name">${esc(enc.name)}</div>
-                  <div class="hint-text">${enc.location ? esc(enc.location) : "No location set"}</div>
-                  <div class="encounter-members">${esc(namesList)}</div>
-                </div>
-              </div>
-              <div class="encounter-actions">
-                ${
-                  isActive
-                    ? `<button class="btn btn-xs btn-active-status" type="button">Active</button>`
-                    : `<button class="btn btn-secondary btn-xs" data-set-active="${esc(enc.id)}">Set active</button>`
-                }
-                <button class="btn btn-secondary btn-xs" data-edit-library="${esc(enc.id)}">Edit</button>
-                <button class="btn btn-secondary btn-xs" data-delete-library="${esc(enc.id)}">Delete</button>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
+  const rows = state.library
+    .map((enc) => {
+      const isActive = enc.id === state.activeLibraryId;
+      const isEditing = enc.id === editingId;
+      const namesList = enc.combatants.length
+        ? enc.combatants.map((c) => c.name).join(" · ")
+        : "No combatants saved";
 
-      return `
-        <div class="section-heading-row">
-          <div class="section-title">Encounter Library</div>
-          <div class="hint-text">Build, save, set active, and revise encounters.</div>
-        </div>
-
-        <div class="boxed-subsection">
-          <div class="boxed-subsection-header">
-            <div class="boxed-subsection-title">Create encounter entry</div>
-            <span class="hint-text">Name it, then save the current active combatants into the library.</span>
-          </div>
-          <div class="row">
-            <div class="col"><label>Name</label><input type="text" id="createName" placeholder="Ruined Tower Ambush" value="${esc(state.createName)}"></div>
-            <div class="col"><label>Location</label><input type="text" id="createLocation" placeholder="Onyx frontier road" value="${esc(state.createLocation)}"></div>
-            <div class="col" style="max-width:260px; display:flex; gap:6px; align-items:flex-end;">
-              <button class="btn btn-xs" id="createFromActiveBtn">Create from active</button>
-              <button class="btn btn-secondary btn-xs" id="createBlankAndEditBtn">Blank + edit popup</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="party-strip">
-          <div class="party-row">
-            <span class="party-name">Current active: ${esc(state.activeEncounterName || "Current Encounter")}</span>
-            <span class="hint-text">${state.activeCombatants.length} combatant(s) · Setting a library encounter active replaces the active tracker.</span>
-          </div>
-          <div class="party-row">
-            <button class="btn btn-secondary btn-xs" id="openNewEditorBtn">Open editor popup (new)</button>
-          </div>
-        </div>
-
-        <div class="encounter-list">
-          ${rows || `<div class="hint-text">No encounters yet. Create one above.</div>`}
-        </div>
-      `;
-    }
-
-
-    function renderEditorModal() {
-      if (!state.editorOpen) return "";
-
-      const party = getSelectedParty();
-      const cards = state.editor.combatants
-        .map((c) => {
-          const downed = c.hpCurrent <= 0;
-          const typeClass = tagClass(c.type);
-          return `
-            <div class="card ${typeClass} ${downed ? "downed" : ""}" draggable="true" data-editor-card-id="${esc(c.id)}">
-              <div class="card-main">
-                <div class="card-portrait">${esc(initials(c.name))}</div>
-                <div class="card-content">
-                  <div class="name-block">
-                    <div class="name-row">
-                      <input class="card-name-input" data-editor-field="name" data-editor-id="${esc(c.id)}" value="${esc(c.name)}" />
-                      <select class="card-type-input" data-editor-field="type" data-editor-id="${esc(c.id)}">
-                        <option ${c.type === "PC" ? "selected" : ""}>PC</option>
-                        <option ${c.type === "NPC" ? "selected" : ""}>NPC</option>
-                        <option ${c.type === "Enemy" ? "selected" : ""}>Enemy</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="hp-block">
-                    <span class="hp-label">HP:</span>
-                    <input class="tiny-num" type="number" min="0" data-editor-field="hpCurrent" data-editor-id="${esc(c.id)}" value="${c.hpCurrent}">
-                    <span>/</span>
-                    <input class="tiny-num" type="number" min="0" data-editor-field="hpMax" data-editor-id="${esc(c.id)}" value="${c.hpMax}">
-                    <input class="hp-amount-input" type="number" min="1" step="1" placeholder="1" data-editor-amount-for="${esc(c.id)}">
-                    <div class="hp-buttons">
-                      <button class="btn btn-xs" data-editor-dmg="${esc(c.id)}">Damage</button>
-                      <button class="btn btn-secondary btn-xs" data-editor-heal="${esc(c.id)}">Heal</button>
-                    </div>
-                  </div>
-
-                  <div class="card-meta">
-                    <div class="card-meta-top">
-                      <span>AC:</span>
-                      <input class="tiny-num" type="number" min="0" data-editor-field="ac" data-editor-id="${esc(c.id)}" value="${c.ac}">
-                      <span>Spd:</span>
-                      <input class="tiny-num" type="number" min="0" data-editor-field="speed" data-editor-id="${esc(c.id)}" value="${c.speed}">
-                      <button class="btn-icon" title="Remove" data-editor-remove="${esc(c.id)}">×</button>
+      const editorCards = isEditing
+        ? enc.combatants
+            .map((c) => {
+              const downed = c.hpCurrent <= 0;
+              return `
+                <div class="card ${tagClass(c.type)} ${downed ? "downed" : ""}" draggable="true" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">
+                  <div class="card-main">
+                    <div class="card-portrait">${esc(initials(c.name))}</div>
+                    <div class="card-content">
+                      <div class="name-block">
+                        <div class="name-row">
+                          <input class="card-name-input" data-lib-card-field="name" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${esc(c.name)}" />
+                          <select class="card-type-input" data-lib-card-field="type" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">
+                            <option ${c.type === "PC" ? "selected" : ""}>PC</option>
+                            <option ${c.type === "NPC" ? "selected" : ""}>NPC</option>
+                            <option ${c.type === "Enemy" ? "selected" : ""}>Enemy</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="hp-block">
+                        <span class="hp-label">HP:</span>
+                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpCurrent" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpCurrent}">
+                        <span>/</span>
+                        <input class="tiny-num" type="number" min="0" data-lib-card-field="hpMax" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.hpMax}">
+                      </div>
+                      <div class="card-meta">
+                        <div class="card-meta-top">
+                          <span>Init:</span>
+                          <input class="tiny-num" type="number" min="0" data-lib-card-field="initiative" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${intOr(c.initiative, 0)}">
+                          <span>AC:</span>
+                          <input class="tiny-num" type="number" min="0" data-lib-card-field="ac" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.ac}">
+                          <span>Spd:</span>
+                          <input class="tiny-num" type="number" min="0" data-lib-card-field="speed" data-lib-card-id="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}" value="${c.speed}">
+                          <button class="btn-icon" title="Remove" data-lib-remove-card="${esc(c.id)}" data-lib-enc-id="${esc(enc.id)}">×</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
+              `;
+            })
+            .join("")
+        : "";
 
-      return `
-        <div class="modal-overlay" id="editorOverlay"></div>
-        <div class="modal" role="dialog" aria-modal="true" aria-label="Edit encounter">
-          <div class="modal-header">
-            <div>
-              <div class="title" style="font-size:0.88rem; letter-spacing:0.08em;">Edit Encounter</div>
-              <div class="hint-text">Add party members, add custom combatants, and drag to set order.</div>
-            </div>
-            <button class="btn btn-secondary btn-xs" id="editorCloseTopBtn">Close</button>
-          </div>
-
-          <div class="modal-body">
+      const editBlock = isEditing
+        ? `
+          <div class="boxed-subsection">
             <div class="row">
-              <div class="col"><label>Name</label><input type="text" id="editorName" value="${esc(state.editor.name)}"></div>
-              <div class="col"><label>Location</label><input type="text" id="editorLocation" value="${esc(state.editor.location)}"></div>
+              <div class="col"><label>Name</label><input type="text" data-lib-enc-field="name" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.name)}"></div>
+              <div class="col"><label>Location</label><input type="text" data-lib-enc-field="location" data-lib-enc-id="${esc(enc.id)}" value="${esc(enc.location || "")}"></div>
             </div>
 
             <div class="boxed-subsection">
@@ -783,57 +755,111 @@
               </div>
               <div class="party-row">
                 <span class="party-name">${esc(party?.name || "No party selected")}</span>
-                ${party
-                  ? party.members
-                      .map(
-                        (m) => `<div class="party-chip">${esc(m.name)} <button data-editor-add-party-one="${esc(m.id)}" title="Add">+</button></div>`
-                      )
-                      .join("")
-                  : ""}
-                <button class="btn btn-xs" id="editorAddFullPartyBtn">Add full party</button>
+                ${
+                  party
+                    ? party.members
+                        .map(
+                          (m) =>
+                            `<div class="party-chip">${esc(m.name)} <button data-lib-add-party-one="${esc(
+                              m.id
+                            )}" data-lib-enc-id="${esc(enc.id)}" title="Add">+</button></div>`
+                        )
+                        .join("")
+                    : ""
+                }
+                <button class="btn btn-xs" data-lib-add-full-party="${esc(enc.id)}">Add full party</button>
               </div>
             </div>
 
             <div class="boxed-subsection">
               <div class="boxed-subsection-header">
                 <div class="boxed-subsection-title">Add combatant</div>
-                <span class="hint-text">Same fields as active encounter cards.</span>
+                <span class="hint-text">Auto-sorts by highest initiative when added. Drag to reorder anytime.</span>
               </div>
               <div class="row">
-                <div class="col"><label>Name</label><input type="text" id="editorAddName" value="${esc(state.editor.addDraft.name)}" placeholder="Goblin, Veteran, Mage"></div>
+                <div class="col"><label>Name</label><input type="text" id="libAddName_${esc(enc.id)}" value="${esc(state.libraryAddDraft.name)}" placeholder="Goblin, Veteran, Mage"></div>
                 <div class="col" style="max-width:84px;"><label>Type</label>
-                  <select id="editorAddType">
-                    <option ${state.editor.addDraft.type === "PC" ? "selected" : ""}>PC</option>
-                    <option ${state.editor.addDraft.type === "NPC" ? "selected" : ""}>NPC</option>
-                    <option ${state.editor.addDraft.type === "Enemy" ? "selected" : ""}>Enemy</option>
+                  <select id="libAddType_${esc(enc.id)}">
+                    <option ${state.libraryAddDraft.type === "PC" ? "selected" : ""}>PC</option>
+                    <option ${state.libraryAddDraft.type === "NPC" ? "selected" : ""}>NPC</option>
+                    <option ${state.libraryAddDraft.type === "Enemy" ? "selected" : ""}>Enemy</option>
                   </select>
                 </div>
-                <div class="col" style="max-width:70px;"><label>AC</label><input type="number" min="0" id="editorAddAC" value="${state.editor.addDraft.ac}"></div>
-                <div class="col" style="max-width:90px;"><label>Speed</label><input type="number" min="0" id="editorAddSpeed" value="${state.editor.addDraft.speed}"></div>
-                <div class="col" style="max-width:88px;"><label>HP Cur</label><input type="number" min="0" id="editorAddHpCur" value="${state.editor.addDraft.hpCurrent}"></div>
-                <div class="col" style="max-width:88px;"><label>HP Max</label><input type="number" min="0" id="editorAddHpMax" value="${state.editor.addDraft.hpMax}"></div>
-                <div class="col" style="max-width:80px;"><label>&nbsp;</label><button class="btn btn-xs" id="editorAddCombatantBtn">Add</button></div>
+                <div class="col" style="max-width:76px;"><label>Init</label><input type="number" min="0" id="libAddInit_${esc(enc.id)}" value="${state.libraryAddDraft.initiative}"></div>
+                <div class="col" style="max-width:70px;"><label>AC</label><input type="number" min="0" id="libAddAC_${esc(enc.id)}" value="${state.libraryAddDraft.ac}"></div>
+                <div class="col" style="max-width:90px;"><label>Speed</label><input type="number" min="0" id="libAddSpeed_${esc(enc.id)}" value="${state.libraryAddDraft.speed}"></div>
+                <div class="col" style="max-width:88px;"><label>HP Cur</label><input type="number" min="0" id="libAddHpCur_${esc(enc.id)}" value="${state.libraryAddDraft.hpCurrent}"></div>
+                <div class="col" style="max-width:88px;"><label>HP Max</label><input type="number" min="0" id="libAddHpMax_${esc(enc.id)}" value="${state.libraryAddDraft.hpMax}"></div>
+                <div class="col" style="max-width:80px;"><label>&nbsp;</label><button class="btn btn-xs" data-lib-add-combatant="${esc(enc.id)}">Add</button></div>
               </div>
             </div>
 
             <div class="initiative-box">
               <div class="section-heading-row">
-                <div class="section-title">Encounter combatants (${state.editor.combatants.length})</div>
+                <div class="section-title">Encounter combatants (${enc.combatants.length})</div>
                 <div class="hint-text">Drag to reorder.</div>
               </div>
-              <div class="initiative-list" id="editorInitiativeList">
-                ${cards || `<div class="hint-text">No combatants yet.</div>`}
+              <div class="initiative-list" data-lib-initiative-list="${esc(enc.id)}">
+                ${editorCards || `<div class="hint-text">No combatants yet.</div>`}
               </div>
             </div>
           </div>
+        `
+        : "";
 
-          <div class="modal-footer">
-            <button class="btn btn-secondary btn-xs" id="editorCancelBtn">Cancel</button>
-            <button class="btn btn-xs" id="editorSaveBtn">Save encounter</button>
+      return `
+        <div class="encounter-row ${isEditing ? "editing" : ""}" data-library-id="${esc(enc.id)}">
+          <div class="encounter-row-header">
+            <div>
+              <div class="encounter-name">${esc(enc.name)}</div>
+              <div class="hint-text">${enc.location ? esc(enc.location) : "No location set"}</div>
+              <div class="encounter-members">${esc(namesList)}</div>
+            </div>
           </div>
+          <div class="encounter-actions">
+            ${
+              isActive
+                ? `<button class="btn btn-xs btn-active-status" type="button">Active</button>`
+                : `<button class="btn btn-secondary btn-xs" data-set-active="${esc(enc.id)}">Set active</button>`
+            }
+            <button class="btn btn-secondary btn-xs" data-toggle-edit-library="${esc(enc.id)}">${isEditing ? "Close edit" : "Edit"}</button>
+            <button class="btn btn-secondary btn-xs" data-delete-library="${esc(enc.id)}">Delete</button>
+          </div>
+          ${editBlock}
         </div>
       `;
-    }
+    })
+    .join("");
+
+  return `
+    <div class="section-heading-row">
+      <div class="section-title">Encounter Library</div>
+      <div class="hint-text">Prep encounters here, then set one active when combat starts.</div>
+    </div>
+
+    <div class="boxed-subsection">
+      <div class="boxed-subsection-header">
+        <div class="boxed-subsection-title">Create encounter entry</div>
+        <span class="hint-text">Name it, then save the current active combatants into the library.</span>
+      </div>
+      <div class="row">
+        <div class="col"><label>Name</label><input type="text" id="createName" placeholder="Ruined Tower Ambush" value="${esc(state.createName)}"></div>
+        <div class="col"><label>Location</label><input type="text" id="createLocation" placeholder="Onyx frontier road" value="${esc(state.createLocation)}"></div>
+        <div class="col" style="max-width:180px; display:flex; gap:6px; align-items:flex-end;">
+          <button class="btn btn-xs" id="createFromActiveBtn">Create from active</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="encounter-list">
+      ${rows || `<div class="hint-text">No encounters yet. Create one above.</div>`}
+    </div>
+  `;
+}
+
+function renderEditorModal() {
+  return "";
+}
 
     function template() {
       return `
@@ -1340,60 +1366,15 @@
           padding: 0 2px;
         }
 
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.55);
-          z-index: 30;
-        }
-
-        .modal {
-          position: fixed;
-          z-index: 31;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: min(1100px, calc(100vw - 28px));
-          max-height: calc(100vh - 28px);
-          display: flex;
-          flex-direction: column;
-          border-radius: 12px;
-          border: 1px solid #2b3240;
-          background: #0a0e15;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-          overflow: hidden;
-        }
-
-        .modal-header, .modal-footer {
-          padding: 10px 12px;
-          border-bottom: 1px solid #1f2530;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 8px;
-          background: #0c1119;
-        }
-
-        .modal-footer {
-          border-top: 1px solid #1f2530;
-          border-bottom: none;
-          justify-content: flex-end;
-        }
-
-        .modal-body {
-          padding: 10px 12px;
-          overflow: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          background: radial-gradient(circle at top left, #10151f, #05070c 70%);
-        }
-
         @media (max-width: 860px) {
           .card-content { grid-template-columns: 1fr; row-gap: 4px; }
           .card-meta { justify-self: start; align-items: flex-start; }
           .hp-block { justify-self: start; }
-          .modal { width: calc(100vw - 14px); }
+        }
+
+        .encounter-row.editing {
+          border-color: #4e5e7f;
+          box-shadow: 0 0 0 1px rgba(120,140,190,0.25);
         }
       </style>
 
@@ -1414,8 +1395,6 @@
           </div>
         </div>
       </div>
-
-      ${renderEditorModal()}
       `;
     }
 
@@ -1442,6 +1421,20 @@
         roundInput.addEventListener("input", () => {
           state.round = Math.max(1, intOr(roundInput.value, state.round));
           saveState(state);
+        });
+      }
+
+      const prevTurnBtn = shadow.getElementById("prevTurnBtn");
+      if (prevTurnBtn) {
+        prevTurnBtn.addEventListener("click", () => {
+          if (!state.activeCombatants.length) return;
+          if (state.turnIndex === 0) {
+            state.turnIndex = state.activeCombatants.length - 1;
+            state.round = Math.max(1, state.round - 1);
+          } else {
+            state.turnIndex -= 1;
+          }
+          persistAndRender();
         });
       }
 
@@ -1483,6 +1476,7 @@
       // add combatant draft sync
       const addInputs = [
         ["addName", "name"],
+        ["addInit", "initiative"],
         ["addAC", "ac"],
         ["addSpeed", "speed"],
         ["addHpCur", "hpCurrent"],
@@ -1511,13 +1505,15 @@
           const c = mkCombatant({
             name: state.addDraft.name || "New Combatant",
             type: state.addDraft.type || "NPC",
+            initiative: state.addDraft.initiative,
             ac: state.addDraft.ac,
             speed: state.addDraft.speed,
             hpCurrent: hpCur,
             hpMax
           });
           state.activeCombatants.push(c);
-          ensureTurnIndex();
+          state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+          state.turnIndex = 0;
           state.addDraft.name = "";
           persistAndRender();
         });
@@ -1540,7 +1536,8 @@
             const member = party.members.find((m) => m.id === memberId);
             if (!member) return;
             state.activeCombatants.push(cloneCombatant(member, true));
-            ensureTurnIndex();
+            state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+            state.turnIndex = 0;
             persistAndRender();
           });
         });
@@ -1549,7 +1546,8 @@
         if (addFullPartyBtn) {
           addFullPartyBtn.addEventListener("click", () => {
             party.members.forEach((m) => state.activeCombatants.push(cloneCombatant(m, true)));
-            ensureTurnIndex();
+            state.activeCombatants = sortByInitiativeDesc(state.activeCombatants);
+            state.turnIndex = 0;
             persistAndRender();
           });
         }
@@ -1572,6 +1570,7 @@
               id: uid("m"),
               name: "New Member",
               type: "PC",
+              initiative: 10,
               ac: 10,
               speed: 30,
               hpCurrent: 10,
@@ -1712,315 +1711,243 @@
         });
       }
 
-      // library creation and actions
-      const createName = shadow.getElementById("createName");
-      const createLocation = shadow.getElementById("createLocation");
-      if (createName) {
-        createName.addEventListener("input", () => {
-          state.createName = createName.value;
-          saveState(state);
-        });
+
+  // library creation and actions
+  const createName = shadow.getElementById("createName");
+  const createLocation = shadow.getElementById("createLocation");
+  if (createName) {
+    createName.addEventListener("input", () => {
+      state.createName = createName.value;
+      saveState(state);
+    });
+  }
+  if (createLocation) {
+    createLocation.addEventListener("input", () => {
+      state.createLocation = createLocation.value;
+      saveState(state);
+    });
+  }
+
+  const createFromActiveBtn = shadow.getElementById("createFromActiveBtn");
+  if (createFromActiveBtn) {
+    createFromActiveBtn.addEventListener("click", () => {
+      const e = serializeActiveAsEncounter();
+      e.name = (state.createName || state.activeEncounterName || "New Encounter").trim() || "New Encounter";
+      e.tags = "";
+      e.location = (state.createLocation || "").trim();
+      state.library.unshift(e);
+      state.activeLibraryId = e.id;
+      state.createName = "";
+      state.createLocation = "";
+      persistAndRender();
+    });
+  }
+
+  shadow.querySelectorAll("[data-set-active]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-set-active");
+      const enc = state.library.find((e) => e.id === id);
+      if (!enc) return;
+      state.activeLibraryId = enc.id;
+      state.activeEncounterName = enc.name || "Current Encounter";
+      state.activeCombatants = enc.combatants.map((c) => cloneCombatant(c, true));
+      state.turnIndex = 0;
+      state.round = 1;
+      state.tab = "active";
+      persistAndRender();
+    });
+  });
+
+  shadow.querySelectorAll("[data-toggle-edit-library]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-toggle-edit-library");
+      state.libraryEditId = state.libraryEditId === id ? null : id;
+      persistAndRender();
+    });
+  });
+
+  shadow.querySelectorAll("[data-delete-library]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-delete-library");
+      state.library = state.library.filter((e) => e.id !== id);
+      if (state.activeLibraryId === id) state.activeLibraryId = null;
+      if (state.libraryEditId === id) state.libraryEditId = null;
+      persistAndRender();
+    });
+  });
+
+  // inline library encounter editing
+  shadow.querySelectorAll("[data-lib-enc-field]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const id = el.getAttribute("data-lib-enc-id");
+      const field = el.getAttribute("data-lib-enc-field");
+      const enc = state.library.find((e) => e.id === id);
+      if (!enc) return;
+      enc[field] = el.value;
+      saveState(state);
+    });
+  });
+
+  shadow.querySelectorAll("[data-lib-card-field]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const encId = el.getAttribute("data-lib-enc-id");
+      const cardId = el.getAttribute("data-lib-card-id");
+      const field = el.getAttribute("data-lib-card-field");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
+      const c = enc.combatants.find((x) => x.id === cardId);
+      if (!c) return;
+      if (field === "name" || field === "type") {
+        c[field] = el.value;
+      } else {
+        c[field] = Math.max(0, intOr(el.value, c[field]));
+        if (field === "hpMax") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
+        if (field === "hpCurrent") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
       }
-      if (createLocation) {
-        createLocation.addEventListener("input", () => {
-          state.createLocation = createLocation.value;
-          saveState(state);
-        });
-      }
+      saveState(state);
+    });
+  });
 
-      const createFromActiveBtn = shadow.getElementById("createFromActiveBtn");
-      if (createFromActiveBtn) {
-        createFromActiveBtn.addEventListener("click", () => {
-          const e = serializeActiveAsEncounter();
-          e.name = (state.createName || state.activeEncounterName || "New Encounter").trim() || "New Encounter";
-          e.tags = "";
-          e.location = (state.createLocation || "").trim();
-          state.library.unshift(e);
-          state.activeLibraryId = e.id;
-          state.createName = "";
-          state.createLocation = "";
-          persistAndRender();
-        });
-      }
+  shadow.querySelectorAll("[data-lib-remove-card]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const encId = btn.getAttribute("data-lib-enc-id");
+      const cardId = btn.getAttribute("data-lib-remove-card");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
+      enc.combatants = enc.combatants.filter((c) => c.id !== cardId);
+      persistAndRender();
+    });
+  });
 
-      const createBlankAndEditBtn = shadow.getElementById("createBlankAndEditBtn");
-      if (createBlankAndEditBtn) {
-        createBlankAndEditBtn.addEventListener("click", () => {
-          const blank = {
-            id: uid("enc"),
-            name: (state.createName || "Untitled Encounter").trim() || "Untitled Encounter",
-            tags: "",
-            location: (state.createLocation || "").trim(),
-            combatants: []
-          };
-          state.library.unshift(blank);
-          state.createName = "";
-          state.createLocation = "";
-          openEditor(blank);
-        });
-      }
-
-      const openNewEditorBtn = shadow.getElementById("openNewEditorBtn");
-      if (openNewEditorBtn) {
-        openNewEditorBtn.addEventListener("click", () => {
-          openEditor({ id: null, name: "", location: "", combatants: [] });
-        });
-      }
-
-      shadow.querySelectorAll("[data-set-active]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-set-active");
-          const enc = state.library.find((e) => e.id === id);
-          if (!enc) return;
-          state.activeLibraryId = enc.id;
-          state.activeEncounterName = enc.name || "Current Encounter";
-          state.activeCombatants = enc.combatants.map((c) => cloneCombatant(c, true));
-          state.turnIndex = 0;
-          state.round = 1;
-          state.tab = "active";
-          persistAndRender();
-        });
+  const partyForLibrary = getSelectedParty();
+  if (partyForLibrary) {
+    shadow.querySelectorAll("[data-lib-add-party-one]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const encId = btn.getAttribute("data-lib-enc-id");
+        const memberId = btn.getAttribute("data-lib-add-party-one");
+        const enc = state.library.find((e) => e.id === encId);
+        const member = partyForLibrary.members.find((m) => m.id === memberId);
+        if (!enc || !member) return;
+        enc.combatants.push(cloneCombatant(member, true));
+        enc.combatants = sortByInitiativeDesc(enc.combatants);
+        persistAndRender();
       });
+    });
 
-      shadow.querySelectorAll("[data-edit-library]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-edit-library");
-          const enc = state.library.find((e) => e.id === id);
-          if (!enc) return;
-          openEditor(enc);
-        });
+    shadow.querySelectorAll("[data-lib-add-full-party]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const encId = btn.getAttribute("data-lib-add-full-party");
+        const enc = state.library.find((e) => e.id === encId);
+        if (!enc) return;
+        partyForLibrary.members.forEach((m) => enc.combatants.push(cloneCombatant(m, true)));
+        enc.combatants = sortByInitiativeDesc(enc.combatants);
+        persistAndRender();
       });
+    });
+  }
 
-      shadow.querySelectorAll("[data-delete-library]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-delete-library");
-          state.library = state.library.filter((e) => e.id !== id);
-          if (state.activeLibraryId === id) state.activeLibraryId = null;
-          persistAndRender();
-        });
-      });
+  shadow.querySelectorAll("[data-lib-add-combatant]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const encId = btn.getAttribute("data-lib-add-combatant");
+      const enc = state.library.find((e) => e.id === encId);
+      if (!enc) return;
 
-      // editor modal controls
-      bindEditorEvents();
-    }
+      const getVal = (idSuffix, fallback = "") => {
+        const el = shadow.getElementById(`${idSuffix}_${encId}`);
+        return el ? el.value : fallback;
+      };
 
-    function bindEditorEvents() {
-      if (!state.editorOpen) return;
+      const draft = {
+        name: getVal("libAddName", state.libraryAddDraft.name),
+        type: getVal("libAddType", state.libraryAddDraft.type),
+        initiative: intOr(getVal("libAddInit", state.libraryAddDraft.initiative), state.libraryAddDraft.initiative),
+        ac: intOr(getVal("libAddAC", state.libraryAddDraft.ac), state.libraryAddDraft.ac),
+        speed: intOr(getVal("libAddSpeed", state.libraryAddDraft.speed), state.libraryAddDraft.speed),
+        hpCurrent: intOr(getVal("libAddHpCur", state.libraryAddDraft.hpCurrent), state.libraryAddDraft.hpCurrent),
+        hpMax: intOr(getVal("libAddHpMax", state.libraryAddDraft.hpMax), state.libraryAddDraft.hpMax)
+      };
 
-      const closeButtons = [
-        shadow.getElementById("editorOverlay"),
-        shadow.getElementById("editorCloseTopBtn"),
-        shadow.getElementById("editorCancelBtn")
-      ];
-      closeButtons.forEach((el) => {
-        if (!el) return;
-        el.addEventListener("click", () => closeEditor());
-      });
+      state.libraryAddDraft = {
+        name: draft.name,
+        type: ["PC", "NPC", "Enemy"].includes(draft.type) ? draft.type : "Enemy",
+        initiative: Math.max(0, intOr(draft.initiative, 10)),
+        ac: Math.max(0, intOr(draft.ac, 13)),
+        speed: Math.max(0, intOr(draft.speed, 30)),
+        hpCurrent: Math.max(0, intOr(draft.hpCurrent, 10)),
+        hpMax: Math.max(0, intOr(draft.hpMax, 10))
+      };
 
-      const editorFieldMap = [
-        ["editorName", "name"],
-        ["editorLocation", "location"]
-      ];
+      const hpMax = Math.max(0, intOr(draft.hpMax, 10));
+      const hpCur = clamp(intOr(draft.hpCurrent, hpMax), 0, hpMax);
 
-      editorFieldMap.forEach(([id, key]) => {
-        const el = shadow.getElementById(id);
-        if (!el) return;
-        el.addEventListener("input", () => {
-          state.editor[key] = el.value;
-          saveState(state);
-        });
-      });
+      enc.combatants.push(
+        mkCombatant({
+          name: draft.name || "New Combatant",
+          type: draft.type || "Enemy",
+          initiative: draft.initiative,
+          ac: draft.ac,
+          speed: draft.speed,
+          hpCurrent: hpCur,
+          hpMax
+        })
+      );
+      enc.combatants = sortByInitiativeDesc(enc.combatants);
+      state.libraryAddDraft.name = "";
+      persistAndRender();
+    });
+  });
 
-      const addDraftMap = [
-        ["editorAddName", "name"],
-        ["editorAddType", "type"],
-        ["editorAddAC", "ac"],
-        ["editorAddSpeed", "speed"],
-        ["editorAddHpCur", "hpCurrent"],
-        ["editorAddHpMax", "hpMax"]
-      ];
-      addDraftMap.forEach(([id, key]) => {
-        const el = shadow.getElementById(id);
-        if (!el) return;
-        el.addEventListener("input", () => {
-          if (key === "name" || key === "type") {
-            state.editor.addDraft[key] = el.value;
-          } else {
-            state.editor.addDraft[key] = Math.max(0, intOr(el.value, state.editor.addDraft[key]));
-          }
-          saveState(state);
-        });
-      });
+  // drag reorder for library editor cards
+  let dragLibrary = { encId: null, cardId: null };
+  shadow.querySelectorAll("[data-lib-card-id]").forEach((card) => {
+    const cardId = card.getAttribute("data-lib-card-id");
+    const encId = card.getAttribute("data-lib-enc-id");
+    card.addEventListener("dragstart", (e) => {
+      dragLibrary = { encId, cardId };
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", cardId || "");
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+    });
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    });
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const targetCardId = card.getAttribute("data-lib-card-id");
+      const targetEncId = card.getAttribute("data-lib-enc-id");
+      if (!dragLibrary.cardId || !targetCardId || dragLibrary.encId !== targetEncId) return;
+      const enc = state.library.find((x) => x.id === targetEncId);
+      if (!enc) return;
+      enc.combatants = moveItem(enc.combatants, dragLibrary.cardId, targetCardId);
+      dragLibrary = { encId: null, cardId: null };
+      persistAndRender();
+    });
+  });
 
-      const editorAddCombatantBtn = shadow.getElementById("editorAddCombatantBtn");
-      if (editorAddCombatantBtn) {
-        editorAddCombatantBtn.addEventListener("click", () => {
-          const hpMax = Math.max(0, intOr(state.editor.addDraft.hpMax, 10));
-          const hpCur = clamp(intOr(state.editor.addDraft.hpCurrent, hpMax), 0, hpMax);
-          state.editor.combatants.push(
-            mkCombatant({
-              name: state.editor.addDraft.name || "New Combatant",
-              type: state.editor.addDraft.type || "Enemy",
-              ac: state.editor.addDraft.ac,
-              speed: state.editor.addDraft.speed,
-              hpCurrent: hpCur,
-              hpMax
-            })
-          );
-          state.editor.addDraft.name = "";
-          persistAndRender();
-        });
-      }
+  shadow.querySelectorAll("[data-lib-initiative-list]").forEach((list) => {
+    list.addEventListener("dragover", (e) => e.preventDefault());
+    list.addEventListener("drop", (e) => {
+      const targetCard = e.target.closest("[data-lib-card-id]");
+      if (targetCard || !dragLibrary.cardId) return;
+      const listEncId = list.getAttribute("data-lib-initiative-list");
+      if (!listEncId || dragLibrary.encId !== listEncId) return;
+      const enc = state.library.find((x) => x.id === listEncId);
+      if (!enc) return;
+      enc.combatants = moveToEnd(enc.combatants, dragLibrary.cardId);
+      dragLibrary = { encId: null, cardId: null };
+      persistAndRender();
+    });
+  });
+}
 
-      const editorAddName = shadow.getElementById("editorAddName");
-      if (editorAddName) {
-        editorAddName.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            editorAddCombatantBtn?.click();
-          }
-        });
-      }
+function bindEditorEvents() {
+  return;
+}
 
-      const party = getSelectedParty();
-      if (party) {
-        shadow.querySelectorAll("[data-editor-add-party-one]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const memberId = btn.getAttribute("data-editor-add-party-one");
-            const member = party.members.find((m) => m.id === memberId);
-            if (!member) return;
-            state.editor.combatants.push(cloneCombatant(member, true));
-            persistAndRender();
-          });
-        });
-
-        const editorAddFullPartyBtn = shadow.getElementById("editorAddFullPartyBtn");
-        if (editorAddFullPartyBtn) {
-          editorAddFullPartyBtn.addEventListener("click", () => {
-            party.members.forEach((m) => state.editor.combatants.push(cloneCombatant(m, true)));
-            persistAndRender();
-          });
-        }
-      }
-
-      shadow.querySelectorAll("[data-editor-field]").forEach((el) => {
-        el.addEventListener("input", () => {
-          const id = el.getAttribute("data-editor-id");
-          const field = el.getAttribute("data-editor-field");
-          const c = state.editor.combatants.find((x) => x.id === id);
-          if (!c) return;
-          if (field === "name" || field === "type") {
-            c[field] = el.value;
-          } else {
-            c[field] = Math.max(0, intOr(el.value, c[field]));
-            if (field === "hpMax") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
-            if (field === "hpCurrent") c.hpCurrent = clamp(c.hpCurrent, 0, c.hpMax);
-          }
-          saveState(state);
-        });
-      });
-
-      shadow.querySelectorAll("[data-editor-remove]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-editor-remove");
-          state.editor.combatants = state.editor.combatants.filter((c) => c.id !== id);
-          persistAndRender();
-        });
-      });
-
-      shadow.querySelectorAll("[data-editor-dmg]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-editor-dmg");
-          const c = state.editor.combatants.find((x) => x.id === id);
-          if (!c) return;
-          const amountEl = shadow.querySelector(`[data-editor-amount-for="${id}"]`);
-          const amount = Math.max(1, intOr(amountEl?.value, 1));
-          c.hpCurrent = clamp(c.hpCurrent - amount, 0, c.hpMax);
-          persistAndRender();
-        });
-      });
-
-      shadow.querySelectorAll("[data-editor-heal]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-editor-heal");
-          const c = state.editor.combatants.find((x) => x.id === id);
-          if (!c) return;
-          const amountEl = shadow.querySelector(`[data-editor-amount-for="${id}"]`);
-          const amount = Math.max(1, intOr(amountEl?.value, 1));
-          c.hpCurrent = clamp(c.hpCurrent + amount, 0, c.hpMax);
-          persistAndRender();
-        });
-      });
-
-      // drag editor cards
-      const list = shadow.getElementById("editorInitiativeList");
-      if (list) {
-        list.querySelectorAll("[data-editor-card-id]").forEach((card) => {
-          const id = card.getAttribute("data-editor-card-id");
-          card.addEventListener("dragstart", (e) => {
-            dragEditorId = id;
-            card.classList.add("dragging");
-            e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", id || "");
-          });
-          card.addEventListener("dragend", () => {
-            card.classList.remove("dragging");
-          });
-          card.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          });
-          card.addEventListener("drop", (e) => {
-            e.preventDefault();
-            const targetId = card.getAttribute("data-editor-card-id");
-            if (!dragEditorId || !targetId) return;
-            state.editor.combatants = moveItem(state.editor.combatants, dragEditorId, targetId);
-            dragEditorId = null;
-            persistAndRender();
-          });
-        });
-
-        list.addEventListener("dragover", (e) => e.preventDefault());
-        list.addEventListener("drop", (e) => {
-          const target = e.target.closest("[data-editor-card-id]");
-          if (target || !dragEditorId) return;
-          state.editor.combatants = moveToEnd(state.editor.combatants, dragEditorId);
-          dragEditorId = null;
-          persistAndRender();
-        });
-      }
-
-      const saveBtn = shadow.getElementById("editorSaveBtn");
-      if (saveBtn) {
-        saveBtn.addEventListener("click", () => {
-          const name = (state.editor.name || "Untitled Encounter").trim() || "Untitled Encounter";
-          const tags = "";
-          const location = (state.editor.location || "").trim();
-          const combatants = state.editor.combatants.map((c) => cloneCombatant(c, true));
-
-          if (state.editorEncounterId) {
-            const target = state.library.find((e) => e.id === state.editorEncounterId);
-            if (target) {
-              target.name = name;
-              target.tags = tags;
-              target.location = location;
-              target.combatants = combatants;
-            } else {
-              state.library.unshift({ id: state.editorEncounterId, name, tags, location, combatants });
-            }
-          } else {
-            const newEntry = { id: uid("enc"), name, tags, location, combatants };
-            state.library.unshift(newEntry);
-            state.editorEncounterId = newEntry.id;
-          }
-
-          state.editorOpen = false;
-          state.editorEncounterId = null;
-          state.tab = "library";
-          persistAndRender();
-        });
-      }
-    }
 
     function render() {
       shadow.innerHTML = template();
