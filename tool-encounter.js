@@ -2087,12 +2087,12 @@ function renderEditorModal() {
         .card-content {
           flex: 1;
           display: grid;
-          grid-template-columns: minmax(170px,1.65fr) minmax(290px,1.1fr) minmax(112px,0.85fr);
+          grid-template-columns: minmax(128px,1.2fr) minmax(290px,1.1fr) minmax(112px,0.85fr);
           grid-template-areas:
             "name hp meta"
             "conds conds conds";
           align-items: center;
-          column-gap: 8px;
+          column-gap: 6px;
           row-gap: 3px;
         }
 
@@ -2100,12 +2100,13 @@ function renderEditorModal() {
           min-width: 0;
           grid-area: name;
           display: flex;
-          justify-content: center;
+          justify-content: flex-start;
+          padding-left: 2px;
         }
         .name-row {
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           gap: 6px;
           min-width: 0;
           width: 100%;
@@ -2122,7 +2123,7 @@ function renderEditorModal() {
           text-overflow: ellipsis;
           display: inline-block;
           max-width: 100%;
-          text-align: center;
+          text-align: left;
         }
 
         .inline-edit {
