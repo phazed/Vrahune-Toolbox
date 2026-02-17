@@ -13,6 +13,7 @@
     progress: 0,
     error: "",
     lastInputMethod: "",
+    previewTheme: "2024",
   };
 
   // -------------------------
@@ -770,7 +771,7 @@
     `;
   }
 
-  function statBlockPreview(m) {
+  function statBlockPreview2024(m) {
     if (!m) return "";
 
     const toNum = (v, d=10) => Number.isFinite(Number(v)) ? Number(v) : d;
@@ -862,6 +863,74 @@
           ${renderEntries("Legendary Actions", m.legendaryActions)}
         </div>
       </div>`;
+  }
+
+
+  function statBlockPreview5etools(m) {
+    if (!m) return "";
+    const toNum = (v, d=10) => Number.isFinite(Number(v)) ? Number(v) : d;
+    const mod = (s) => Math.floor((toNum(s,10)-10)/2);
+    const fmtMod = (n) => (n>=0?`+${n}`:`${n}`);
+    const xp = Number.isFinite(Number(m.xp)) ? Number(m.xp) : 0;
+    const pb = Number.isFinite(Number(m.proficiencyBonus)) ? Number(m.proficiencyBonus) : null;
+    const saves = Array.isArray(m.saves) ? m.saves : String(m.saves||"").split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
+
+    const abilities = [["STR","str"],["DEX","dex"],["CON","con"],["INT","int"],["WIS","wis"],["CHA","cha"]].map(([abbr,key])=>{
+      const score = toNum(m[key],10);
+      const svRaw = saves.find(s=>new RegExp(`^${abbr}\\b`,'i').test(s)) || m[`${key}Save`] || "";
+      const sv = String(svRaw).match(/([+-]\d+)/)?.[1] || fmtMod(mod(score));
+      return {abbr, score, mod:fmtMod(mod(score)), save:sv};
+    });
+
+    const line = (label, val) => val ? `<div><b>${esc(label)}</b> ${esc(val)}</div>` : "";
+    const joinList = (v)=> Array.isArray(v)?v.filter(Boolean).join(", "):String(v||"");
+
+    const sec = (title, arr) => {
+      const rows = Array.isArray(arr)?arr:[];
+      if (!rows.length) return "";
+      return `<div style="margin-top:10px;"><div style="font-weight:800;border-bottom:1px solid rgba(255,255,255,.2);padding-bottom:2px;">${esc(title)}</div>${
+        rows.map(e=>`<div style="margin-top:4px;"><b>${esc(e?.name||"")}${e?.name?". ":""}</b>${esc(e?.text||"")}</div>`).join("")
+      }</div>`;
+    };
+
+    return `<div style="margin-top:8px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:#111;max-height:74vh;overflow:auto;">
+      <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.14);">
+        <div style="font-size:22px;font-weight:900;line-height:1.05;">${esc(m.name||"Unknown Monster")}</div>
+        <div style="font-style:italic;opacity:.9;margin-top:2px;">${esc(m.sizeType||"—")}${m.alignment?`, ${esc(m.alignment)}`:""}</div>
+      </div>
+      <div style="padding:10px 12px;display:grid;gap:6px;line-height:1.4;">
+        ${line("Armor Class", `${m.ac ?? "—"}${m.acText?` (${m.acText})`:""}`)}
+        ${line("Hit Points", `${m.hp ?? "—"}${m.hpFormula?` (${m.hpFormula})`:""}`)}
+        ${line("Speed", m.speed || "—")}
+        ${line("Initiative", m.initiative || "—")}
+        <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:4px;">
+          ${abilities.map(a=>`<div style="border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:5px;text-align:center;">
+            <div style="font-size:11px;opacity:.8;">${a.abbr}</div>
+            <div style="font-weight:800;">${a.score}</div>
+            <div style="font-size:11px;">${a.mod}</div>
+            <div style="font-size:11px;opacity:.85;">save ${a.save}</div>
+          </div>`).join("")}
+        </div>
+        ${line("Saving Throws", joinList(m.saves))}
+        ${line("Skills", joinList(m.skills))}
+        ${line("Damage Vulnerabilities", joinList(m.vulnerabilities))}
+        ${line("Damage Resistances", joinList(m.resistances))}
+        ${line("Damage Immunities", joinList(m.immunities))}
+        ${line("Condition Immunities", joinList(m.conditionImmunities))}
+        ${line("Senses", joinList(m.senses))}
+        ${line("Languages", joinList(m.languages))}
+        ${line("Challenge", `${m.cr || "—"}${xp?` (${xp.toLocaleString()} XP)`:""}${pb!==null?`; PB ${pb>=0?"+":""}${pb}`:""}`)}
+        ${sec("Traits", m.traits)}
+        ${sec("Actions", m.actions)}
+        ${sec("Bonus Actions", m.bonusActions)}
+        ${sec("Reactions", m.reactions)}
+        ${sec("Legendary Actions", m.legendaryActions)}
+      </div>
+    </div>`;
+  }
+
+  function statBlockPreview(m) {
+    return state.previewTheme === "5etools" ? statBlockPreview5etools(m) : statBlockPreview2024(m);
   }
 
 function template() {
@@ -980,6 +1049,7 @@ function template() {
 
               <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <button id="sbi-preview-hover-btn" type="button">Stat Block Preview (Hover)</button>
+                <label style="display:inline-flex;align-items:center;gap:6px;">Theme <select id="sbi-preview-theme"><option value="2024">2024 Style</option><option value="5etools">5etools-like Compact</option></select></label>
                 <span class="muted">Hover button to preview standardized card.</span>
               </div>
 
