@@ -757,12 +757,12 @@
     return `
       <section style="border-top:1px solid rgba(255,255,255,.14);padding-top:10px;margin-top:10px;">
         <h4 style="margin:0 0 8px 0;text-transform:uppercase;letter-spacing:.06em;font-size:12px;opacity:.9;">${esc(title)}</h4>
-        <div style="display:grid;gap:6px;">
+        <div style="display:grid;gap:8px;">
           ${entries.map((e) => `
-            <details style="border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:0 8px;">
-              <summary style="cursor:pointer;padding:8px 0;font-weight:700;">${esc(e.name)}</summary>
-              <div style="padding:0 0 8px 0;opacity:.95;">${esc(e.text)}</div>
-            </details>
+            <div style="border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02);">
+              <div style="font-weight:700;margin-bottom:4px;">${esc(e.name)}</div>
+              <div style="opacity:.95;line-height:1.45;white-space:pre-wrap;">${esc(e.text)}</div>
+            </div>
           `).join("")}
         </div>
       </section>
@@ -773,7 +773,7 @@
     if (!m) return "";
     return `
       <div style="margin-top:14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02);">
-        <div style="padding:12px;border-bottom:1px solid rgba(255,255,255,.14);">
+        <div style="position:sticky;top:0;z-index:2;padding:12px;border-bottom:1px solid rgba(255,255,255,.14);background:#121212;">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
             <h3 style="margin:0;font-size:20px;">${esc(m.name || "Unknown Monster")}</h3>
             <span style="font-size:12px;padding:3px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;">CR ${esc(m.cr || "—")}</span>
@@ -794,7 +794,7 @@
           <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">Speed</div><div style="font-weight:800;">${esc(m.speed || "—")}</div></div>
         </div>
 
-        <div style="padding:10px;">
+        <div style="padding:12px;line-height:1.45;">
           <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;">
             ${["str","dex","con","int","wis","cha"].map((k) => {
               const v = clamp(toInt(m[k], 10), 1, 30);
@@ -943,16 +943,16 @@
 
               </div>
 
+              </details>
+
               <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <button id="sbi-preview-hover-btn" type="button">Stat Block Preview (Hover)</button>
                 <span class="muted">Hover button to preview standardized card.</span>
               </div>
 
-              <div id="sbi-hover-preview" style="display:none;position:fixed;z-index:99999;left:50%;top:50%;transform:translate(-50%,-50%);width:min(900px,92vw);max-height:86vh;overflow:auto;background:#121212;border:1px solid rgba(255,255,255,.25);border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.6);padding:12px;">
+              <div id="sbi-hover-preview" style="display:none;position:fixed;z-index:99999;left:50%;top:50%;transform:translate(-50%,-50%);width:min(980px,94vw);max-height:90vh;overflow:auto;background:#121212;border:1px solid rgba(255,255,255,.25);border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.6);padding:12px;">
                 ${statBlockPreview(p)}
               </div>
-
-              </details>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
                 <button id="sbi-refresh-preview">Refresh Preview</button>
