@@ -125,6 +125,145 @@
     });
   }
 
+
+
+  // -------------------------
+  // Image preprocessing + OCR multipass
+  // -------------------------
+  async function dataUrlToImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  function canvasToDataUrl(canvas) {
+    return canvas.toDataURL("image/png");
+  }
+
+  function preprocessImageVariant(img, opts = {}) {
+    const {
+      scale = 1,
+      grayscale = false,
+      contrast = 1,
+      threshold = null,
+      denoise = false,
+      sharpen = false,
+    } = opts;
+
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    ctx.drawImage(img, 0, 0, w, h);
+    let imageData = ctx.getImageData(0, 0, w, h);
+    const d = imageData.data;
+
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i], g = d[i + 1], b = d[i + 2];
+      if (grayscale || threshold !== null) {
+        const y = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = g = b = y;
+      }
+      if (contrast !== 1) {
+        r = clamp((r - 128) * contrast + 128, 0, 255);
+        g = clamp((g - 128) * contrast + 128, 0, 255);
+        b = clamp((b - 128) * contrast + 128, 0, 255);
+      }
+      if (threshold !== null) {
+        const v = r >= threshold ? 255 : 0;
+        r = g = b = v;
+      }
+      d[i] = r; d[i + 1] = g; d[i + 2] = b;
+    }
+
+    if (denoise) {
+      const copy = new Uint8ClampedArray(d);
+      const idx = (x, y) => (y * w + x) * 4;
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          let sum = 0;
+          for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 1; xx++) sum += copy[idx(x + xx, y + yy)];
+          const v = sum / 9;
+          const p = idx(x, y);
+          d[p] = d[p + 1] = d[p + 2] = v;
+        }
+      }
+    }
+
+    if (sharpen) {
+      const copy = new Uint8ClampedArray(d);
+      const idx = (x, y) => (y * w + x) * 4;
+      const k = [[0, -1, 0], [-1, 5, -1], [0, -1, 0]];
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          let sum = 0;
+          for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) sum += copy[idx(x + kx, y + ky)] * k[ky + 1][kx + 1];
+          const v = clamp(sum, 0, 255);
+          const p = idx(x, y);
+          d[p] = d[p + 1] = d[p + 2] = v;
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvasToDataUrl(canvas);
+  }
+
+  function scoreOcrText(text) {
+    const t = (text || "").toLowerCase();
+    const labels = [
+      "armor class", "hit points", "speed", "str", "dex", "con", "int", "wis", "cha",
+      "saving throws", "skills", "damage resistances", "damage immunities", "condition immunities",
+      "senses", "languages", "challenge", "proficiency bonus", "actions", "bonus actions", "reactions", "legendary actions"
+    ];
+    let labelHits = 0;
+    for (const lbl of labels) if (t.includes(lbl)) labelHits++;
+    const lineCount = splitLines(text).length;
+    const hasDice = /\d+d\d+/i.test(text);
+    const hasAttack = /(hit:|melee weapon attack|ranged weapon attack)/i.test(text);
+    let score = labelHits * 8 + Math.min(lineCount, 220) * 0.3;
+    if (hasDice) score += 15;
+    if (hasAttack) score += 12;
+    const weirdRatio = ((text.match(/[^\w\s.,:;()\-+/%']/g) || []).length) / Math.max(1, text.length);
+    score -= weirdRatio * 120;
+    return score;
+  }
+
+  async function runMultiPassOCR(dataUrl, onProgress) {
+    await ensureTesseractLoaded();
+    const img = await dataUrlToImage(dataUrl);
+    const variants = [
+      { name: "raw", dataUrl },
+      { name: "upscale-gray-contrast", dataUrl: preprocessImageVariant(img, { scale: 1.8, grayscale: true, contrast: 1.35, threshold: null, denoise: true }) },
+      { name: "upscale-threshold", dataUrl: preprocessImageVariant(img, { scale: 2.0, grayscale: true, contrast: 1.45, threshold: 170, denoise: true, sharpen: true }) },
+    ];
+
+    const results = [];
+    for (let i = 0; i < variants.length; i++) {
+      const v = variants[i];
+      const rec = await window.Tesseract.recognize(v.dataUrl, "eng", {
+        logger: (m) => {
+          if (m?.status === "recognizing text" && Number.isFinite(m.progress)) {
+            const total = (i + m.progress) / variants.length;
+            onProgress?.(total, v.name);
+          }
+        },
+      });
+      const text = normalizeSpaces(rec?.data?.text || "");
+      results.push({ name: v.name, text, score: scoreOcrText(text) });
+    }
+
+    results.sort((a, b) => b.score - a.score);
+    return { best: results[0], all: results };
+  }
+
   // -------------------------
   // OCR cleanup & section slicing
   // -------------------------
@@ -899,26 +1038,19 @@
 
     q("sbi-run")?.addEventListener("click", async () => {
       try {
-        state.status = "loading-lib";
-        render({ labelEl, panelEl });
-
-        await ensureTesseractLoaded();
-
         state.status = "ocr";
         state.progress = 0;
+        state._activePass = "";
         render({ labelEl, panelEl });
 
-        const result = await window.Tesseract.recognize(state.imageDataUrl, "eng", {
-          logger: (m) => {
-            if (m?.status === "recognizing text" && Number.isFinite(m.progress)) {
-              state.progress = m.progress;
-            }
-          },
+        const ocr = await runMultiPassOCR(state.imageDataUrl, (p, passName) => {
+          state.progress = p;
+          state._activePass = passName;
         });
 
-        const raw = normalizeSpaces(result?.data?.text || "");
-        state.ocrText = raw;
-        state.parsed = parseStatBlock(raw);
+        state.ocrText = ocr.best.text;
+        state._ocrCandidates = ocr.all;
+        state.parsed = parseStatBlock(ocr.best.text);
         state.status = "done";
       } catch (err) {
         state.status = "error";
