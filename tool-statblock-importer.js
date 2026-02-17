@@ -750,79 +750,79 @@
   }
 
   // -------------------------
-  // Preview renderer
+  // Preview renderer (Monster Vault style)
   // -------------------------
-  function renderSection(title, entries) {
-    if (!entries || !entries.length) return "";
+  function renderMvFeatureList(label, list) {
+    const arr = Array.isArray(list) ? list : [];
+    if (!arr.length) return "";
     return `
-      <section style="border-top:1px solid rgba(255,255,255,.14);padding-top:10px;margin-top:10px;">
-        <h4 style="margin:0 0 8px 0;text-transform:uppercase;letter-spacing:.06em;font-size:12px;opacity:.9;">${esc(title)}</h4>
-        <div style="display:grid;gap:8px;">
-          ${entries.map((e) => `
-            <div style="border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02);">
-              <div style="font-weight:700;margin-bottom:4px;">${esc(e.name)}</div>
-              <div style="opacity:.95;line-height:1.45;white-space:pre-wrap;">${esc(e.text)}</div>
-            </div>
-          `).join("")}
-        </div>
-      </section>
+      <div class="mv-detail-section">
+        <div class="mv-detail-heading">${esc(label)} (${arr.length})</div>
+        <ul class="mv-feature-list">
+          ${arr.map((f) => {
+            const name = String(f?.name || "Feature").trim();
+            const text = String(f?.text || "").trim();
+            if (!text) return "";
+            return `<li><b>${esc(name)}.</b> ${esc(text)}</li>`;
+          }).join("")}
+        </ul>
+      </div>
     `;
   }
 
   function statBlockPreview(m) {
     if (!m) return "";
+    const miscRows = [
+      ["Saving Throws", listToLine(m.saves)],
+      ["Skills", listToLine(m.skills)],
+      ["Vulnerabilities", listToLine(m.vulnerabilities)],
+      ["Resistances", listToLine(m.resistances)],
+      ["Immunities", listToLine(m.immunities)],
+      ["Condition Immunities", listToLine(m.conditionImmunities)],
+      ["Senses", listToLine(m.senses)],
+      ["Languages", listToLine(m.languages)],
+      ["Habitats", listToLine(m.habitats)]
+    ].filter(([,v]) => String(v || "").trim());
+
+    const pb = Number.isFinite(Number(m.proficiencyBonus)) ? Number(m.proficiencyBonus) : 2;
+    const xp = Number.isFinite(Number(m.xp)) ? Number(m.xp) : 0;
+    const actionCount = (m.actions?.length || 0) + (m.bonusActions?.length || 0) + (m.reactions?.length || 0) + (m.legendaryActions?.length || 0);
+
     return `
-      <div style="margin-top:14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02);">
+      <div style="margin-top:8px;border:1px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;background:#111;">
         <div style="position:sticky;top:0;z-index:2;padding:12px;border-bottom:1px solid rgba(255,255,255,.14);background:#121212;">
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
-            <h3 style="margin:0;font-size:20px;">${esc(m.name || "Unknown Monster")}</h3>
-            <span style="font-size:12px;padding:3px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;">CR ${esc(m.cr || "—")}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <h3 style="margin:0;font-size:20px;">${esc(m.name || 'Unknown Monster')}</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;">CR ${esc(m.cr || '—')}</span>
+              <span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;">XP ${xp.toLocaleString()}</span>
+              <span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;">PB ${pb>=0?'+':''}${pb}</span>
+            </div>
           </div>
-          <div class="muted" style="margin-top:4px;">
-            ${esc(m.sizeType || "—")}${m.alignment ? `, ${esc(m.alignment)}` : ""}
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-            <span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;">XP ${esc(m.xp ?? 0)}</span>
-            <span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;">PB ${m.proficiencyBonus >= 0 ? "+" : ""}${esc(m.proficiencyBonus ?? 2)}</span>
-            ${m.habitats?.length ? `<span style="font-size:11px;padding:2px 8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;">Habitat: ${esc(listToLine(m.habitats))}</span>` : ""}
+          <div class="muted" style="margin-top:4px;">${esc(m.sizeType || '—')}${m.alignment ? `, ${esc(m.alignment)}` : ''}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px;">
+            <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">AC</div><b>${esc(m.ac)}</b>${m.acText ? `<div class="muted" style="font-size:10px;">${esc(m.acText)}</div>` : ''}</div>
+            <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">HP</div><b>${esc(m.hp)}</b>${m.hpFormula ? `<div class="muted" style="font-size:10px;">${esc(m.hpFormula)}</div>` : ''}</div>
+            <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">Speed</div><b>${esc(m.speed || '—')}</b></div>
           </div>
         </div>
 
-        <div style="padding:10px;border-bottom:1px solid rgba(255,255,255,.14);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
-          <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">AC</div><div style="font-weight:800;">${esc(m.ac)}</div></div>
-          <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">HP</div><div style="font-weight:800;">${esc(m.hp)}</div></div>
-          <div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><div class="muted" style="font-size:10px;">Speed</div><div style="font-weight:800;">${esc(m.speed || "—")}</div></div>
-        </div>
-
-        <div style="padding:12px;line-height:1.45;">
-          <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;">
-            ${["str","dex","con","int","wis","cha"].map((k) => {
-              const v = clamp(toInt(m[k], 10), 1, 30);
-              const mod = Math.floor((v - 10) / 2);
-              const modTxt = mod >= 0 ? `+${mod}` : `${mod}`;
-              return `<div style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;">
-                <div class="muted" style="font-size:10px;text-transform:uppercase;">${k}</div>
-                <div style="font-weight:800;">${v} (${modTxt})</div>
-              </div>`;
-            }).join("")}
+        <div class="mv-details" style="padding:12px;">
+          <div class="mv-details-grid" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;">
+            ${['str','dex','con','int','wis','cha'].map((k) => `<div class="mv-statline" style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><span style="display:block;font-size:10px;opacity:.8;text-transform:uppercase;">${k}</span><b>${esc(m[k] ?? 10)}</b></div>`).join('')}
+            <div class="mv-statline" style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><span style="display:block;font-size:10px;opacity:.8;">PB</span><b>${pb>=0?'+':''}${pb}</b></div>
+            <div class="mv-statline" style="border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;text-align:center;"><span style="display:block;font-size:10px;opacity:.8;">XP</span><b>${xp.toLocaleString()}</b></div>
           </div>
 
-          <div style="margin-top:10px;display:grid;gap:4px;">
-            ${m.saves?.length ? `<div><span class="muted">Saving Throws:</span> ${esc(listToLine(m.saves))}</div>` : ""}
-            ${m.skills?.length ? `<div><span class="muted">Skills:</span> ${esc(listToLine(m.skills))}</div>` : ""}
-            ${m.vulnerabilities?.length ? `<div><span class="muted">Damage Vulnerabilities:</span> ${esc(listToLine(m.vulnerabilities))}</div>` : ""}
-            ${m.resistances?.length ? `<div><span class="muted">Damage Resistances:</span> ${esc(listToLine(m.resistances))}</div>` : ""}
-            ${m.immunities?.length ? `<div><span class="muted">Damage Immunities:</span> ${esc(listToLine(m.immunities))}</div>` : ""}
-            ${m.conditionImmunities?.length ? `<div><span class="muted">Condition Immunities:</span> ${esc(listToLine(m.conditionImmunities))}</div>` : ""}
-            ${m.senses?.length ? `<div><span class="muted">Senses:</span> ${esc(listToLine(m.senses))}</div>` : ""}
-            ${m.languages?.length ? `<div><span class="muted">Languages:</span> ${esc(listToLine(m.languages))}</div>` : ""}
-          </div>
+          ${miscRows.length ? `<div class="mv-detail-lines" style="margin-top:10px;display:grid;gap:6px;">${miscRows.map(([k,v]) => `<div class="mv-detail-line" style="display:grid;grid-template-columns:180px 1fr;gap:8px;"><span class="muted">${esc(k)}</span><b style="font-weight:600;">${esc(v)}</b></div>`).join('')}</div>` : ''}
 
-          ${renderSection("Traits", m.traits)}
-          ${renderSection("Actions", m.actions)}
-          ${renderSection("Bonus Actions", m.bonusActions)}
-          ${renderSection("Reactions", m.reactions)}
-          ${renderSection("Legendary Actions", m.legendaryActions)}
+          ${renderMvFeatureList('Traits', m.traits)}
+          ${actionCount ? `
+            ${renderMvFeatureList('Actions', m.actions)}
+            ${renderMvFeatureList('Bonus Actions', m.bonusActions)}
+            ${renderMvFeatureList('Reactions', m.reactions)}
+            ${renderMvFeatureList('Legendary Actions', m.legendaryActions)}
+          ` : `<div class="muted" style="margin-top:8px;">No actions recorded yet.</div>`}
         </div>
       </div>
     `;
