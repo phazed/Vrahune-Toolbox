@@ -2,7 +2,7 @@
 (() => {
   const TOOL_ID = "statblockImporter";
   const TOOL_NAME = "Stat Block Importer";
-  const STORAGE_KEY = "vrahuneStatblockImporterDraftsV2";
+  const STORAGE_KEY = "vrahuneStatblockImporterDraftsV3";
   const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
   const state = {
@@ -15,9 +15,9 @@
     lastInputMethod: "",
   };
 
-  // --------------------------
-  // General helpers
-  // --------------------------
+  // -------------------------
+  // Utils
+  // -------------------------
   function esc(s) {
     return String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -25,40 +25,45 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
-
   function toInt(v, fallback = 0) {
     const n = Number(v);
     return Number.isFinite(n) ? Math.trunc(n) : fallback;
   }
-
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
   }
-
   function uniq(arr) {
     return [...new Set((arr || []).map((x) => String(x).trim()).filter(Boolean))];
   }
-
   function normalizeSpaces(s) {
     return String(s || "")
       .replace(/\r/g, "")
+      .replace(/\u00A0/g, " ")
       .replace(/[ \t]+/g, " ")
       .replace(/[ \t]*\n[ \t]*/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
-
   function splitLines(text) {
     return normalizeSpaces(text)
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
   }
-
   function listToLine(arr) {
     return (arr || []).join(", ");
   }
+  function entriesToText(entries) {
+    return (entries || []).map((e) => `${e.name}. ${e.text}`).join("\n");
+  }
+  function confBadge(level) {
+    const c = level === "high" ? "#7bd88f" : level === "medium" ? "#ffd166" : "#ff9aa2";
+    return `<span style="font-size:10px;border:1px solid ${c};color:${c};padding:1px 6px;border-radius:999px;">${esc(level || "low")}</span>`;
+  }
 
+  // -------------------------
+  // Storage
+  // -------------------------
   function loadDrafts() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -68,17 +73,18 @@
       return [];
     }
   }
-
   function saveDrafts(arr) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
   }
-
   function addDraft(entry) {
     const drafts = loadDrafts();
     drafts.unshift(entry);
-    saveDrafts(drafts.slice(0, 150));
+    saveDrafts(drafts.slice(0, 200));
   }
 
+  // -------------------------
+  // Clipboard/file image load
+  // -------------------------
   function blobToDataURL(blob) {
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
@@ -101,7 +107,6 @@
 
   async function ensureTesseractLoaded() {
     if (window.Tesseract) return;
-
     await new Promise((resolve, reject) => {
       const existing = document.querySelector('script[data-vrahune-tool="tesseract"]');
       if (existing) {
@@ -110,7 +115,6 @@
         existing.addEventListener("error", reject, { once: true });
         return;
       }
-
       const s = document.createElement("script");
       s.src = TESSERACT_CDN;
       s.async = true;
@@ -121,13 +125,12 @@
     });
   }
 
-  // --------------------------
-  // OCR cleanup + normalization
-  // --------------------------
-  function repairCommonLabels(text) {
-    let t = text;
+  // -------------------------
+  // OCR cleanup & section slicing
+  // -------------------------
+  function normalizeOcr(raw) {
+    let t = normalizeSpaces(raw);
 
-    // fuzzy fixes for common OCR label errors
     const fixes = [
       [/Armor\s*Clas[s5]\b/gi, "Armor Class"],
       [/Arm0r\s*Class\b/gi, "Armor Class"],
@@ -139,18 +142,12 @@
       [/Legendary\s*Action[s5]\b/gi, "Legendary Actions"],
       [/Bonus\s*Action[s5]\b/gi, "Bonus Actions"],
       [/Reaction[s5]\b/gi, "Reactions"],
+      [/[“”]/g, '"'],
+      [/[‘’]/g, "'"],
     ];
     for (const [re, rep] of fixes) t = t.replace(re, rep);
 
-    // normalize punctuation/spacing
-    t = t
-      .replace(/[|¦]/g, " ")
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'")
-      .replace(/\u00A0/g, " ")
-      .replace(/[ \t]+/g, " ");
-
-    // force label starts onto new lines to reduce bleed
+    // enforce line breaks before common labels
     const labels = [
       "Armor Class",
       "Hit Points",
@@ -178,148 +175,169 @@
       "Reactions",
       "Legendary Actions",
     ];
-
-    for (const label of labels) {
-      const re = new RegExp(`\\s(${label})\\b`, "g");
+    for (const lbl of labels) {
+      const re = new RegExp(`\\s(${lbl})\\b`, "g");
       t = t.replace(re, "\n$1");
     }
 
     return normalizeSpaces(t);
   }
 
-  // --------------------------
-  // Parsing logic
-  // --------------------------
-  function findSectionIndex(lines, sectionName) {
-    const rx = new RegExp(`^${sectionName}$`, "i");
-    return lines.findIndex((l) => rx.test(l.trim()));
+  function findSectionLineIndex(lines, sectionName) {
+    const re = new RegExp(`^${sectionName}$`, "i");
+    return lines.findIndex((l) => re.test(l));
   }
 
-  function firstLineMatch(lines, regex) {
-    for (const l of lines) {
-      const m = regex.exec(l);
-      if (m) return m;
+  function sliceByHeaders(lines) {
+    const idx = {
+      actions: findSectionLineIndex(lines, "Actions"),
+      bonusActions: findSectionLineIndex(lines, "Bonus Actions"),
+      reactions: findSectionLineIndex(lines, "Reactions"),
+      legendaryActions: findSectionLineIndex(lines, "Legendary Actions"),
+    };
+
+    const starts = Object.values(idx).filter((n) => n >= 0).sort((a, b) => a - b);
+    const firstSection = starts.length ? starts[0] : lines.length;
+
+    function secSlice(start) {
+      if (start < 0) return [];
+      const next = starts.find((n) => n > start);
+      const end = next >= 0 ? next : lines.length;
+      return lines.slice(start + 1, end);
     }
-    return null;
+
+    const pre = lines.slice(0, firstSection);
+    const actions = secSlice(idx.actions);
+    const bonusActions = secSlice(idx.bonusActions);
+    const reactions = secSlice(idx.reactions);
+    const legendaryActions = secSlice(idx.legendaryActions);
+
+    return { pre, actions, bonusActions, reactions, legendaryActions };
   }
 
-  function parseAcFromText(text, lines) {
-    const lineM = firstLineMatch(lines, /\bArmor Class\b\s*(\d{1,2})(?:\s*\(([^)]+)\))?/i);
-    if (lineM) {
-      const ac = toInt(lineM[1], 10);
-      return {
-        value: clamp(ac, 1, 30),
-        notes: (lineM[2] || "").trim(),
-        confidence: ac >= 1 && ac <= 30 ? "high" : "low",
-      };
+  function splitPreIntoCoreMetaTraits(pre) {
+    // Keep first two lines for name/subtitle externally
+    const coreLabels = /^(Armor Class|Hit Points|Speed|STR|DEX|CON|INT|WIS|CHA|Challenge|Proficiency Bonus)\b/i;
+    const metaLabels = /^(Saving Throws|Skills|Damage Vulnerabilities|Damage Resistances|Damage Immunities|Condition Immunities|Senses|Languages|Habitat|Environment)\b/i;
+
+    const core = [];
+    const meta = [];
+    const traitCandidates = [];
+
+    for (let i = 2; i < pre.length; i++) {
+      const line = pre[i];
+      if (coreLabels.test(line)) core.push(line);
+      else if (metaLabels.test(line)) meta.push(line);
+      else traitCandidates.push(line);
     }
 
-    const inlineM = /\bArmor Class\b[^0-9]{0,12}(\d{1,2})(?:\s*\(([^)]+)\))?/i.exec(text);
-    if (inlineM) {
-      const ac = toInt(inlineM[1], 10);
-      return {
-        value: clamp(ac, 1, 30),
-        notes: (inlineM[2] || "").trim(),
-        confidence: ac >= 1 && ac <= 30 ? "medium" : "low",
-      };
-    }
+    return { core, meta, traitCandidates };
+  }
 
+  // -------------------------
+  // Deterministic field parsing
+  // -------------------------
+  function repairNumericOCR(s) {
+    return String(s || "")
+      .replace(/(?<=\b[+\-( ]*)[lI](?=\d)/g, "1")
+      .replace(/(?<=\d)[lI](?=\b)/g, "1")
+      .replace(/(?<=\b)O(?=\d)/g, "0")
+      .replace(/(?<=\d)O(?=\b)/g, "0");
+  }
+
+  function bestLine(lines, re) {
+    const cands = lines.filter((l) => re.test(l));
+    if (!cands.length) return "";
+    cands.sort((a, b) => a.length - b.length);
+    return cands[0];
+  }
+
+  function parseAC(coreLines, allText) {
+    let line = bestLine(coreLines, /\bArmor Class\b/i);
+    line = repairNumericOCR(line);
+
+    let m = /\bArmor Class\b\s*[:\-]?\s*(\d{1,2})(?:\s*\(([^)]+)\))?/i.exec(line);
+    if (!m) m = /\bArmor Class\b[^0-9]{0,12}(\d{1,2})(?:\s*\(([^)]+)\))?/i.exec(allText);
+
+    if (m) {
+      const n = toInt(m[1], 10);
+      return { value: clamp(n, 1, 30), notes: (m[2] || "").trim(), confidence: n >= 1 && n <= 30 ? "high" : "low" };
+    }
     return { value: 10, notes: "", confidence: "low" };
   }
 
-  function parseHpFromText(text, lines) {
-    const lineM = firstLineMatch(lines, /\bHit Points?\b\s*(\d{1,4})(?:\s*\(([^)]+)\))?/i);
-    if (lineM) {
-      const hp = toInt(lineM[1], 1);
+  function parseHP(coreLines, allText) {
+    let line = bestLine(coreLines, /\bHit Points?\b|\bHP\b/i);
+    line = repairNumericOCR(line);
+
+    let m =
+      /\bHit Points?\b\s*[:\-]?\s*(\d{1,4})\s*\(([^)]+)\)/i.exec(line) ||
+      /\bHit Points?\b\s*[:\-]?\s*(\d{1,4})\b/i.exec(line) ||
+      /\bHP\b\s*[:\-]?\s*(\d{1,4})\s*\(([^)]+)\)/i.exec(line) ||
+      /\bHP\b\s*[:\-]?\s*(\d{1,4})\b/i.exec(line);
+
+    if (!m) {
+      m =
+        /\bHit Points?\b[^0-9]{0,16}(\d{1,4})(?:\s*\(([^)]+)\))?/i.exec(allText) ||
+        /\bHP\b[^0-9]{0,8}(\d{1,4})(?:\s*\(([^)]+)\))?/i.exec(allText);
+    }
+
+    if (m) {
+      const hp = toInt(m[1], 1);
       return {
         value: clamp(hp, 1, 9999),
-        formula: (lineM[2] || "").trim(),
+        formula: (m[2] || "").trim(),
         confidence: hp > 0 ? "high" : "low",
       };
     }
-
-    const inlineM = /\bHit Points?\b[^0-9]{0,16}(\d{1,4})(?:\s*\(([^)]+)\))?/i.exec(text);
-    if (inlineM) {
-      const hp = toInt(inlineM[1], 1);
-      return {
-        value: clamp(hp, 1, 9999),
-        formula: (inlineM[2] || "").trim(),
-        confidence: hp > 0 ? "medium" : "low",
-      };
-    }
-
     return { value: 1, formula: "", confidence: "low" };
   }
 
-  function parseSpeedFromText(text, lines) {
-    const lineM = firstLineMatch(lines, /\bSpeed\b\s*([^.\n]+)/i);
-    if (lineM) {
-      const speed = lineM[1].trim();
-      return {
-        value: speed || "30 ft.",
-        confidence: /\bft\b/i.test(speed) ? "high" : "medium",
-      };
+  function parseSpeed(coreLines, allText) {
+    const line = bestLine(coreLines, /\bSpeed\b/i);
+    let m = /\bSpeed\b\s*[:\-]?\s*([^\n]+)/i.exec(line);
+    if (!m) m = /\bSpeed\b\s*[:\-]?\s*([^\n]+)/i.exec(allText);
+    if (m) {
+      const speed = m[1].trim();
+      return { value: speed || "30 ft.", confidence: /\bft\b/i.test(speed) ? "high" : "medium" };
     }
-
-    const inlineM = /\bSpeed\b\s*([^.\n]+)/i.exec(text);
-    if (inlineM) {
-      const speed = inlineM[1].trim();
-      return {
-        value: speed || "30 ft.",
-        confidence: /\bft\b/i.test(speed) ? "medium" : "low",
-      };
-    }
-
     return { value: "30 ft.", confidence: "low" };
   }
 
-  function parseCrXpPb(text, lines) {
-    let cr = "1/8";
-    let xp = 0;
-    let pb = 2;
-    let crConf = "low";
-    let pbConf = "low";
+  function parseCRPB(coreLines, allText) {
+    let cr = "1/8", xp = 0, pb = 2;
+    let crConf = "low", pbConf = "low";
 
-    const crLine = firstLineMatch(lines, /\bChallenge\b\s*([0-9]+(?:\/[0-9]+)?)(?:\s*\(([\d,]+)\s*XP\))?/i);
-    if (crLine) {
-      cr = crLine[1];
-      xp = crLine[2] ? toInt(String(crLine[2]).replace(/,/g, ""), 0) : 0;
+    const coreJoin = coreLines.join(" ");
+
+    let m = /\bChallenge\b\s*([0-9]+(?:\/[0-9]+)?)(?:\s*\(([\d,]+)\s*XP\))?/i.exec(coreJoin);
+    if (!m) m = /\b(?:Challenge|CR)\b[^0-9/]{0,12}([0-9]+(?:\/[0-9]+)?)(?:\s*\(([\d,]+)\s*XP\))?/i.exec(allText);
+    if (m) {
+      cr = m[1];
+      xp = m[2] ? toInt(String(m[2]).replace(/,/g, ""), 0) : 0;
       crConf = "high";
-    } else {
-      const crInline = /\b(?:Challenge|CR)\b[^0-9/]{0,10}([0-9]+(?:\/[0-9]+)?)/i.exec(text);
-      if (crInline) {
-        cr = crInline[1];
-        crConf = "medium";
-      }
     }
 
-    const pbLine = firstLineMatch(lines, /\bProficiency Bonus\b\s*([+\-]?\d+)/i)
-      || firstLineMatch(lines, /\bPB\b\s*([+\-]?\d+)/i);
-    if (pbLine) {
-      pb = clamp(toInt(pbLine[1], 2), -5, 20);
+    let p = /\bProficiency Bonus\b\s*([+\-]?\d+)/i.exec(coreJoin);
+    if (!p) p = /\b(?:Proficiency Bonus|PB)\b[^+\-\d]{0,8}([+\-]?\d+)/i.exec(allText);
+    if (p) {
+      pb = clamp(toInt(p[1], 2), -5, 20);
       pbConf = "high";
-    } else {
-      const pbInline = /\b(?:Proficiency Bonus|PB)\b[^+\-\d]{0,8}([+\-]?\d+)/i.exec(text);
-      if (pbInline) {
-        pb = clamp(toInt(pbInline[1], 2), -5, 20);
-        pbConf = "medium";
-      }
     }
 
     return { cr, xp, pb, crConf, pbConf };
   }
 
-  function parseAbilities(lines, text) {
+  function parseAbilities(coreLines, allText) {
     const out = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, confidence: "low" };
+    const src = `${coreLines.join(" ")} ${allText}`;
 
-    // Best case: explicit labels present
-    const combined = lines.join(" ");
-    const statRegex = /\b(STR|DEX|CON|INT|WIS|CHA)\s+(\d{1,2})\b/gi;
-    let m;
-    const found = {};
-    while ((m = statRegex.exec(combined)) !== null) {
+    const re = /\b(STR|DEX|CON|INT|WIS|CHA)\s+(\d{1,2})\b/gi;
+    let m; const found = {};
+    while ((m = re.exec(src)) !== null) {
       found[m[1].toLowerCase()] = clamp(toInt(m[2], 10), 1, 30);
     }
+
     if (Object.keys(found).length >= 4) {
       out.str = found.str ?? out.str;
       out.dex = found.dex ?? out.dex;
@@ -331,162 +349,131 @@
       return out;
     }
 
-    // Fallback: sequence of six ability numbers in plausible range
-    const nums = (combined.match(/\b([1-2]?\d|30)\b/g) || []).map((x) => toInt(x, NaN)).filter((n) => n >= 1 && n <= 30);
-    if (nums.length >= 6) {
-      out.str = nums[0];
-      out.dex = nums[1];
-      out.con = nums[2];
-      out.int = nums[3];
-      out.wis = nums[4];
-      out.cha = nums[5];
+    // fallback: first six plausible numbers after STR token
+    const tokens = src.match(/\b([1-2]?\d|30)\b/g) || [];
+    if (tokens.length >= 6) {
+      out.str = clamp(toInt(tokens[0], 10), 1, 30);
+      out.dex = clamp(toInt(tokens[1], 10), 1, 30);
+      out.con = clamp(toInt(tokens[2], 10), 1, 30);
+      out.int = clamp(toInt(tokens[3], 10), 1, 30);
+      out.wis = clamp(toInt(tokens[4], 10), 1, 30);
+      out.cha = clamp(toInt(tokens[5], 10), 1, 30);
       out.confidence = "low";
     }
 
     return out;
   }
 
-  function parseLabeledList(lines, labelRegex) {
-    const m = firstLineMatch(lines, new RegExp(`\\b(?:${labelRegex})\\b\\s*(.+)$`, "i"));
-    if (!m) return [];
-    return uniq(
-      m[1]
-        .split(/[,;]+/)
-        .map((x) => x.trim())
-        .filter(Boolean)
-    );
+  function parseMetaList(metaLines, labelRegex) {
+    const re = new RegExp(`\\b(?:${labelRegex})\\b\\s*(.+)$`, "i");
+    for (const line of metaLines) {
+      const m = re.exec(line);
+      if (m) {
+        return uniq(m[1].split(/[,;]+/).map((x) => x.trim()));
+      }
+    }
+    return [];
   }
 
-  function parseTitleEntriesFromLines(lines) {
-    const items = [];
-    let current = null;
+  // -------------------------
+  // Entry parsing
+  // -------------------------
+  function parseEntryLines(lines) {
+    // Very conservative:
+    // Only lines with "Name. text" create structured entries.
+    const structured = [];
+    const rawLeftovers = [];
 
-    const isTitleLine = (line) => /^[A-Z][A-Za-z0-9'’\-\s]{2,100}\.\s+/.test(line);
+    let current = null;
+    const titleRe = /^([A-Z][A-Za-z0-9'’\-\s]{2,100})\.\s+(.+)$/;
 
     for (const raw of lines) {
       const line = raw.trim();
       if (!line) continue;
 
-      if (isTitleLine(line)) {
-        if (current) items.push(current);
-        const i = line.indexOf(".");
-        current = {
-          name: line.slice(0, i).trim(),
-          text: line.slice(i + 1).trim(),
-        };
+      const t = titleRe.exec(line);
+      if (t) {
+        if (current) structured.push(current);
+        current = { name: t[1].trim(), text: t[2].trim() };
       } else if (current) {
+        // continuation
         current.text += " " + line;
       } else {
-        // Unheaded text -> generic entry
-        current = { name: "Feature", text: line };
+        rawLeftovers.push(line);
       }
     }
-    if (current) items.push(current);
-
-    return items.map((x) => ({ name: x.name.trim(), text: normalizeSpaces(x.text) })).filter((x) => x.text);
-  }
-
-  function splitSections(lines) {
-    const idx = {
-      actions: findSectionIndex(lines, "Actions"),
-      bonusActions: findSectionIndex(lines, "Bonus Actions"),
-      reactions: findSectionIndex(lines, "Reactions"),
-      legendaryActions: findSectionIndex(lines, "Legendary Actions"),
-    };
-
-    const allStarts = Object.values(idx).filter((n) => n >= 0).sort((a, b) => a - b);
-
-    function sectionSlice(startIdx) {
-      if (startIdx < 0) return [];
-      const next = allStarts.find((n) => n > startIdx);
-      const end = next >= 0 ? next : lines.length;
-      return lines.slice(startIdx + 1, end);
-    }
-
-    // Traits are lines before first explicit section after we skip obvious core/meta area
-    const firstSection = allStarts.length ? allStarts[0] : lines.length;
-    const pre = lines.slice(0, firstSection);
+    if (current) structured.push(current);
 
     return {
-      pre,
-      actions: sectionSlice(idx.actions),
-      bonusActions: sectionSlice(idx.bonusActions),
-      reactions: sectionSlice(idx.reactions),
-      legendaryActions: sectionSlice(idx.legendaryActions),
+      entries: structured.filter((e) => e.name && e.text),
+      raw: rawLeftovers.join("\n").trim(),
     };
   }
 
+  // -------------------------
+  // Main parser
+  // -------------------------
   function parseStatBlock(rawInput) {
-    const cleaned = repairCommonLabels(rawInput);
-    const text = normalizeSpaces(cleaned);
-    const lines = splitLines(text);
+    const cleaned = normalizeOcr(rawInput);
+    const lines = splitLines(cleaned);
+    const allText = lines.join("\n");
 
-    // Name + subtitle
     const name = lines[0] || "Unknown Monster";
     const subtitle = lines[1] || "";
 
     let sizeType = "";
     let alignment = "";
-    const subM = /^(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+([^,]+),\s*(.+)$/i.exec(subtitle);
-    if (subM) {
-      sizeType = `${subM[1]} ${subM[2]}`.trim();
-      alignment = subM[3].trim();
+    const sm = /^(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+([^,]+),\s*(.+)$/i.exec(subtitle);
+    if (sm) {
+      sizeType = `${sm[1]} ${sm[2]}`.trim();
+      alignment = sm[3].trim();
     } else {
       sizeType = subtitle.trim();
     }
 
-    const acP = parseAcFromText(text, lines);
-    const hpP = parseHpFromText(text, lines);
-    const speedP = parseSpeedFromText(text, lines);
-    const cxp = parseCrXpPb(text, lines);
-    const abil = parseAbilities(lines, text);
+    const sliced = sliceByHeaders(lines);
+    const preSplit = splitPreIntoCoreMetaTraits(sliced.pre);
 
-    const saves = parseLabeledList(lines, "Saving Throws");
-    const skills = parseLabeledList(lines, "Skills");
-    const vulnerabilities = parseLabeledList(lines, "Damage Vulnerabilities");
-    const resistances = parseLabeledList(lines, "Damage Resistances");
-    const immunities = parseLabeledList(lines, "Damage Immunities");
-    const conditionImmunities = parseLabeledList(lines, "Condition Immunities");
-    const senses = parseLabeledList(lines, "Senses");
-    const languages = parseLabeledList(lines, "Languages");
-    const habitats = parseLabeledList(lines, "Habitat|Environment");
+    const acP = parseAC(preSplit.core, allText);
+    const hpP = parseHP(preSplit.core, allText);
+    const spP = parseSpeed(preSplit.core, allText);
+    const crpb = parseCRPB(preSplit.core, allText);
+    const abil = parseAbilities(preSplit.core, allText);
 
-    const sec = splitSections(lines);
+    const saves = parseMetaList(preSplit.meta, "Saving Throws");
+    const skills = parseMetaList(preSplit.meta, "Skills");
+    const vulnerabilities = parseMetaList(preSplit.meta, "Damage Vulnerabilities");
+    const resistances = parseMetaList(preSplit.meta, "Damage Resistances");
+    const immunities = parseMetaList(preSplit.meta, "Damage Immunities");
+    const conditionImmunities = parseMetaList(preSplit.meta, "Condition Immunities");
+    const senses = parseMetaList(preSplit.meta, "Senses");
+    const languages = parseMetaList(preSplit.meta, "Languages");
+    const habitats = parseMetaList(preSplit.meta, "Habitat|Environment");
 
-    // Remove obvious core/meta lines from pre before traits parsing
-    const metaLabelRx = /^(Armor Class|Hit Points|Speed|STR|DEX|CON|INT|WIS|CHA|Saving Throws|Skills|Damage Vulnerabilities|Damage Resistances|Damage Immunities|Condition Immunities|Senses|Languages|Challenge|Proficiency Bonus|Habitat|Environment)\b/i;
-    const traitCandidateLines = sec.pre.filter((l, i) => i > 1 && !metaLabelRx.test(l));
+    // Parse sections conservatively
+    const traitParsed = parseEntryLines(preSplit.traitCandidates);
+    const actionParsed = parseEntryLines(sliced.actions);
+    const bonusParsed = parseEntryLines(sliced.bonusActions);
+    const reactParsed = parseEntryLines(sliced.reactions);
+    const legendParsed = parseEntryLines(sliced.legendaryActions);
 
-    const traits = parseTitleEntriesFromLines(traitCandidateLines);
-    const actions = parseTitleEntriesFromLines(sec.actions);
-    const bonusActions = parseTitleEntriesFromLines(sec.bonusActions);
-    const reactions = parseTitleEntriesFromLines(sec.reactions);
-    const legendaryActions = parseTitleEntriesFromLines(sec.legendaryActions);
+    // If actions header exists but no structured actions, keep raw text
+    const actionsRawFallback = actionParsed.raw || (sliced.actions.length ? sliced.actions.join("\n") : "");
 
-    // unmapped text = lines not consumed by recognized sections but likely content
-    const unmapped = [];
-    if (!actions.length && findSectionIndex(lines, "Actions") >= 0) {
-      unmapped.push("Could not confidently parse Actions section.");
-    }
-    if (!traits.length && traitCandidateLines.length) {
-      unmapped.push(traitCandidateLines.join("\n"));
-    }
-
-    const fieldConfidence = {
-      ac: acP.confidence,
-      hp: hpP.confidence,
-      speed: speedP.confidence,
-      cr: cxp.crConf,
-      pb: cxp.pbConf,
-      abilities: abil.confidence,
-    };
+    const unmappedChunks = [];
+    if (traitParsed.raw) unmappedChunks.push(`[Traits raw leftovers]\n${traitParsed.raw}`);
+    if (bonusParsed.raw) unmappedChunks.push(`[Bonus Actions raw leftovers]\n${bonusParsed.raw}`);
+    if (reactParsed.raw) unmappedChunks.push(`[Reactions raw leftovers]\n${reactParsed.raw}`);
+    if (legendParsed.raw) unmappedChunks.push(`[Legendary Actions raw leftovers]\n${legendParsed.raw}`);
 
     return {
       id: `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-      name: name.trim(),
       source: "Imported Screenshot",
       sourceType: "homebrew",
+      importedFrom: "screenshot-ocr",
+      importedAt: new Date().toISOString(),
 
+      name: name.trim(),
       sizeType,
       alignment,
 
@@ -494,11 +481,11 @@
       acText: acP.notes,
       hp: hpP.value,
       hpFormula: hpP.formula,
-      speed: speedP.value,
+      speed: spP.value,
 
-      cr: cxp.cr,
-      xp: cxp.xp,
-      proficiencyBonus: cxp.pb,
+      cr: crpb.cr,
+      xp: crpb.xp,
+      proficiencyBonus: crpb.pb,
 
       str: abil.str,
       dex: abil.dex,
@@ -517,39 +504,58 @@
       languages,
       habitats,
 
-      traits,
-      actions,
-      bonusActions,
-      reactions,
-      legendaryActions,
+      traits: traitParsed.entries,
+      actions: actionParsed.entries,
+      bonusActions: bonusParsed.entries,
+      reactions: reactParsed.entries,
+      legendaryActions: legendParsed.entries,
 
-      unmappedText: unmapped.filter(Boolean).join("\n\n").trim(),
+      // raw section editors (important for cleanup)
+      rawSections: {
+        traits: preSplit.traitCandidates.join("\n"),
+        actions: sliced.actions.join("\n"),
+        bonusActions: sliced.bonusActions.join("\n"),
+        reactions: sliced.reactions.join("\n"),
+        legendaryActions: sliced.legendaryActions.join("\n"),
+        actionsRawFallback,
+      },
 
-      importedAt: new Date().toISOString(),
-      importedFrom: "screenshot-ocr",
-      confidence: fieldConfidence,
+      unmappedText: unmappedChunks.join("\n\n").trim(),
+
+      confidence: {
+        ac: acP.confidence,
+        hp: hpP.confidence,
+        speed: spP.confidence,
+        cr: crpb.crConf,
+        pb: crpb.pbConf,
+        abilities: abil.confidence,
+      },
+
       cleanedOcrText: cleaned,
     };
   }
 
-  // --------------------------
-  // UI mapping helpers
-  // --------------------------
-  function entriesToText(entries) {
-    return (entries || []).map((e) => `${e.name}. ${e.text}`).join("\n");
-  }
-
+  // -------------------------
+  // Rebuild from raw section editors
+  // -------------------------
   function parseEntriesFromTextarea(text) {
     const lines = splitLines(text || "");
-    return parseTitleEntriesFromLines(lines);
+    return parseEntryLines(lines).entries;
   }
 
   function collectReviewed(panelEl) {
     if (!state.parsed) return null;
     const q = (id) => panelEl.querySelector(`#${id}`);
 
-    return {
+    const rawTraits = q("sbi-raw-traits")?.value || "";
+    const rawActions = q("sbi-raw-actions")?.value || "";
+    const rawBonus = q("sbi-raw-bonus")?.value || "";
+    const rawReactions = q("sbi-raw-reactions")?.value || "";
+    const rawLegendary = q("sbi-raw-legendary")?.value || "";
+
+    const reviewed = {
       ...state.parsed,
+
       name: (q("sbi-name")?.value || "").trim() || "Unknown Monster",
       sizeType: (q("sbi-sizeType")?.value || "").trim(),
       alignment: (q("sbi-alignment")?.value || "").trim(),
@@ -581,21 +587,32 @@
       languages: uniq((q("sbi-languages")?.value || "").split(/[,;]+/).map((x) => x.trim())),
       habitats: uniq((q("sbi-habitats")?.value || "").split(/[,;]+/).map((x) => x.trim())),
 
+      // structured
       traits: parseEntriesFromTextarea(q("sbi-traits")?.value || ""),
       actions: parseEntriesFromTextarea(q("sbi-actions")?.value || ""),
       bonusActions: parseEntriesFromTextarea(q("sbi-bonusActions")?.value || ""),
       reactions: parseEntriesFromTextarea(q("sbi-reactions")?.value || ""),
       legendaryActions: parseEntriesFromTextarea(q("sbi-legendaryActions")?.value || ""),
 
+      // raw section editors
+      rawSections: {
+        ...(state.parsed.rawSections || {}),
+        traits: rawTraits,
+        actions: rawActions,
+        bonusActions: rawBonus,
+        reactions: rawReactions,
+        legendaryActions: rawLegendary,
+      },
+
       unmappedText: (q("sbi-unmapped")?.value || "").trim(),
     };
+
+    return reviewed;
   }
 
-  function confBadge(level) {
-    const color = level === "high" ? "#7bd88f" : level === "medium" ? "#ffd166" : "#ff9aa2";
-    return `<span style="font-size:10px;border:1px solid ${color};color:${color};padding:1px 6px;border-radius:999px;">${esc(level || "low")}</span>`;
-  }
-
+  // -------------------------
+  // Preview renderer
+  // -------------------------
   function renderSection(title, entries) {
     if (!entries || !entries.length) return "";
     return `
@@ -672,14 +689,18 @@
     `;
   }
 
+  // -------------------------
+  // Template
+  // -------------------------
   function template() {
-    const progressPct = Math.round((state.progress || 0) * 100);
     const p = state.parsed;
+    const progressPct = Math.round((state.progress || 0) * 100);
+
     return `
       <div class="tool-panel" style="display:grid;gap:12px;">
         <div>
           <h2 style="margin:0 0 6px 0;">Stat Block Importer</h2>
-          <div class="muted">Paste screenshot (Win+Shift+S → Ctrl+V) or upload image → OCR locally → strict parse + review.</div>
+          <div class="muted">Section-first parser: safer mapping, raw section fallback, manual cleanup workflow.</div>
         </div>
 
         <div id="sbi-paste-zone" tabindex="0" style="padding:14px;border:1px dashed rgba(255,255,255,.30);border-radius:10px;outline:none;">
@@ -711,7 +732,7 @@
         <details ${state.ocrText ? "open" : ""}>
           <summary>OCR Text</summary>
           <textarea id="sbi-ocr-text" style="width:100%;min-height:140px;margin-top:8px;">${esc(state.ocrText || "")}</textarea>
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="margin-top:8px;">
             <button id="sbi-reparse">Re-parse Edited Text</button>
           </div>
         </details>
@@ -731,6 +752,7 @@
                 <label>HP ${confBadge(p.confidence?.hp)}<input id="sbi-hp" type="number" style="width:100%;" value="${esc(p.hp)}"></label>
                 <label>HP Formula<input id="sbi-hpFormula" style="width:100%;" value="${esc(p.hpFormula || "")}"></label>
                 <label>Speed ${confBadge(p.confidence?.speed)}<input id="sbi-speed" style="width:100%;" value="${esc(p.speed || "")}"></label>
+
                 <label>CR ${confBadge(p.confidence?.cr)}<input id="sbi-cr" style="width:100%;" value="${esc(p.cr)}"></label>
                 <label>XP<input id="sbi-xp" type="number" style="width:100%;" value="${esc(p.xp ?? 0)}"></label>
                 <label>PB ${confBadge(p.confidence?.pb)}<input id="sbi-pb" type="number" style="width:100%;" value="${esc(p.proficiencyBonus ?? 2)}"></label>
@@ -757,26 +779,26 @@
                 <label style="grid-column:1 / -1;">Habitats / Environment<input id="sbi-habitats" style="width:100%;" value="${esc(listToLine(p.habitats))}"></label>
               </div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-                <label>Traits (Name. text)
-                  <textarea id="sbi-traits" style="width:100%;min-height:110px;">${esc(entriesToText(p.traits))}</textarea>
-                </label>
-                <label>Actions (Name. text)
-                  <textarea id="sbi-actions" style="width:100%;min-height:110px;">${esc(entriesToText(p.actions))}</textarea>
-                </label>
-                <label>Bonus Actions
-                  <textarea id="sbi-bonusActions" style="width:100%;min-height:90px;">${esc(entriesToText(p.bonusActions))}</textarea>
-                </label>
-                <label>Reactions
-                  <textarea id="sbi-reactions" style="width:100%;min-height:90px;">${esc(entriesToText(p.reactions))}</textarea>
-                </label>
-                <label style="grid-column:1 / -1;">Legendary Actions
-                  <textarea id="sbi-legendaryActions" style="width:100%;min-height:90px;">${esc(entriesToText(p.legendaryActions))}</textarea>
-                </label>
-                <label style="grid-column:1 / -1;">Unmapped Text (review bucket)
-                  <textarea id="sbi-unmapped" style="width:100%;min-height:90px;">${esc(p.unmappedText || "")}</textarea>
-                </label>
+              <h4 style="margin:12px 0 6px 0;">Structured Entries</h4>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <label>Traits (Name. text)<textarea id="sbi-traits" style="width:100%;min-height:110px;">${esc(entriesToText(p.traits))}</textarea></label>
+                <label>Actions (Name. text)<textarea id="sbi-actions" style="width:100%;min-height:110px;">${esc(entriesToText(p.actions))}</textarea></label>
+                <label>Bonus Actions<textarea id="sbi-bonusActions" style="width:100%;min-height:90px;">${esc(entriesToText(p.bonusActions))}</textarea></label>
+                <label>Reactions<textarea id="sbi-reactions" style="width:100%;min-height:90px;">${esc(entriesToText(p.reactions))}</textarea></label>
+                <label style="grid-column:1 / -1;">Legendary Actions<textarea id="sbi-legendaryActions" style="width:100%;min-height:90px;">${esc(entriesToText(p.legendaryActions))}</textarea></label>
               </div>
+
+              <h4 style="margin:12px 0 6px 0;">Raw Section Editors</h4>
+              <div class="muted" style="margin-bottom:6px;">Use these when OCR structure fails. Then copy cleaned lines to structured boxes above.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <label>Raw Traits<textarea id="sbi-raw-traits" style="width:100%;min-height:90px;">${esc(p.rawSections?.traits || "")}</textarea></label>
+                <label>Raw Actions<textarea id="sbi-raw-actions" style="width:100%;min-height:90px;">${esc(p.rawSections?.actions || p.rawSections?.actionsRawFallback || "")}</textarea></label>
+                <label>Raw Bonus Actions<textarea id="sbi-raw-bonus" style="width:100%;min-height:80px;">${esc(p.rawSections?.bonusActions || "")}</textarea></label>
+                <label>Raw Reactions<textarea id="sbi-raw-reactions" style="width:100%;min-height:80px;">${esc(p.rawSections?.reactions || "")}</textarea></label>
+                <label style="grid-column:1 / -1;">Raw Legendary Actions<textarea id="sbi-raw-legendary" style="width:100%;min-height:80px;">${esc(p.rawSections?.legendaryActions || "")}</textarea></label>
+              </div>
+
+              <label style="display:block;margin-top:10px;">Unmapped Text<textarea id="sbi-unmapped" style="width:100%;min-height:90px;">${esc(p.unmappedText || "")}</textarea></label>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
                 <button id="sbi-refresh-preview">Refresh Preview</button>
@@ -792,8 +814,10 @@
     `;
   }
 
+  // -------------------------
+  // Bind events
+  // -------------------------
   function bind(labelEl, panelEl) {
-    // cleanup old listeners to avoid duplicates
     if (panelEl._sbiCleanup && Array.isArray(panelEl._sbiCleanup)) {
       for (const fn of panelEl._sbiCleanup) {
         try { fn(); } catch {}
@@ -802,16 +826,17 @@
     panelEl._sbiCleanup = [];
 
     const q = (id) => panelEl.querySelector(`#${id}`);
-    const fileEl = q("sbi-file");
+
     const pasteZone = q("sbi-paste-zone");
+    const fileEl = q("sbi-file");
 
     const onZonePaste = async (e) => {
       try {
         const items = e.clipboardData?.items || [];
-        for (const item of items) {
-          if (item.type && item.type.startsWith("image/")) {
+        for (const it of items) {
+          if (it.type && it.type.startsWith("image/")) {
             e.preventDefault();
-            const blob = item.getAsFile();
+            const blob = it.getAsFile();
             if (blob) {
               await setImageFromBlob(blob, { labelEl, panelEl, method: "clipboard paste" });
               return;
@@ -828,10 +853,10 @@
     const onGlobalPaste = async (e) => {
       if (!panelEl || !panelEl.isConnected) return;
       const items = e.clipboardData?.items || [];
-      for (const item of items) {
-        if (item.type && item.type.startsWith("image/")) {
+      for (const it of items) {
+        if (it.type && it.type.startsWith("image/")) {
           e.preventDefault();
-          const blob = item.getAsFile();
+          const blob = it.getAsFile();
           if (blob) {
             await setImageFromBlob(blob, { labelEl, panelEl, method: "clipboard paste" });
             return;
@@ -845,8 +870,8 @@
     window.addEventListener("paste", onGlobalPaste);
 
     panelEl._sbiCleanup.push(() => {
-      window.removeEventListener("paste", onGlobalPaste);
       pasteZone?.removeEventListener("paste", onZonePaste);
+      window.removeEventListener("paste", onGlobalPaste);
     });
 
     fileEl?.addEventListener("change", async (e) => {
@@ -948,7 +973,7 @@
   window.registerTool({
     id: TOOL_ID,
     name: TOOL_NAME,
-    description: "Paste/upload screenshot, OCR locally, strict parse, review, and stat block preview.",
+    description: "Paste/upload screenshot, OCR locally, section-first parse with raw fallbacks.",
     render,
   });
 })();
