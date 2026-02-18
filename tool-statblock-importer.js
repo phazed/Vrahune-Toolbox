@@ -908,119 +908,6 @@ function loadDrafts() {
     if (!state.parsed) return null;
     const q = (id) => panelEl.querySelector(`#${id}`);
 
-    // -------------------------
-    // Tabs + Open5e bindings
-    // -------------------------
-    // Tabs
-        q("sbi-tab-ocr")?.addEventListener("click", () => {
-          state.activeTab = "ocr";
-          render({ labelEl, panelEl });
-        });
-        q("sbi-tab-open5e")?.addEventListener("click", () => {
-          state.activeTab = "open5e";
-          render({ labelEl, panelEl });
-        });
-    
-        // Open5e search
-        const runOpen5eSearch = async (qstrOrUrl) => {
-          try {
-            state.open5e.loading = true;
-            state.open5e.error = "";
-            render({ labelEl, panelEl });
-    
-            const data = await open5eSearchMonsters(qstrOrUrl);
-            state.open5e.results = Array.isArray(data?.results) ? data.results : [];
-            state.open5e.next = data?.next || null;
-            state.open5e.prev = data?.previous || null;
-            state.open5e.loading = false;
-    
-            // Auto-select first result if nothing selected
-            if (!state.open5e.selected && state.open5e.results.length) {
-              state.open5e.selected = state.open5e.results[0];
-            }
-          } catch (err) {
-            state.open5e.loading = false;
-            state.open5e.error = err?.message || String(err);
-          }
-          render({ labelEl, panelEl });
-        };
-    
-        q("sbi-open5e-q")?.addEventListener("input", (e) => {
-          const v = e.target.value || "";
-          state.open5e.q = v;
-          // Debounce live search if user stops typing
-          if (_open5eSearchTimer) clearTimeout(_open5eSearchTimer);
-          _open5eSearchTimer = setTimeout(() => {
-            if (state.activeTab === "open5e" && String(state.open5e.q || "").trim().length >= 2) {
-              runOpen5eSearch(state.open5e.q);
-            } else {
-              render({ labelEl, panelEl });
-            }
-          }, 350);
-        });
-    
-        q("sbi-open5e-search")?.addEventListener("click", () => {
-          const v = q("sbi-open5e-q")?.value || state.open5e.q || "";
-          state.open5e.q = v;
-          if (String(v).trim()) runOpen5eSearch(v);
-        });
-    
-        q("sbi-open5e-clear")?.addEventListener("click", () => {
-          state.open5e.q = "";
-          state.open5e.results = [];
-          state.open5e.next = null;
-          state.open5e.prev = null;
-          state.open5e.loading = false;
-          state.open5e.error = "";
-          state.open5e.selected = null;
-          render({ labelEl, panelEl });
-        });
-    
-        q("sbi-open5e-prev")?.addEventListener("click", () => {
-          if (state.open5e.prev) runOpen5eSearch(state.open5e.prev);
-        });
-        q("sbi-open5e-next")?.addEventListener("click", () => {
-          if (state.open5e.next) runOpen5eSearch(state.open5e.next);
-        });
-    
-        // Open5e result selection
-        panelEl.querySelectorAll("[data-o5-idx]")?.forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const idx = Number(btn.getAttribute("data-o5-idx"));
-            const pick = state.open5e.results?.[idx];
-            if (pick) {
-              state.open5e.selected = pick;
-              render({ labelEl, panelEl });
-            }
-          });
-        });
-    
-        // Load selected Open5e monster into importer editor (OCR tab) so you can tweak fields
-        q("sbi-open5e-use")?.addEventListener("click", () => {
-          const picked = state.open5e.selected;
-          if (!picked) return;
-          const normalized = normalizeOpen5eMonster(picked);
-          state.parsed = normalized;
-          state.ocrText = "";
-          state.status = "done";
-          state.activeTab = "ocr";
-          state.lastInputMethod = "Open5e";
-          render({ labelEl, panelEl });
-        });
-    
-        q("sbi-open5e-save")?.addEventListener("click", () => {
-          const picked = state.open5e.selected;
-          if (!picked) return;
-          const normalized = normalizeOpen5eMonster(picked);
-          addDraft({ ...normalized, _savedAt: new Date().toISOString() });
-          alert("Saved Open5e monster to Stat Block Importer drafts.");
-          render({ labelEl, panelEl });
-        });
-    
-    
-        
-
-
     const rawTraits = q("sbi-raw-traits")?.value || "";
     const rawActions = q("sbi-raw-actions")?.value || "";
     const rawBonus = q("sbi-raw-bonus")?.value || "";
@@ -1718,6 +1605,122 @@ q("sbi-copy")?.addEventListener("click", async () => {
         alert("Clipboard copy failed.");
       }
     });
+
+// -------------------------
+// Tabs + Open5e bindings (must be in bind(), not collectReviewed)
+// -------------------------
+const runOpen5eSearch = async (qstrOrUrl) => {
+  try {
+    const qv = String(qstrOrUrl || "").trim();
+    if (!qv) return;
+    state.open5e.loading = true;
+    state.open5e.error = "";
+    render({ labelEl, panelEl });
+
+    const data = await open5eSearchMonsters(qv);
+    state.open5e.results = Array.isArray(data?.results) ? data.results : [];
+    state.open5e.next = data?.next || null;
+    state.open5e.prev = data?.previous || null;
+    state.open5e.loading = false;
+
+    if (!state.open5e.selected || !state.open5e.results.some(r => r?.slug === state.open5e.selected?.slug)) {
+      state.open5e.selected = state.open5e.results[0] || null;
+    }
+  } catch (err) {
+    state.open5e.loading = false;
+    state.open5e.error = err?.message || String(err);
+  }
+  render({ labelEl, panelEl });
+};
+
+// Tabs
+q("sbi-tab-ocr")?.addEventListener("click", () => {
+  state.activeTab = "ocr";
+  render({ labelEl, panelEl });
+});
+q("sbi-tab-open5e")?.addEventListener("click", () => {
+  state.activeTab = "open5e";
+  // optional auto-search if query already typed
+  if (String(state.open5e.q || "").trim().length >= 2 && !state.open5e.results.length) {
+    runOpen5eSearch(state.open5e.q);
+  } else {
+    render({ labelEl, panelEl });
+  }
+});
+
+// Open5e query input (debounced)
+q("sbi-open5e-q")?.addEventListener("input", (e) => {
+  const v = e.target.value || "";
+  state.open5e.q = v;
+  if (_open5eSearchTimer) clearTimeout(_open5eSearchTimer);
+  _open5eSearchTimer = setTimeout(() => {
+    if (state.activeTab === "open5e" && String(state.open5e.q || "").trim().length >= 2) {
+      runOpen5eSearch(state.open5e.q);
+    } else {
+      render({ labelEl, panelEl });
+    }
+  }, 350);
+});
+
+q("sbi-open5e-search")?.addEventListener("click", () => {
+  const v = q("sbi-open5e-q")?.value || state.open5e.q || "";
+  state.open5e.q = v;
+  if (String(v).trim()) runOpen5eSearch(v);
+});
+
+q("sbi-open5e-clear")?.addEventListener("click", () => {
+  state.open5e.q = "";
+  state.open5e.results = [];
+  state.open5e.next = null;
+  state.open5e.prev = null;
+  state.open5e.loading = false;
+  state.open5e.error = "";
+  state.open5e.selected = null;
+  render({ labelEl, panelEl });
+});
+
+q("sbi-open5e-prev")?.addEventListener("click", () => {
+  if (state.open5e.prev) runOpen5eSearch(state.open5e.prev);
+});
+q("sbi-open5e-next")?.addEventListener("click", () => {
+  if (state.open5e.next) runOpen5eSearch(state.open5e.next);
+});
+
+// Result selection (event delegation, survives re-render)
+panelEl.querySelectorAll("[data-o5-idx]")?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const idx = Number(btn.getAttribute("data-o5-idx"));
+    const pick = state.open5e.results?.[idx];
+    if (pick) {
+      state.open5e.selected = pick;
+      render({ labelEl, panelEl });
+    }
+  });
+});
+
+// Use selected (loads into OCR tab editor)
+q("sbi-open5e-use")?.addEventListener("click", () => {
+  const picked = state.open5e.selected;
+  if (!picked) return;
+  const normalized = normalizeOpen5eMonster(picked);
+  state.parsed = normalized;
+  state.ocrText = "";
+  state.status = "done";
+  state.activeTab = "ocr";
+  state.lastInputMethod = "Open5e";
+  render({ labelEl, panelEl });
+});
+
+// Save selected to drafts
+q("sbi-open5e-save")?.addEventListener("click", () => {
+  const picked = state.open5e.selected;
+  if (!picked) return;
+  const normalized = normalizeOpen5eMonster(picked);
+  addDraft({ ...normalized, _savedAt: new Date().toISOString() });
+  alert("Saved Open5e monster to Stat Block Importer drafts.");
+  render({ labelEl, panelEl });
+});
+
   }
 
   function render({ labelEl, panelEl }) {
