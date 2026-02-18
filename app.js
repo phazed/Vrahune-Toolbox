@@ -934,6 +934,13 @@ function renderToolPanel(toolId) {
 function renderMainPanel() {
   const label = document.getElementById("activeGeneratorLabel");
   const panel = document.getElementById("generatorPanel");
+  if (!panel || !label) return;
+
+  // Clean up any tool-specific panel classes from prior tools
+  panel.classList.remove("encounter-tool-panel");
+  panel.classList.remove("monster-vault-panel");
+  panel.classList.remove("statblock-importer-panel");
+
   panel.innerHTML = "";
   panel.removeEventListener("click", handleCopyClick);
 
