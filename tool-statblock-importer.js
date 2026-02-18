@@ -14,7 +14,7 @@
     error: "",
     lastInputMethod: "",
     activeTab: "ocr", // ocr | import
-    importer: { fmt: "open5e", jsonText: "", items: [], selected: null, error: "" },
+    importer: { jsonText: "", markdownText: "", items: [], selected: null, error: "" },
   };
 
   // -------------------------
@@ -46,7 +46,41 @@
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
-  function splitLines(text) {
+  
+  function markdownToPlainText(md) {
+    // Best-effort: remove common Markdown syntax while preserving stat block labels/lines.
+    let t = String(md || "").replace(/\r/g, "");
+
+    // Keep code block contents, remove the fences.
+    t = t.replace(/```[a-zA-Z0-9_-]*\n([\s\S]*?)```/g, (_m, inner) => inner);
+
+    // Strip blockquotes/headings
+    t = t.replace(/^\s*>+\s?/gm, "");
+    t = t.replace(/^\s{0,3}#{1,6}\s+/gm, "");
+
+    // Inline code
+    t = t.replace(/`([^`]+)`/g, "$1");
+
+    // Bold/italics
+    t = t.replace(/\*\*(.*?)\*\*/g, "$1").replace(/__(.*?)__/g, "$1");
+    t = t.replace(/\*(.*?)\*/g, "$1").replace(/_(.*?)_/g, "$1");
+
+    // HTML breaks
+    t = t.replace(/<br\s*\/?>/gi, "\n");
+
+    // Horizontal rules / separators
+    t = t.replace(/^\s*([-*_]\s*){3,}\s*$/gm, "\n");
+
+    // Simple tables: remove pipes but keep text
+    t = t.replace(/^\s*\|(.+)\|\s*$/gm, (_m, inner) => inner.replace(/\|/g, " "));
+
+    // Bullets
+    t = t.replace(/^\s*[-*+]\s+/gm, "");
+
+    return normalizeSpaces(t);
+  }
+
+function splitLines(text) {
     return normalizeSpaces(text)
       .split("\n")
       .map((l) => l.trim())
@@ -208,126 +242,181 @@
 // ---------------------
 // Import adapters
 // ---------------------
-function normalize5eToolsMonster(m) {
-  if (!m) return null;
-  const name = m.name || m.n || "";
-  const size = (m.size || m.sz || "").toString();
-  const type = (m.type?.type || m.type || m.t || "").toString();
-  const alignment = (Array.isArray(m.alignment) ? m.alignment.join(" ") : (m.alignment || m.al || "")).toString();
+function looksCanonicalMonster(m) {
+  return !!(m && typeof m === "object" && typeof m.name === "string" && (("ac" in m) || ("hp" in m) || ("str" in m)));
+}
 
-  let ac = 0, acText = "";
-  const acr = m.ac ?? m.armor_class ?? m.armorClass;
-  if (Array.isArray(acr) && acr.length) {
-    const first = acr[0];
-    if (typeof first === "number") ac = first;
-    else if (typeof first === "string") { ac = toInt(first.match(/\d+/)?.[0] || 0, 0); acText = first; }
-    else if (typeof first === "object") { ac = toInt(first.ac ?? first.value ?? 0, 0); acText = (first.from ? (Array.isArray(first.from) ? first.from.join(", ") : String(first.from)) : "") || ""; }
-  } else if (typeof acr === "number") ac = acr;
-  else if (typeof acr === "string") { ac = toInt(acr.match(/\d+/)?.[0] || 0, 0); acText = acr; }
-  else if (acr && typeof acr === "object") { ac = toInt(acr.ac ?? acr.value ?? 0, 0); }
+function looksLikeOpen5eMonster(m) {
+  return !!(m && typeof m === "object" && (
+    ("hit_points" in m) || ("hit_dice" in m) || ("armor_class" in m) || ("challenge_rating" in m) || ("special_abilities" in m)
+  ));
+}
 
-  const hpObj = m.hp || m.hit_points || m.hitPoints;
-  let hp = 0, hpFormula = "";
-  if (typeof hpObj === "number") hp = hpObj;
-  else if (typeof hpObj === "string") { hp = toInt(hpObj.match(/\d+/)?.[0] || 0, 0); hpFormula = hpObj; }
-  else if (hpObj && typeof hpObj === "object") { hp = toInt(hpObj.average ?? hpObj.avg ?? 0, 0); hpFormula = hpObj.formula || hpObj.dice || ""; }
-
-  let speed = m.speed;
-  if (speed && typeof speed === "object") {
-    speed = Object.entries(speed).map(([k,v]) => {
-      if (v == null || v === "") return "";
-      return k === "walk" ? `${v} ft.` : `${k} ${v} ft.`;
-    }).filter(Boolean).join(", ");
-  }
-  speed = String(speed || "").trim();
-
-  const str = toInt(m.str ?? m.strength ?? 10, 10);
-  const dex = toInt(m.dex ?? m.dexterity ?? 10, 10);
-  const con = toInt(m.con ?? m.constitution ?? 10, 10);
-  const intel = toInt(m.int ?? m.intelligence ?? 10, 10);
-  const wis = toInt(m.wis ?? m.wisdom ?? 10, 10);
-  const cha = toInt(m.cha ?? m.charisma ?? 10, 10);
-
-  let saves = [];
-  const sv = m.save || m.saves || m.saving_throws;
-  if (sv && typeof sv === "object" && !Array.isArray(sv)) {
-    saves = Object.entries(sv).map(([k,v]) => `${k.toUpperCase()} ${String(v).startsWith("+")||String(v).startsWith("-")?v:`+${v}`}`);
-  } else if (Array.isArray(sv)) {
-    saves = sv.map(String);
-  } else if (typeof sv === "string") {
-    saves = sv.split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
-  }
-
-  function flattenEntries(ent) {
-    if (ent == null) return "";
-    if (typeof ent === "string") return ent;
-    if (Array.isArray(ent)) return ent.map(flattenEntries).join("\n");
-    if (typeof ent === "object") {
-      if (ent.entries) return flattenEntries(ent.entries);
-      if (ent.entry) return flattenEntries(ent.entry);
-      if (ent.items) return ent.items.map(flattenEntries).join("\n");
-      return JSON.stringify(ent);
-    }
-    return String(ent);
-  }
-  function entriesToPlainText(arr) {
-    if (!Array.isArray(arr)) return [];
-    return arr.map(e => {
+function normalizeLooseEntries(list) {
+  const arr = Array.isArray(list) ? list : (list ? [list] : []);
+  return arr
+    .map((e) => {
+      if (e == null) return null;
       if (typeof e === "string") return { name: "", text: e };
-      if (e?.name && e?.entries) return { name: e.name, text: flattenEntries(e.entries) };
-      if (e?.name && e?.entry) return { name: e.name, text: flattenEntries(e.entry) };
-      return { name: e?.name || "", text: flattenEntries(e?.entries || e?.entry || "") };
-    }).filter(x => x.name || x.text);
+      const name = String(e.name || e.title || e.n || "").trim();
+      const text = String(e.text || e.desc || e.description || e.entries || e.e || "").trim();
+      if (!name && !text) return null;
+      return { name, text };
+    })
+    .filter(Boolean);
+}
+
+function normalizeJsonMonster(m) {
+  if (!m) return null;
+
+  // If it's already in our schema, just normalize a few aliases and return it.
+  if (looksCanonicalMonster(m)) {
+    const out = { ...m };
+    // Alias/provide common fields for preview consistency
+    if (out.pb == null && out.proficiencyBonus != null) out.pb = out.proficiencyBonus;
+    if (out.proficiencyBonus == null && out.pb != null) out.proficiencyBonus = out.pb;
+    if (out.cr == null && out.challengeRating != null) out.cr = out.challengeRating;
+    if (out.challengeRating == null && out.cr != null) out.challengeRating = out.cr;
+
+    // Ensure arrays where expected
+    out.saves = Array.isArray(out.saves) ? out.saves : (out.saves ? String(out.saves).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.skills = Array.isArray(out.skills) ? out.skills : (out.skills ? String(out.skills).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.vulnerabilities = Array.isArray(out.vulnerabilities) ? out.vulnerabilities : (out.vulnerabilities ? String(out.vulnerabilities).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.resistances = Array.isArray(out.resistances) ? out.resistances : (out.resistances ? String(out.resistances).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.immunities = Array.isArray(out.immunities) ? out.immunities : (out.immunities ? String(out.immunities).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.conditionImmunities = Array.isArray(out.conditionImmunities) ? out.conditionImmunities : (out.conditionImmunities ? String(out.conditionImmunities).split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : []);
+    out.traits = normalizeLooseEntries(out.traits);
+    out.actions = normalizeLooseEntries(out.actions);
+    out.bonusActions = normalizeLooseEntries(out.bonusActions);
+    out.reactions = normalizeLooseEntries(out.reactions);
+    out.legendaryActions = normalizeLooseEntries(out.legendaryActions);
+    return out;
   }
 
-  const traits = entriesToPlainText(m.trait || m.traits || m.special_abilities);
-  const actions = entriesToPlainText(m.action || m.actions);
-  const bonusActions = entriesToPlainText(m.bonus || m.bonusActions || m.bonus_actions);
-  const reactions = entriesToPlainText(m.reaction || m.reactions);
-  const legendaryActions = entriesToPlainText(m.legendary || m.legendaryActions || m.legendary_actions);
+  // Open5e JSON (or similar)
+  if (looksLikeOpen5eMonster(m)) return normalizeOpen5eMonster(m);
 
-  const senses = String(m.senses || "").trim();
-  const languages = String(m.languages || "").trim();
-  const cr = String(m.cr ?? m.challenge_rating ?? "").trim();
-  const pb = String(m.pb ?? m.proficiency_bonus ?? "").trim();
+  // Generic/loose JSON mapping (handles lots of homebrew exports)
+  const name = String(m.name || m.monster_name || m.title || m.n || "").trim();
+  if (!name) return null;
+
+  const size = String(m.size || m.sz || "").trim();
+  const type = String((m.type && m.type.type) ? m.type.type : (m.type || m.ty || "")).trim();
+  const subtype = String((m.type && m.type.tags) ? (Array.isArray(m.type.tags) ? m.type.tags.join(", ") : m.type.tags) : (m.subtype || m.tags || "")).trim();
+  const alignment = Array.isArray(m.alignment) ? m.alignment.join(" ") : String(m.alignment || m.al || "").trim();
+
+  const sizeType = [size, type, subtype ? `(${subtype})` : ""].filter(Boolean).join(" ");
+
+  // AC
+  const parseAc = (v) => {
+    if (v == null) return { ac: 0, text: "" };
+    if (typeof v === "number") return { ac: Math.trunc(v), text: "" };
+    if (typeof v === "string") {
+      const n = Number((v.match(/\d+/) || [0])[0]);
+      const t = v.replace(String(n), "").replace(/[()]/g, "").trim();
+      return { ac: Number.isFinite(n) ? Math.trunc(n) : 0, text: t };
+    }
+    if (Array.isArray(v) && v.length) return parseAc(v[0]);
+    if (typeof v === "object") {
+      if (v.ac != null) return parseAc(v.ac);
+      if (v.value != null) return parseAc(v.value);
+      if (v.base != null) return parseAc(v.base);
+      return { ac: 0, text: "" };
+    }
+    return { ac: 0, text: "" };
+  };
+  const acObj = parseAc(m.ac ?? m.armor_class ?? m.armorClass);
+
+  // HP
+  const parseHp = (v) => {
+    if (v == null) return { hp: 0, formula: "" };
+    if (typeof v === "number") return { hp: Math.trunc(v), formula: "" };
+    if (typeof v === "string") {
+      const n = Number((v.match(/\d+/) || [0])[0]);
+      const f = v.includes("(") ? (v.match(/\(([^)]+)\)/) || [,""])[1] : "";
+      return { hp: Number.isFinite(n) ? Math.trunc(n) : 0, formula: f.trim() };
+    }
+    if (typeof v === "object") {
+      const avg = v.average ?? v.avg ?? v.hp;
+      const formula = v.formula ?? v.form ?? v.dice ?? v.note ?? "";
+      const n = Number(avg);
+      return { hp: Number.isFinite(n) ? Math.trunc(n) : 0, formula: String(formula || "").trim() };
+    }
+    return { hp: 0, formula: "" };
+  };
+  const hpObj = parseHp(m.hp ?? m.hit_points ?? m.hitPoints);
+
+  const speed = (typeof m.speed === "string") ? m.speed : (
+    m.speed && typeof m.speed === "object"
+      ? Object.entries(m.speed).filter(([k,v]) => v).map(([k,v]) => `${k} ${String(v).replace(/ft\.?/i,"ft")}`).join(", ")
+      : String(m.speed || m.spd || "")
+  );
+
+  // Abilities
+  const abil = (k, alt, fallback = 10) => toInt(m[k] ?? m[alt] ?? m[k?.toUpperCase?.()] ?? m[k?.toLowerCase?.()], fallback);
+  const str = abil("str", "strength");
+  const dex = abil("dex", "dexterity");
+  const con = abil("con", "constitution");
+  const intl = abil("int", "intelligence");
+  const wis = abil("wis", "wisdom");
+  const cha = abil("cha", "charisma");
+
+  const pbRaw = m.pb ?? m.proficiencyBonus ?? m.proficiency_bonus ?? null;
+  const cr = m.cr ?? m.challenge_rating ?? m.challengeRating ?? "";
+
+  const arrFrom = (v) => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.map(String).map(s=>s.trim()).filter(Boolean);
+    return String(v).split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
+  };
+
+  const traits = normalizeLooseEntries(m.traits ?? m.trait ?? m.special_abilities ?? m.specialAbilities);
+  const actions = normalizeLooseEntries(m.actions ?? m.action);
+  const bonusActions = normalizeLooseEntries(m.bonusActions ?? m.bonus_actions);
+  const reactions = normalizeLooseEntries(m.reactions ?? m.reaction);
+  const legendaryActions = normalizeLooseEntries(m.legendaryActions ?? m.legendary_actions);
+
+  const pb = pbRaw == null ? "" : (String(pbRaw).startsWith("+") || String(pbRaw).startsWith("-") ? String(pbRaw) : `+${pbRaw}`);
 
   return {
     name,
-    sizeType: [size, type].filter(Boolean).join(" ").trim() || type || "",
+    sizeType,
     alignment,
-    ac: ac || 10,
-    acText,
-    initiative: "",
-    hp,
-    hpFormula,
-    speed,
-    str, dex, con, int: intel, wis, cha,
-    saves,
-    skills: typeof m.skill === "string" ? m.skill.split(/[,;]+/).map(s=>s.trim()).filter(Boolean) : (Array.isArray(m.skills)?m.skills:[]),
-    vulnerabilities: [],
-    resistances: [],
-    immunities: [],
-    conditionImmunities: [],
-    senses,
-    languages,
-    cr,
+    ac: acObj.ac,
+    acText: acObj.text,
+    hp: hpObj.hp,
+    hpFormula: hpObj.formula,
+    speed: String(speed || "").trim(),
+    str, dex, con, int: intl, wis, cha,
     pb,
-    traits,
-    actions,
-    bonusActions,
-    reactions,
-    legendaryActions,
-    source: "Imported JSON",
+    proficiencyBonus: pb,
+    cr: String(cr || "").trim(),
+    saves: arrFrom(m.saves ?? m.savingThrows ?? m.save ?? m.saving_throws),
+    skills: arrFrom(m.skills ?? m.skill),
+    vulnerabilities: arrFrom(m.vulnerabilities ?? m.damage_vulnerabilities),
+    resistances: arrFrom(m.resistances ?? m.damage_resistances),
+    immunities: arrFrom(m.immunities ?? m.damage_immunities),
+    conditionImmunities: arrFrom(m.conditionImmunities ?? m.condition_immunities),
+    senses: String(m.senses || "").trim(),
+    languages: String(m.languages || "").trim(),
+    traits, actions, bonusActions, reactions, legendaryActions,
     sourceType: "custom",
   };
 }
 
-function toCanonicalMonster(obj, fmt) {
-  if (!obj) return null;
-  const f = String(fmt || state.importer.fmt || "open5e");
-  if (f === "open5e") return normalizeOpen5eMonster(obj);
-  if (f === "5etools") return normalize5eToolsMonster(obj);
-  return obj;
+function extractMonstersFromJson(parsed) {
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === "object") {
+    const keys = ["results", "monsters", "items", "data", "entries"];
+    for (const k of keys) {
+      if (Array.isArray(parsed[k])) return parsed[k];
+    }
+  }
+  return [parsed];
+}
+
+function toCanonicalMonster(obj, _fmtUnused) {
+  return normalizeJsonMonster(obj);
 }
 
   async function open5eFetchPage(url) {
@@ -1156,7 +1245,7 @@ function loadDrafts() {
   // Preview renderer (Monster Vault style)
   // -------------------------
   
-function statBlockPreviewFiveEtoolsLike(mon) {
+function statBlockPreviewCompact(mon) {
   if (!mon) return `<div class="sbi-muted">No monster selected.</div>`;
   const m = mon;
 
@@ -1206,6 +1295,8 @@ function statBlockPreviewFiveEtoolsLike(mon) {
 
   const headerLine = [m.sizeType || "", m.alignment || ""].filter(Boolean).join(" • ");
 
+  const pbVal = (m.pb != null && m.pb !== "") ? m.pb : (m.proficiencyBonus != null ? m.proficiencyBonus : "");
+
   return `
     <style>
       .sb5-wrap{border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(0,0,0,.22);padding:12px;}
@@ -1241,7 +1332,7 @@ function statBlockPreviewFiveEtoolsLike(mon) {
         ${m.speed ? `<div class="sb5-chip"><b>Speed</b> ${esc(m.speed)}</div>` : ""}
         ${m.initiative ? `<div class="sb5-chip"><b>Init</b> ${esc(m.initiative)}</div>` : ""}
         ${m.cr ? `<div class="sb5-chip"><b>CR</b> ${esc(m.cr)}</div>` : ""}
-        ${m.pb ? `<div class="sb5-chip"><b>PB</b> ${esc(m.pb)}</div>` : ""}
+        ${pbVal ? `<div class="sb5-chip"><b>PB</b> ${esc(pbVal)}</div>` : ""}
       </div>
 
       <div class="sb5-grid">${abilities}</div>
@@ -1380,251 +1471,6 @@ function renderMvFeatureList(label, list) {
 
 
   
-function statBlockPreview5etools(m) {
-    if (!m) return "";
-    const toNum = (v,d=10)=>Number.isFinite(Number(v))?Number(v):d;
-    const mod = (s)=>Math.floor((toNum(s,10)-10)/2);
-    const fmtMod=(n)=>n>=0?`+${n}`:`${n}`;
-    const arr = (v)=>Array.isArray(v)?v:String(v||"").split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
-    const line = (label, value)=> value ? `<div><span class="lbl">${esc(label)} </span>${esc(value)}</div>` : "";
-    const abilityCell=(abbr,key)=> {
-      const score = toNum(m[key],10);
-      const saveKey = key + "Save";
-      const sv = m[saveKey];
-      const saveTxt = (sv===0 || sv) ? (String(sv).startsWith("+")||String(sv).startsWith("-")?String(sv):`+${sv}`) : fmtMod(mod(score));
-      return `<div class="ab"><div class="a">${abbr}</div><div class="s">${score}</div><div class="m">${fmtMod(mod(score))}</div><div class="sv">Save ${saveTxt}</div></div>`;
-    };
-    const renderEntries=(title,list)=>{
-      const a = Array.isArray(list)?list:[];
-      if(!a.length) return "";
-      return `<div class="sec"><div class="sec-h">${esc(title)}</div>${a.map(e=>`<p><b>${esc(e?.name||"")}${e?.name?". ":""}</b>${esc(e?.text||"")}</p>`).join("")}</div>`;
-    };
-    const xp = Number.isFinite(Number(m.xp)) ? Number(m.xp).toLocaleString() : "";
-    const pb = (m.proficiencyBonus || m.proficiencyBonus===0) ? (String(m.proficiencyBonus).startsWith("+")?String(m.proficiencyBonus):`+${m.proficiencyBonus}`) : "";
-    return `
-      <div class="sb5e-wrap">
-        <style>
-          .sb5e-wrap{background:#f7f1e6;color:#1f1a17;border:1px solid #7a5a2d;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;line-height:1.35}
-          .sb5e-head{padding:10px 12px;border-bottom:2px solid #7a5a2d}
-          .sb5e-name{font:700 26px/1.05 Georgia,serif;letter-spacing:.3px}
-          .sb5e-sub{font-style:italic;opacity:.9;margin-top:2px}
-          .sb5e-rule{border-top:2px solid #7a5a2d;margin:0 12px}
-          .sb5e-core{padding:8px 12px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-          .sb5e-core .k{font-weight:700;color:#5b3e16}
-          .sb5e-abilities{padding:8px 12px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
-          .sb5e-abilities .ab{border:1px solid #c9b18c;border-radius:6px;padding:6px;text-align:center;background:#fffaf2}
-          .sb5e-abilities .a{font-weight:700;color:#5b3e16}
-          .sb5e-abilities .s{font-size:18px;font-weight:700}
-          .sb5e-abilities .m{font-size:12px;opacity:.9}
-          .sb5e-abilities .sv{font-size:11px;opacity:.9;margin-top:2px}
-          .sb5e-meta{padding:8px 12px;display:grid;gap:4px}
-          .sb5e-meta .lbl{font-weight:700;color:#5b3e16}
-          .sb5e-sections{padding:8px 12px 12px}
-          .sb5e-sections .sec{margin-top:8px}
-          .sb5e-sections .sec-h{font:700 12px/1.2 Arial,sans-serif;letter-spacing:.08em;color:#5b3e16;border-top:2px solid #7a5a2d;padding-top:6px;margin-bottom:4px;text-transform:uppercase}
-          .sb5e-sections p{margin:0 0 6px 0}
-        
-          /* Open5e-style preview */
-          .o5-wrap{background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;color:rgba(255,255,255,.92);}
-          .o5-head{border-bottom:1px solid rgba(255,255,255,.10);padding-bottom:10px;margin-bottom:10px;}
-          .o5-name{font-weight:950;font-size:18px;letter-spacing:.2px;}
-          .o5-meta{opacity:.8;margin-top:3px;font-size:12px;}
-          .o5-line{display:flex;gap:10px;justify-content:space-between;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.08);}
-          .o5-line:last-child{border-bottom:none;}
-          .o5-lab{opacity:.75;font-weight:800;}
-          .o5-val{font-weight:700;text-align:right;flex:1;}
-          .o5-core{display:grid;grid-template-columns:1fr;gap:0;margin-bottom:10px;}
-          .o5-abilgrid{margin:12px 0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(0,0,0,.22);}
-          .o5-abil-legend{display:grid;grid-template-columns:56px 1fr 1fr 1fr;gap:8px;font-size:11px;opacity:.7;margin-bottom:6px;}
-          .o5-abil-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
-          .o5-abil{border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px;background:rgba(0,0,0,.18);text-align:center;}
-          .o5-abil-h{font-weight:900;font-size:11px;opacity:.8;}
-          .o5-abil-s{font-weight:950;font-size:14px;margin-top:2px;}
-          .o5-abil-m,.o5-abil-save{font-size:11px;opacity:.85;margin-top:2px;}
-          .o5-details{margin-top:10px;}
-          .o5-sec{margin-top:12px;border-top:1px solid rgba(255,255,255,.10);padding-top:10px;}
-          .o5-sec-h{font-weight:950;letter-spacing:.8px;font-size:12px;text-transform:uppercase;opacity:.85;margin-bottom:6px;}
-          .o5-entry{margin:6px 0;line-height:1.35;}
-          .o5-entry-n{font-weight:900;}
-          .o5-entry-d{opacity:.92;}
-          @media (max-width: 900px){
-            .o5-abil-row{grid-template-columns:repeat(3,1fr);}
-          }
-
-
-        /* 5etools-inspired preview */
-        .sb5e{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 1px 0 rgba(0,0,0,.08);} 
-        .sb5e .nm{font-weight:900;letter-spacing:.2px;font-size:16px;line-height:1.2;}
-        .sb5e .sub{color:var(--muted);font-size:12px;margin-top:2px;}
-        .sb5e .rule{height:1px;background:var(--border);margin:10px 0;}
-        .sb5e .kv{font-size:13px;margin:4px 0;}
-        .sb5e .kv b{font-weight:800;}
-        .sb5e .abi{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px;}
-        .sb5e .abi .c{border:1px solid var(--border);border-radius:10px;padding:6px 6px;text-align:center;background:rgba(255,255,255,.02);} 
-        .sb5e .abi .l{font-size:10px;letter-spacing:.5px;color:var(--muted);font-weight:900;}
-        .sb5e .abi .v{font-size:13px;font-weight:900;margin-top:2px;}
-        .sb5e .sec{margin-top:10px;}
-        .sb5e .sec h4{margin:0 0 6px 0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);} 
-        .sb5e .item{margin:6px 0;font-size:13px;}
-        .sb5e .item b{font-weight:900;}
-
-      </style>
-        <div class="sb5e-head">
-          <div class="sb5e-name">${esc(m.name||"Unnamed Monster")}</div>
-          <div class="sb5e-sub">${esc([m.sizeType,m.alignment].filter(Boolean).join(", "))}</div>
-        </div>
-        <div class="sb5e-core">
-          <div><div class="k">AC</div><div>${esc(String(m.ac ?? "—"))}${m.acText?` (${esc(m.acText)})`:""}</div></div>
-          <div><div class="k">HP</div><div>${esc(String(m.hp ?? "—"))}${m.hpFormula?` (${esc(m.hpFormula)})`:""}</div></div>
-          <div><div class="k">Speed</div><div>${esc(m.speed||"—")}</div></div>
-          <div><div class="k">Initiative</div><div>${esc(m.initiative||"—")}</div></div>
-          <div><div class="k">CR / PB</div><div>${esc(String(m.cr||"—"))}${xp?` (${xp} XP)`:""}${pb?` • ${esc(pb)}`:""}</div></div>
-        </div>
-        <div class="sb5e-rule"></div>
-        <div class="sb5e-abilities">
-          ${abilityCell("STR","str")}
-          ${abilityCell("DEX","dex")}
-          ${abilityCell("CON","con")}
-          ${abilityCell("INT","int")}
-          ${abilityCell("WIS","wis")}
-          ${abilityCell("CHA","cha")}
-        </div>
-        <div class="sb5e-meta">
-          ${line("Saving Throws:", arr(m.saves).join(", "))}
-          ${line("Skills:", arr(m.skills).join(", "))}
-          ${line("Damage Vulnerabilities:", arr(m.vulnerabilities).join(", "))}
-          ${line("Damage Resistances:", arr(m.resistances).join(", "))}
-          ${line("Damage Immunities:", arr(m.immunities).join(", "))}
-          ${line("Condition Immunities:", arr(m.conditionImmunities).join(", "))}
-          ${line("Senses:", arr(m.senses).join(", "))}
-          ${line("Languages:", arr(m.languages).join(", "))}
-        </div>
-        <div class="sb5e-sections">
-          ${renderEntries("Traits", m.traits)}
-          ${renderEntries("Actions", m.actions)}
-          ${renderEntries("Bonus Actions", m.bonusActions)}
-          ${renderEntries("Reactions", m.reactions)}
-          ${renderEntries("Legendary Actions", m.legendaryActions)}
-        </div>
-      </div>
-    `;
-  }
-
-
-  function statBlockPreview(m) {
-    return statBlockPreview2024(m);
-  }
-
-  // Open5e-style stat block preview (compact, label-forward like open5e.com)
-  function statBlockPreviewOpen5eStyle(mon) {
-    const m = mon || {};
-    const name = esc(m.name || "Unknown");
-    const meta = [m.size, m.type, m.alignment].filter(Boolean).join(" • ");
-    const acLine = m.ac ? `${m.ac}${m.acText ? ` (${esc(m.acText)})` : ""}` : "";
-    const hpLine = m.hp ? `${m.hp}${m.hpFormula ? ` (${esc(m.hpFormula)})` : ""}` : "";
-    const initLine = (m.initiative != null && m.initiative !== "") ? `${m.initiative}` : "";
-    const crLine = m.cr ? `${esc(String(m.cr))}${m.xp ? ` (${esc(String(m.xp))} XP)` : ""}` : "";
-    const pbLine = m.pb ? `${esc(String(m.pb))}` : "";
-
-    const speedLine = esc(m.speed || "");
-
-    const abilities = [
-      ["STR", m.str, m.strMod, m.strSave],
-      ["DEX", m.dex, m.dexMod, m.dexSave],
-      ["CON", m.con, m.conMod, m.conSave],
-      ["INT", m.int, m.intMod, m.intSave],
-      ["WIS", m.wis, m.wisMod, m.wisSave],
-      ["CHA", m.cha, m.chaMod, m.chaSave],
-    ];
-
-    const abilityCells = abilities.map(([lab, score, mod, save]) => {
-      const s = (score != null && score !== "") ? Number(score) : null;
-      const mm = (mod != null && mod !== "") ? Number(mod) : (s != null ? Math.floor((s - 10) / 2) : null);
-      const sv = (save != null && save !== "") ? Number(save) : mm;
-      const modStr = (mm == null || Number.isNaN(mm)) ? "" : (mm >= 0 ? `+${mm}` : `${mm}`);
-      const saveStr = (sv == null || Number.isNaN(sv)) ? "" : (sv >= 0 ? `+${sv}` : `${sv}`);
-      return `
-        <div class="o5-abil">
-          <div class="o5-abil-h">${esc(lab)}</div>
-          <div class="o5-abil-s">${s == null ? "—" : s}</div>
-          <div class="o5-abil-m">${modStr || "—"}</div>
-          <div class="o5-abil-save">${saveStr || "—"}</div>
-        </div>`;
-    }).join("");
-
-    const line = (label, value) => value ? `<div class="o5-line"><span class="o5-lab">${label}</span><span class="o5-val">${value}</span></div>` : "";
-
-    const joinList = (arr) => Array.isArray(arr) ? arr.filter(Boolean).join(", ") : (arr ? String(arr) : "");
-
-    const savesLine = joinList(m.saves);
-    const skillsLine = joinList(m.skills);
-    const vulnLine = joinList(m.vulnerabilities);
-    const resLine = joinList(m.resistances);
-    const immLine = joinList(m.immunities);
-    const cimmLine = joinList(m.conditionImmunities);
-    const sensesLine = m.senses ? esc(String(m.senses)) : "";
-    const langsLine = m.languages ? esc(String(m.languages)) : "";
-
-    const section = (title, list) => {
-      const arr = Array.isArray(list) ? list : [];
-      if (!arr.length) return "";
-      return `
-        <div class="o5-sec">
-          <div class="o5-sec-h">${esc(title)}</div>
-          ${arr.map(it => {
-            const n = esc(it?.name || "");
-            const d = esc(it?.desc || it?.text || "");
-            return `<div class="o5-entry"><span class="o5-entry-n">${n ? n + "." : ""}</span> <span class="o5-entry-d">${d}</span></div>`;
-          }).join("")}
-        </div>`;
-    };
-
-    return `
-      <div class="o5-wrap">
-        <div class="o5-head">
-          <div class="o5-name">${name}</div>
-          <div class="o5-meta">${esc(meta)}</div>
-        </div>
-
-        <div class="o5-core">
-          ${line("Armor Class", acLine)}
-          ${line("Hit Points", hpLine)}
-          ${line("Speed", speedLine)}
-          ${line("Initiative", esc(initLine))}
-          ${line("Challenge", crLine)}
-          ${line("Proficiency Bonus", pbLine)}
-        </div>
-
-        <div class="o5-abilgrid">
-          <div class="o5-abil-legend">
-            <div class="o5-abil-legend-sp"></div>
-            <div class="o5-abil-legend-s">Score</div>
-            <div class="o5-abil-legend-m">Mod</div>
-            <div class="o5-abil-legend-save">Save</div>
-          </div>
-          <div class="o5-abil-row">${abilityCells}</div>
-        </div>
-
-        <div class="o5-details">
-          ${line("Saving Throws", esc(savesLine))}
-          ${line("Skills", esc(skillsLine))}
-          ${line("Damage Vulnerabilities", esc(vulnLine))}
-          ${line("Damage Resistances", esc(resLine))}
-          ${line("Damage Immunities", esc(immLine))}
-          ${line("Condition Immunities", esc(cimmLine))}
-          ${line("Senses", sensesLine)}
-          ${line("Languages", langsLine)}
-        </div>
-
-        ${section("Traits", m.traits)}
-        ${section("Actions", m.actions)}
-        ${section("Bonus Actions", m.bonusActions)}
-        ${section("Reactions", m.reactions)}
-        ${section("Legendary Actions", m.legendaryActions)}
-      </div>
-    `;
-  }
-
 function template() {
     const p = state.parsed;
     const progressPct = Math.round((state.progress || 0) * 100);
@@ -1734,31 +1580,35 @@ function template() {
 
         
 <div class="sbi-card" style="display:${state.activeTab==="import"?"block":"none"};">
-  <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:220px;">
-      <div class="sbi-muted" style="margin-bottom:6px;">Format</div>
-      <select id="sbi-import-format" class="sbi-input">
-        <option value="open5e" ${String(state.importer.fmt||"open5e")==="open5e"?"selected":""}>Open5e monster JSON</option>
-        <option value="5etools" ${String(state.importer.fmt||"open5e")==="5etools"?"selected":""}>5etools-style monster JSON</option>
-        <option value="vrahune" ${String(state.importer.fmt||"open5e")==="vrahune"?"selected":""}>Vrahune/Vault monster JSON (your schema)</option>
-      </select>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:900;">Import from JSON or Markdown</div>
+      <div class="sbi-hint">Everything stays in your browser. This tool does not upload files anywhere.</div>
     </div>
     <div class="sbi-btnbar" style="margin:0;">
       <button id="sbi-import-load" class="sbi-btn primary" type="button">Load JSON</button>
+      <button id="sbi-import-parse-md" class="sbi-btn primary" type="button">Parse Markdown</button>
       <button id="sbi-import-clear" class="sbi-btn danger" type="button">Clear</button>
     </div>
   </div>
 
   <div class="sbi-row" style="margin-top:10px;align-items:flex-start;">
     <div style="flex:1;min-width:260px;">
-      <div class="sbi-muted" style="margin-bottom:6px;">Paste JSON</div>
-      <textarea id="sbi-import-json" class="sbi-input" style="height:140px;resize:vertical;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;" placeholder='Paste monster JSON here (single object, an array, or an API payload with "results").'>${esc(state.importer.jsonText || "")}</textarea>
-      <div class="sbi-hint" style="margin-top:6px;">Everything stays in your browser. This tool does not upload files anywhere.</div>
+      <div class="sbi-muted" style="margin-bottom:6px;">JSON (paste or upload)</div>
+      <textarea id="sbi-import-json" class="sbi-input" style="height:140px;resize:vertical;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;" placeholder='Paste monster JSON here (single object, an array, or a wrapper with "results"/"monsters").'>${esc(state.importer.jsonText || "")}</textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <input id="sbi-import-file" type="file" accept="application/json,.json" />
+        <span class="sbi-hint">Upload .json</span>
+      </div>
     </div>
-    <div style="width:260px;min-width:220px;">
-      <div class="sbi-muted" style="margin-bottom:6px;">Or upload a JSON file</div>
-      <input id="sbi-import-file" type="file" accept="application/json,.json" />
-      <div class="sbi-hint" style="margin-top:8px;">Tip: export your own homebrew entries and re-import them here.</div>
+
+    <div style="flex:1;min-width:260px;">
+      <div class="sbi-muted" style="margin-bottom:6px;">Markdown / Text (paste)</div>
+      <textarea id="sbi-import-markdown" class="sbi-input" style="height:140px;resize:vertical;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;" placeholder="Paste a markdown stat block (Homebrewery/GM Binder/plain text).">${esc(state.importer.markdownText || "")}</textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <input id="sbi-import-md-file" type="file" accept="text/markdown,.md,text/plain,.txt" />
+        <span class="sbi-hint">Optional: upload .md/.txt</span>
+      </div>
     </div>
   </div>
 
@@ -1779,7 +1629,7 @@ function template() {
               <div class="sbi-muted" style="font-size:12px;">${esc(sub)}</div>
             </button>`;
           }).join("")
-        : `<div class="sbi-muted">Paste or upload JSON, then click <strong>Load JSON</strong>.</div>`
+        : `<div class="sbi-muted">Paste JSON or Markdown, then click <strong>Load JSON</strong> or <strong>Parse Markdown</strong>.</div>`
       }
     </div>
   </div>
@@ -1795,9 +1645,9 @@ function template() {
 
     ${Number.isFinite(state.importer.selected) && state.importer.items?.[state.importer.selected] ? `
       <div style="margin-top:10px;">
-        <div class="sbi-muted" style="margin-bottom:8px;">Preview uses a 5etools-like compact layout, re-skinned to your theme colors.</div>
+        <div class="sbi-muted" style="margin-bottom:8px;">Preview uses a compact layout, re-skinned to your theme colors.</div>
         <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(0,0,0,.18);">
-          ${statBlockPreviewFiveEtoolsLike(toCanonicalMonster(state.importer.items[state.importer.selected], state.importer.fmt))}
+          ${statBlockPreviewCompact(toCanonicalMonster(state.importer.items[state.importer.selected]))}
         </div>
       </div>
     ` : `<div class="sbi-muted" style="margin-top:10px;">Select an imported monster to preview it.</div>`}
@@ -2119,12 +1969,23 @@ q("sbi-import-file")?.addEventListener("change", async (e) => {
   render({ labelEl, panelEl });
 });
 
-q("sbi-import-format")?.addEventListener("change", (e) => {
-  state.importer.fmt = e.target.value || "open5e";
+q("sbi-import-md-file")?.addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    const txt = await f.text();
+    state.importer.markdownText = txt;
+    const ta = q("sbi-import-markdown");
+    if (ta) ta.value = txt;
+  } catch (err) {
+    state.importer.error = err?.message || String(err);
+  }
+  render({ labelEl, panelEl });
 });
 
 q("sbi-import-clear")?.addEventListener("click", () => {
   state.importer.jsonText = "";
+  state.importer.markdownText = "";
   state.importer.items = [];
   state.importer.selected = null;
   state.importer.error = "";
@@ -2132,6 +1993,10 @@ q("sbi-import-clear")?.addEventListener("click", () => {
   if (ta) ta.value = "";
   const fi = q("sbi-import-file");
   if (fi) fi.value = "";
+  const md = q("sbi-import-markdown");
+  if (md) md.value = "";
+  const mdf = q("sbi-import-md-file");
+  if (mdf) mdf.value = "";
   render({ labelEl, panelEl });
 });
 
@@ -2145,8 +2010,9 @@ q("sbi-import-load")?.addEventListener("click", () => {
 
   try {
     const parsed = JSON.parse(raw);
-    const arr = Array.isArray(parsed) ? parsed : (parsed?.results && Array.isArray(parsed.results) ? parsed.results : [parsed]);
-    state.importer.items = arr.filter(Boolean);
+    const arr = extractMonstersFromJson(parsed);
+    const normalized = arr.map((x) => toCanonicalMonster(x)).filter(Boolean);
+    state.importer.items = normalized;
     state.importer.selected = state.importer.items.length ? 0 : null;
     if (!state.importer.items.length) state.importer.error = "No monsters found in that JSON.";
   } catch (err) {
@@ -2155,6 +2021,27 @@ q("sbi-import-load")?.addEventListener("click", () => {
   render({ labelEl, panelEl });
 });
 
+
+q("sbi-import-parse-md")?.addEventListener("click", () => {
+  const ta = q("sbi-import-markdown");
+  const raw = (ta ? ta.value : state.importer.markdownText) || "";
+  state.importer.markdownText = raw;
+  state.importer.error = "";
+  state.importer.items = [];
+  state.importer.selected = null;
+
+  try {
+    const plain = markdownToPlainText(raw);
+    const parsed = parseStatBlock(plain);
+    const normalized = toCanonicalMonster(parsed) || parsed;
+    state.importer.items = [normalized].filter(Boolean);
+    state.importer.selected = state.importer.items.length ? 0 : null;
+    if (!state.importer.items.length) state.importer.error = "No monster could be parsed from that text.";
+  } catch (err) {
+    state.importer.error = "Could not parse that text: " + (err?.message || String(err));
+  }
+  render({ labelEl, panelEl });
+});
 // Imported list selection
 panelEl.querySelectorAll("[data-imp-idx]")?.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -2169,7 +2056,7 @@ q("sbi-import-use")?.addEventListener("click", () => {
   if (!Number.isFinite(state.importer.selected)) return;
   const picked = state.importer.items?.[state.importer.selected];
   if (!picked) return;
-  const normalized = toCanonicalMonster(picked, state.importer.fmt);
+  const normalized = toCanonicalMonster(picked);
   state.parsed = normalized;
   state.ocrText = "";
   state.status = "done";
@@ -2182,7 +2069,7 @@ q("sbi-import-save")?.addEventListener("click", () => {
   if (!Number.isFinite(state.importer.selected)) return;
   const picked = state.importer.items?.[state.importer.selected];
   if (!picked) return;
-  const normalized = toCanonicalMonster(picked, state.importer.fmt);
+  const normalized = toCanonicalMonster(picked);
   addDraft({ ...normalized, _savedAt: new Date().toISOString() });
   alert("Saved imported monster to Stat Block Importer drafts.");
   render({ labelEl, panelEl });
