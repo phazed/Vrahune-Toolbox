@@ -14,7 +14,7 @@
     error: "",
     lastInputMethod: "",
     activeTab: "ocr", // ocr | open5e
-    open5e: { q: "", results: [], next: null, prev: null, loading: false, error: "", selected: null },
+    open5e: { q: "", doc: "", documents: [], results: [], next: null, prev: null, loading: false, error: "", selected: null },
   };
 
   // -------------------------
@@ -71,6 +71,32 @@
   // Open5e source helpers
   // ---------------------
   const OPEN5E_BASE = "https://api.open5e.com";
+
+  async function open5eFetchDocuments() {
+    try {
+      const url = `${OPEN5E_BASE}/documents/?limit=200`;
+      const res = await fetch(url, { method: "GET", headers: { "Accept": "application/json" }, mode: "cors", cache: "no-store" });
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if (!res.ok) throw new Error(`Open5e documents error ${res.status}`);
+      if (!ct.includes("application/json")) throw new Error("Open5e documents returned non-JSON");
+      const data = await res.json();
+      const docs = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
+      // normalize to { slug, title }
+      const mapped = docs.map(d => ({
+        slug: d?.slug || d?.key || d?.document || "",
+        title: d?.title || d?.name || d?.slug || d?.key || ""
+      })).filter(d => d.slug);
+      state.open5e.documents = mapped;
+    } catch {
+      // fallback common docs if endpoint fails
+      state.open5e.documents = [
+        { slug: "srd-2024", title: "SRD 2024" },
+        { slug: "srd-2014", title: "SRD 2014" },
+        { slug: "5esrd", title: "5e SRD (legacy)" },
+      ];
+    }
+  }
+
   let _open5eSearchTimer = null;
 
   function normalizeOpen5eMonster(m) {
@@ -1189,7 +1215,24 @@ function statBlockPreview5etools(m) {
             .o5-abil-row{grid-template-columns:repeat(3,1fr);}
           }
 
-</style>
+
+        /* 5etools-inspired preview */
+        .sb5e{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 1px 0 rgba(0,0,0,.08);} 
+        .sb5e .nm{font-weight:900;letter-spacing:.2px;font-size:16px;line-height:1.2;}
+        .sb5e .sub{color:var(--muted);font-size:12px;margin-top:2px;}
+        .sb5e .rule{height:1px;background:var(--border);margin:10px 0;}
+        .sb5e .kv{font-size:13px;margin:4px 0;}
+        .sb5e .kv b{font-weight:800;}
+        .sb5e .abi{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px;}
+        .sb5e .abi .c{border:1px solid var(--border);border-radius:10px;padding:6px 6px;text-align:center;background:rgba(255,255,255,.02);} 
+        .sb5e .abi .l{font-size:10px;letter-spacing:.5px;color:var(--muted);font-weight:900;}
+        .sb5e .abi .v{font-size:13px;font-weight:900;margin-top:2px;}
+        .sb5e .sec{margin-top:10px;}
+        .sb5e .sec h4{margin:0 0 6px 0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);} 
+        .sb5e .item{margin:6px 0;font-size:13px;}
+        .sb5e .item b{font-weight:900;}
+
+      </style>
         <div class="sb5e-head">
           <div class="sb5e-name">${esc(m.name||"Unnamed Monster")}</div>
           <div class="sb5e-sub">${esc([m.sizeType,m.alignment].filter(Boolean).join(", "))}</div>
@@ -1456,6 +1499,10 @@ function template() {
         <div class="sbi-card" style="display:${state.activeTab==="open5e"?"block":"none"};">
           <div class="sbi-o5-toolbar">
             <input id="sbi-open5e-q" class="sbi-input" placeholder="Search Open5e monsters (e.g., aboleth, dragon, goblin)" value="${esc(o5.q || "")}" />
+            <select id="sbi-open5e-doc" class="sbi-input" title="Filter by source">
+              <option value="">All sources</option>
+              ${ (o5.documents||[]).map(d=>`<option value="${esc(d.slug)}" ${String(o5.doc||"")===String(d.slug)?"selected":""}>${esc(d.title||d.slug)}</option>`).join("") }
+            </select>
             <button id="sbi-open5e-search" class="sbi-btn primary" type="button">${o5.loading ? "Searching…" : "Search"}</button>
             <button id="sbi-open5e-clear" class="sbi-btn danger" type="button">Clear</button>
           </div>
@@ -1627,6 +1674,13 @@ function template() {
   // Bind events
   // -------------------------
   function bind(labelEl, panelEl) {
+    if (!state.open5e._docsLoaded) {
+      state.open5e._docsLoaded = true;
+      open5eFetchDocuments().then(() => {
+        // only re-render if open5e tab visible or filter select exists
+        if (panelEl && panelEl.querySelector("#sbi-open5e-doc")) render({ labelEl, panelEl });
+      });
+    }
     if (panelEl._sbiCleanup && Array.isArray(panelEl._sbiCleanup)) {
       for (const fn of panelEl._sbiCleanup) {
         try { fn(); } catch {}
@@ -1817,6 +1871,16 @@ q("sbi-tab-open5e")?.addEventListener("click", () => {
   }
 });
 
+q("sbi-open5e-doc")?.addEventListener("change", (e) => {
+  state.open5e.doc = e.target.value || "";
+  // re-run current query if present
+  if (state.activeTab === "open5e" && String(state.open5e.q||"").trim().length >= 2) {
+    runOpen5eSearch(state.open5e.q);
+  } else {
+    render({ labelEl, panelEl });
+  }
+});
+
 // Open5e query input (debounced)
 q("sbi-open5e-q")?.addEventListener("input", (e) => {
   const v = e.target.value || "";
@@ -1895,8 +1959,28 @@ q("sbi-open5e-save")?.addEventListener("click", () => {
   function render({ labelEl, panelEl }) {
     if (!panelEl) return;
     if (labelEl) labelEl.textContent = TOOL_NAME;
+
+    // Preserve focus/cursor so typing in search boxes doesn't require re-clicks
+    const ae = document.activeElement;
+    const aeId = ae && ae.id ? ae.id : null;
+    let selStart = null, selEnd = null;
+    if (ae && aeId && typeof ae.selectionStart === "number") {
+      selStart = ae.selectionStart;
+      selEnd = ae.selectionEnd;
+    }
+
     panelEl.innerHTML = template();
     bind(labelEl, panelEl);
+
+    if (aeId) {
+      const next = panelEl.querySelector(`#${CSS.escape(aeId)}`);
+      if (next && typeof next.focus === "function") {
+        next.focus();
+        if (selStart !== null && typeof next.setSelectionRange === "function") {
+          try { next.setSelectionRange(selStart, selEnd ?? selStart); } catch {}
+        }
+      }
+    }
   }
 
 
