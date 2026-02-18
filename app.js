@@ -4,6 +4,119 @@
 const GEN_STORAGE_KEY = "vrahuneGeneratorsV4";
 const FOLDER_STATE_KEY = "vrahuneFolderStateV1";
 
+// --- Published defaults (optional) ----------------------------
+// If you create /data/vrahune_database.json in your repo, first-time visitors
+// will be seeded with that data. Existing users keep their local data unless
+// they import/reset.
+const PUBLISHED_DB_URL = "./data/vrahune_database.json";
+const PUBLISHED_GENS_URL = "./data/vrahune_generators.json";
+
+// Keys we consider part of the "toolbox database" export/import bundle.
+const DB_BUNDLE_KEYS = [
+  GEN_STORAGE_KEY,
+  FOLDER_STATE_KEY,
+  "vrahuneEncounterToolStateV7",
+  "vrahuneMonsterVaultStateV2",
+  "vrahuneStatblockImporterDraftsV3"
+];
+
+let publishedDbBundle = null;
+
+async function fetchJsonIfExists(url) {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text || !text.trim()) return null;
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
+}
+
+function safeReadLocalJson(key) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return undefined;
+    return JSON.parse(raw);
+  } catch (err) {
+    return undefined;
+  }
+}
+
+function safeWriteLocalJson(key, val) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(val));
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function normalizePublishedBundle(data) {
+  if (!data) return null;
+
+  // Preferred format:
+  // { schemaVersion: 1, generatedAt: "...", keys: { "<localStorageKey>": <json> } }
+  if (data && typeof data === "object" && data.keys && typeof data.keys === "object") {
+    return {
+      schemaVersion: Number(data.schemaVersion || 1),
+      generatedAt: data.generatedAt || null,
+      keys: data.keys
+    };
+  }
+
+  // Allow a bare "keys map" format: { "<localStorageKey>": <json>, ... }
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const maybeKeys = {};
+    let found = false;
+    for (const k of DB_BUNDLE_KEYS) {
+      if (k in data) {
+        maybeKeys[k] = data[k];
+        found = true;
+      }
+    }
+    if (found) {
+      return { schemaVersion: 1, generatedAt: null, keys: maybeKeys };
+    }
+  }
+
+  return null;
+}
+
+async function loadPublishedDefaults() {
+  // 1) Try full bundle
+  const db = await fetchJsonIfExists(PUBLISHED_DB_URL);
+  const normalized = normalizePublishedBundle(db);
+  if (normalized) {
+    publishedDbBundle = normalized;
+    window.VRAHUNE_PUBLISHED_DB = normalized;
+    return normalized;
+  }
+
+  // 2) Fallback: generators-only file (legacy)
+  const gens = await fetchJsonIfExists(PUBLISHED_GENS_URL);
+  if (Array.isArray(gens) && gens.length) {
+    const bundle = { schemaVersion: 1, generatedAt: null, keys: { [GEN_STORAGE_KEY]: gens } };
+    publishedDbBundle = bundle;
+    window.VRAHUNE_PUBLISHED_DB = bundle;
+    return bundle;
+  }
+
+  publishedDbBundle = null;
+  window.VRAHUNE_PUBLISHED_DB = null;
+  return null;
+}
+
+function seedFromPublishedIfMissing(storageKey) {
+  if (window.localStorage.getItem(storageKey)) return false;
+  const val =
+    publishedDbBundle && publishedDbBundle.keys ? publishedDbBundle.keys[storageKey] : undefined;
+  if (val === undefined) return false;
+  return safeWriteLocalJson(storageKey, val);
+}
+
+
 // --- Modular tools setup ------------------------------------------
 
 // Shared list of tools used by the left sidebar
@@ -2041,14 +2154,62 @@ function closeAdvTemplateBox() {
 
 
 // ============== DB download / upload ==============
+function buildDatabaseBundleForExport() {
+  const keys = {};
+  for (const k of DB_BUNDLE_KEYS) {
+    const val = safeReadLocalJson(k);
+    if (val !== undefined) keys[k] = val;
+  }
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    keys
+  };
+}
+
+function applyDatabaseBundle(bundle, { confirmReplace = true } = {}) {
+  // Accept:
+  // 1) Full bundle: { schemaVersion, generatedAt, keys: { ... } }
+  // 2) Bare keys map: { "<localStorageKey>": <json>, ... }
+  const normalized = normalizePublishedBundle(bundle) || (bundle && bundle.keys ? bundle : null);
+  if (!normalized || !normalized.keys) {
+    return { ok: false, message: "Not a recognized Vrahune toolbox database bundle." };
+  }
+
+  const incomingKeys = Object.keys(normalized.keys || {});
+  const recognizedKeys = incomingKeys.filter((k) => DB_BUNDLE_KEYS.includes(k));
+
+  if (!recognizedKeys.length) {
+    return {
+      ok: false,
+      message: "This file doesn't contain any recognized toolbox data keys."
+    };
+  }
+
+  if (confirmReplace) {
+    const ok = window.confirm(
+      "Uploading this database will overwrite your current local data for:\n\n" +
+        recognizedKeys.map((k) => "• " + k).join("\n") +
+        "\n\nContinue?"
+    );
+    if (!ok) return { ok: false, cancelled: true };
+  }
+
+  recognizedKeys.forEach((k) => {
+    safeWriteLocalJson(k, normalized.keys[k]);
+  });
+
+  return { ok: true, keys: recognizedKeys };
+}
+
 function handleDownloadDatabase() {
-  const gens = loadGenerators();
-  const dataStr = JSON.stringify(gens, null, 2);
+  const bundle = buildDatabaseBundleForExport();
+  const dataStr = JSON.stringify(bundle, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "vrahune_generators.json";
+  a.download = "vrahune_database.json";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -2072,24 +2233,22 @@ function handleUploadDatabaseFile(event) {
       const text = ev.target.result;
       const data = JSON.parse(text);
 
-      if (!Array.isArray(data)) {
-        window.alert(
-          "This JSON doesn't look like a Vrahune toolbox database (expected an array)."
-        );
+      // Back-compat: old exports were just the generators array
+      const bundle = Array.isArray(data)
+        ? { schemaVersion: 1, generatedAt: null, keys: { [GEN_STORAGE_KEY]: data } }
+        : data;
+
+      const applied = applyDatabaseBundle(bundle, { confirmReplace: true });
+      if (!applied.ok) {
+        if (!applied.cancelled) {
+          window.alert(applied.message || "Failed to apply database.");
+        }
         return;
       }
 
-      const ok = window.confirm(
-        "Uploading this database will REPLACE all current generators, lexicons, " +
-          "and advanced templates stored in your browser.\n\n" +
-          "Are you sure you want to overwrite your current data?"
-      );
-      if (!ok) return;
-
-      window.localStorage.setItem(GEN_STORAGE_KEY, JSON.stringify(data));
-
       activeGenerator = null;
       activeToolId = null;
+      folderState = loadFolderState();
 
       renderGeneratorNav();
       renderToolsNav();
@@ -2099,7 +2258,7 @@ function handleUploadDatabaseFile(event) {
     } catch (err) {
       console.error(err);
       window.alert(
-        "Failed to load this JSON. Is it the correct vrahune_generators.json file?"
+        "Failed to load this JSON. Is it a valid vrahune_database.json (or legacy vrahune_generators.json) file?"
       );
     }
   };
@@ -2108,16 +2267,57 @@ function handleUploadDatabaseFile(event) {
 
 function handleUploadDatabaseHelp() {
   window.alert(
-    "Upload database:\n\n" +
-      "• Use this if you have a saved JSON database (for example, from GitHub) and want to restore it into this toolbox.\n" +
-      "• It reads the JSON file from your computer and loads it into your browser's local storage.\n" +
-      "• It does NOT touch GitHub or any online files.\n" +
-      "• It WILL overwrite all current generators, lexicons, and advanced templates in this browser.\n\n" +
-      "Typical workflow:\n" +
-      "1) Download database from this app and commit it to GitHub.\n" +
-      "2) On a new machine or after a reset, download that JSON from GitHub.\n" +
-      "3) Open this toolbox and use 'Upload database' to restore everything."
+    "Database import/export:\n\n" +
+      "• This toolbox stores everything locally in your browser (Local Storage).\n" +
+      "• Download = exports your current local data to a JSON file.\n" +
+      "• Upload = imports a JSON file and overwrites your local data.\n\n" +
+      "Publishing defaults for first-time visitors (GitHub Pages):\n" +
+      "1) Click “Download database” to get vrahune_database.json\n" +
+      "2) Commit that file to your repo as: /data/vrahune_database.json\n" +
+      "3) New visitors (no local data yet) will start with that published database.\n\n" +
+      "Notes:\n" +
+      "• Existing visitors keep their current local data unless they upload a file or reset.\n" +
+      "• You can also upload older generator-only exports (array format)."
   );
+}
+
+function handleResetToPublishedDefaults() {
+  if (!publishedDbBundle || !publishedDbBundle.keys) {
+    window.alert(
+      "No published defaults were found.\n\n" +
+        "To enable this, commit a file at /data/vrahune_database.json in your repo."
+    );
+    return;
+  }
+
+  const incomingKeys = Object.keys(publishedDbBundle.keys || {});
+  const recognizedKeys = incomingKeys.filter((k) => DB_BUNDLE_KEYS.includes(k));
+  if (!recognizedKeys.length) {
+    window.alert("Published defaults file exists, but it doesn't contain recognized keys.");
+    return;
+  }
+
+  const ok = window.confirm(
+    "Reset local data to this site's published defaults?\n\n" +
+      "This will overwrite your current local data for:\n" +
+      recognizedKeys.map((k) => "• " + k).join("\n")
+  );
+  if (!ok) return;
+
+  // Overwrite keys provided by the published defaults, and clear the rest
+  for (const k of DB_BUNDLE_KEYS) {
+    if (k in publishedDbBundle.keys) {
+      safeWriteLocalJson(k, publishedDbBundle.keys[k]);
+    } else {
+      try {
+        window.localStorage.removeItem(k);
+      } catch (err) {
+        // ignore
+      }
+    }
+  }
+
+  window.location.reload();
 }
 
 function handleNavClick(event) {
@@ -2336,13 +2536,33 @@ function handleSaveGenerator() {
 }
 
 async function initApp() {
-  folderState = loadFolderState();
+  // Load any published defaults (if present in /data/...)
+  await loadPublishedDefaults();
 
-  const hasLocal = !!window.localStorage.getItem(GEN_STORAGE_KEY);
-  if (!hasLocal) {
-    const seeded = seedInitialGenerators();
-    saveGenerators(seeded);
+  // If the user has no local data yet, seed from published defaults (or fall back to seeds).
+  const hasLocalGens = !!window.localStorage.getItem(GEN_STORAGE_KEY);
+  if (!hasLocalGens) {
+    const pubGens =
+      publishedDbBundle && publishedDbBundle.keys
+        ? publishedDbBundle.keys[GEN_STORAGE_KEY]
+        : null;
+
+    if (Array.isArray(pubGens) && pubGens.length) {
+      saveGenerators(pubGens);
+    } else {
+      const seeded = seedInitialGenerators();
+      saveGenerators(seeded);
+    }
   }
+
+  // Optional: seed other tools for first-time users if your published bundle includes them.
+  seedFromPublishedIfMissing(FOLDER_STATE_KEY);
+  seedFromPublishedIfMissing("vrahuneEncounterToolStateV7");
+  seedFromPublishedIfMissing("vrahuneMonsterVaultStateV2");
+  seedFromPublishedIfMissing("vrahuneStatblockImporterDraftsV3");
+
+  // Load folder UI state after any seeding
+  folderState = loadFolderState();
 
   renderGeneratorNav();
   renderToolsNav();
@@ -2389,6 +2609,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (uploadDbHelpBtn) {
     uploadDbHelpBtn.addEventListener("click", handleUploadDatabaseHelp);
   }
+
+const resetPublishedBtn = document.getElementById("resetPublishedBtn");
+if (resetPublishedBtn) {
+  resetPublishedBtn.addEventListener("click", handleResetToPublishedDefaults);
+}
 
   const folderSelect = document.getElementById("genFolderSelect");
   if (folderSelect) {
