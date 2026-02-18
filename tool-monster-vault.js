@@ -988,61 +988,144 @@
     `;
   }
 
+  function fmtSigned(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "—";
+    const t = Math.trunc(v);
+    return t >= 0 ? `+${t}` : `${t}`;
+  }
+
+  function abilityMod(score) {
+    const n = Number(score);
+    if (!Number.isFinite(n)) return 0;
+    return Math.floor((n - 10) / 2);
+  }
+
+  function parseSavingThrowMap(input) {
+    const out = {};
+    const parts = Array.isArray(input)
+      ? input
+      : String(input || "")
+          .split(/[,;]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+    const toKey = (raw) => {
+      const t = String(raw || "").trim().toLowerCase();
+      if (t.startsWith("str") || t.startsWith("strength")) return "str";
+      if (t.startsWith("dex") || t.startsWith("dexterity")) return "dex";
+      if (t.startsWith("con") || t.startsWith("constitution")) return "con";
+      if (t.startsWith("int") || t.startsWith("intelligence")) return "int";
+      if (t.startsWith("wis") || t.startsWith("wisdom")) return "wis";
+      if (t.startsWith("cha") || t.startsWith("charisma")) return "cha";
+      return null;
+    };
+
+    for (const p of parts) {
+      const m = String(p).match(/^(str|dex|con|int|wis|cha|strength|dexterity|constitution|intelligence|wisdom|charisma)\b\s*([+-]\s*\d+)/i);
+      if (!m) continue;
+      const k = toKey(m[1]);
+      if (!k) continue;
+      out[k] = m[2].replace(/\s+/g, "");
+    }
+    return out;
+  }
+
+  function shortSize(sizeType) {
+    const t = String(sizeType || "").trim();
+    if (!t) return "—";
+    // e.g. "Medium or Small Humanoid, Neutral" => "Medium"
+    const first = t.split(/\s+/)[0];
+    return first || "—";
+  }
+
+  function renderAbilitySaveTable2024(abilityScores, savingThrows) {
+    const a = abilityScores || {};
+    const saveMap = parseSavingThrowMap(savingThrows);
+    const abilList = [
+      ["STR", "str"],
+      ["DEX", "dex"],
+      ["CON", "con"],
+      ["INT", "int"],
+      ["WIS", "wis"],
+      ["CHA", "cha"]
+    ];
+
+    const cells = abilList
+      .map(([abbr, key]) => {
+        const score = Number.isFinite(Number(a[key])) ? Number(a[key]) : 10;
+        const mod = fmtSigned(abilityMod(score));
+        const save = saveMap[key] != null ? String(saveMap[key]) : mod;
+        return `
+          <td>
+            <div class="mv-abil-abbr">${esc(abbr)}</div>
+            <div class="mv-abil-score">${score} <span class="mv-abil-mod">(${esc(mod)})</span></div>
+            <div class="mv-abil-save">Save ${esc(String(save))}</div>
+          </td>
+        `;
+      })
+      .join("");
+
+    return `
+      <table class="mv-ability-table">
+        <tr>${cells}</tr>
+      </table>
+    `;
+  }
+
   function renderMonsterDetails(monster) {
+    if (!monster) return "";
     const d = monster.details || {};
-    const a = d.abilityScores || defaultAbilities();
+    const a = d.abilityScores || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
 
     const miscRows = [
-  ["Saving Throws", d.savingThrows],
-  ["Skills", d.skills],
-  ["Vulnerabilities", d.damageVulnerabilities],
-  ["Resistances", d.damageResistances],
-  ["Immunities", d.damageImmunities],
-  ["Condition Immunities", d.conditionImmunities],
-  ["Senses", d.senses],
-  ["Languages", d.languages],
-  ["Challenge Notes", d.challengeNote]
-]
-  .map(([k, v]) => [k, toPlainText(v)])
-  .filter(([, v]) => v);
+      ["Saving Throws", d.savingThrows],
+      ["Skills", d.skills],
+      ["Vulnerabilities", d.damageVulnerabilities],
+      ["Resistances", d.damageResistances],
+      ["Immunities", d.damageImmunities],
+      ["Condition Immunities", d.conditionImmunities],
+      ["Senses", d.senses],
+      ["Languages", d.languages],
+      ["Challenge Notes", d.challengeNote]
+    ]
+      .map(([k, v]) => [k, toPlainText(v)])
+      .filter(([, v]) => v);
 
-
-
-    const actionCount =
-      (d.actions?.length || 0) +
-      (d.bonusActions?.length || 0) +
-      (d.reactions?.length || 0) +
-      (d.legendaryActions?.length || 0);
+    const speedText = String(monster.speedText || `${intOr(monster.speed, 30)} ft.`).trim() || `${intOr(monster.speed, 30)} ft.`;
+    const initVal = monster.initiative == null ? "—" : fmtSigned(monster.initiative);
+    const pbVal = d.proficiencyBonus == null ? "—" : fmtSigned(d.proficiencyBonus);
+    const xpVal = Number(monster.xp || 0).toLocaleString();
+    const crVal = normalizeCR(monster.cr, "1/8");
+    const sizeVal = shortSize(monster.sizeType);
 
     return `
       <div class="mv-details">
         <div class="mv-details-grid">
-          <div class="mv-statline"><span>STR</span><b>${a.str}</b></div>
-          <div class="mv-statline"><span>DEX</span><b>${a.dex}</b></div>
-          <div class="mv-statline"><span>CON</span><b>${a.con}</b></div>
-          <div class="mv-statline"><span>INT</span><b>${a.int}</b></div>
-          <div class="mv-statline"><span>WIS</span><b>${a.wis}</b></div>
-          <div class="mv-statline"><span>CHA</span><b>${a.cha}</b></div>
-          <div class="mv-statline"><span>PB</span><b>${d.proficiencyBonus == null ? "—" : `+${d.proficiencyBonus}`}</b></div>
-          <div class="mv-statline"><span>XP</span><b>${Number(monster.xp || 0).toLocaleString()}</b></div>
+          <div class="mv-statline"><span>AC</span><b>${intOr(monster.ac, 10)}</b></div>
+          <div class="mv-statline"><span>HP</span><b>${intOr(monster.hp, 1)}</b></div>
+          <div class="mv-statline"><span>Speed</span><b>${esc(speedText)}</b></div>
+          <div class="mv-statline"><span>Init</span><b>${esc(initVal)}</b></div>
+          <div class="mv-statline"><span>CR</span><b>${esc(crVal)}</b></div>
+          <div class="mv-statline"><span>XP</span><b>${esc(xpVal)}</b></div>
+          <div class="mv-statline"><span>PB</span><b>${esc(pbVal)}</b></div>
+          <div class="mv-statline"><span>Size</span><b>${esc(sizeVal)}</b></div>
         </div>
 
-        ${miscRows.length
-          ? `<div class="mv-detail-lines">${miscRows
-              .map(([k, v]) => `<div class="mv-detail-line"><span>${esc(k)}</span><b>${esc(v)}</b></div>`)
-              .join("")}</div>`
-          : ""}
+        ${renderAbilitySaveTable2024(a, d.savingThrows)}
 
-        ${renderFeatureList("Traits", d.traits)}
+        ${miscRows.length ? `<div class="mv-detail-lines">${miscRows
+          .map(([k, v]) => `<div class="mv-detail-line"><span>${esc(k)}</span><b>${esc(v)}</b></div>`)
+          .join("")}</div>` : ""}
 
-        ${actionCount
-          ? `
-            ${renderFeatureList("Actions", d.actions)}
-            ${renderFeatureList("Bonus Actions", d.bonusActions)}
-            ${renderFeatureList("Reactions", d.reactions)}
-            ${renderFeatureList("Legendary Actions", d.legendaryActions)}
-          `
-          : `<div class="mv-muted" style="margin-top:4px;">No actions recorded for this entry yet. Add them in homebrew editor to use attack/details toggles in encounter cards.</div>`}
+        ${renderVaultFeatureList("Traits", d.traits)}
+
+        ${d.actions?.length || d.bonusActions?.length || d.reactions?.length || d.legendaryActions?.length ? `
+          ${renderVaultFeatureList("Actions", d.actions)}
+          ${renderVaultFeatureList("Bonus Actions", d.bonusActions)}
+          ${renderVaultFeatureList("Reactions", d.reactions)}
+          ${renderVaultFeatureList("Legendary Actions", d.legendaryActions)}
+        ` : ""}
       </div>
     `;
   }
@@ -1376,6 +1459,49 @@
           font-weight: 560;
           white-space: pre-wrap;
           word-break: break-word;
+        }
+
+
+        .mv-ability-table {
+          width: 100%;
+          table-layout: fixed;
+          border-collapse: separate;
+          border-spacing: 6px 6px;
+        }
+
+        .mv-ability-table td {
+          border: 1px solid #2c3950;
+          border-radius: 7px;
+          padding: 6px 6px;
+          text-align: center;
+          vertical-align: top;
+          background: #0a111d;
+        }
+
+        .mv-abil-abbr {
+          font-size: .62rem;
+          color: #94aad6;
+          letter-spacing: .03em;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+
+        .mv-abil-score {
+          font-size: .78rem;
+          color: #eef4ff;
+          font-weight: 800;
+          margin-top: 1px;
+        }
+
+        .mv-abil-mod {
+          color: #aebfe0;
+          font-weight: 650;
+        }
+
+        .mv-abil-save {
+          font-size: .62rem;
+          color: #8ea2c8;
+          margin-top: 3px;
         }
 
         .mv-detail-section {
