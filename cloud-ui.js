@@ -4,12 +4,19 @@ import {
   signIn,
   signOut,
   saveToolboxToCloud,
-  loadToolboxFromCloud
+  loadToolboxFromCloud,
+  collectLocalToolboxBundle
 } from "./cloud-save.js";
 
 console.log("[Cloud UI] file loaded");
 
 let cloudUiWired = false;
+let autosaveTimer = null;
+let lastLocalKeysHash = "";
+let autosaveEnabled = false;
+
+const AUTOSAVE_INTERVAL_MS = 30000;
+const AUTOSAVE_FLAG_KEY = "vrahuneCloudAutosaveEnabledV1";
 
 function getEl(id) {
   const el = document.getElementById(id);
@@ -47,12 +54,44 @@ function getCredentials() {
   };
 }
 
+function getLocalKeysHash() {
+  try {
+    const bundle = collectLocalToolboxBundle();
+    return JSON.stringify(bundle.keys || {});
+  } catch (err) {
+    console.error("[Cloud UI] Could not hash local toolbox data:", err);
+    return "";
+  }
+}
+
+function rememberAutosaveEnabled(value) {
+  autosaveEnabled = value;
+
+  try {
+    window.localStorage.setItem(AUTOSAVE_FLAG_KEY, value ? "true" : "false");
+  } catch (err) {
+    console.warn("[Cloud UI] Could not save autosave flag:", err);
+  }
+}
+
+function readRememberedAutosaveEnabled() {
+  try {
+    return window.localStorage.getItem(AUTOSAVE_FLAG_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 async function refreshCloudStatus() {
   try {
     const user = await getCurrentUser();
 
     if (user) {
-      setStatus("Signed in as " + user.email);
+      if (autosaveEnabled) {
+        setStatus("Signed in as " + user.email + " · Autosave on");
+      } else {
+        setStatus("Signed in as " + user.email + " · Autosave off until Save/Load");
+      }
     } else {
       setStatus("Not signed in");
     }
@@ -60,6 +99,68 @@ async function refreshCloudStatus() {
     setStatus("Could not check sign-in status.");
     console.error("[Cloud UI] Status check failed:", err);
   }
+}
+
+async function runAutosaveCheck() {
+  if (!autosaveEnabled) {
+    return;
+  }
+
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return;
+    }
+
+    const currentHash = getLocalKeysHash();
+
+    if (!currentHash) {
+      return;
+    }
+
+    if (currentHash === lastLocalKeysHash) {
+      return;
+    }
+
+    setStatus("Autosaving to cloud...");
+
+    const saved = await saveToolboxToCloud();
+    lastLocalKeysHash = getLocalKeysHash();
+
+    const savedTime = new Date(saved.updated_at).toLocaleTimeString();
+    setStatus("Autosaved at " + savedTime);
+  } catch (err) {
+    setStatus("Autosave failed: " + err.message);
+    console.error("[Cloud UI] Autosave failed:", err);
+  }
+}
+
+function startAutosave() {
+  if (autosaveTimer) {
+    return;
+  }
+
+  console.log("[Cloud UI] autosave started");
+
+  autosaveTimer = window.setInterval(function () {
+    runAutosaveCheck();
+  }, AUTOSAVE_INTERVAL_MS);
+}
+
+function stopAutosave() {
+  if (autosaveTimer) {
+    window.clearInterval(autosaveTimer);
+    autosaveTimer = null;
+  }
+
+  console.log("[Cloud UI] autosave stopped");
+}
+
+function enableAutosaveFromCurrentState() {
+  rememberAutosaveEnabled(true);
+  lastLocalKeysHash = getLocalKeysHash();
+  startAutosave();
 }
 
 function wireCloudButtons() {
@@ -87,6 +188,7 @@ function wireCloudButtons() {
         await signUp(creds.email, creds.password);
 
         setStatus("Account created. Check your email if confirmation is required.");
+        alert("Account created. Check your email to confirm your account, then come back and sign in.");
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign up failed: " + err.message);
@@ -105,6 +207,13 @@ function wireCloudButtons() {
         setStatus("Signing in...");
         await signIn(creds.email, creds.password);
 
+        autosaveEnabled = readRememberedAutosaveEnabled();
+
+        if (autosaveEnabled) {
+          lastLocalKeysHash = getLocalKeysHash();
+          startAutosave();
+        }
+
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign in failed: " + err.message);
@@ -119,8 +228,11 @@ function wireCloudButtons() {
 
       try {
         setStatus("Signing out...");
-        await signOut();
 
+        rememberAutosaveEnabled(false);
+        stopAutosave();
+
+        await signOut();
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign out failed: " + err.message);
@@ -139,7 +251,9 @@ function wireCloudButtons() {
         const saved = await saveToolboxToCloud();
         const savedTime = new Date(saved.updated_at).toLocaleString();
 
-        setStatus("Saved to cloud at " + savedTime);
+        enableAutosaveFromCurrentState();
+
+        setStatus("Saved to cloud at " + savedTime + " · Autosave on");
       } catch (err) {
         setStatus("Save failed: " + err.message);
         console.error("[Cloud UI] Save failed:", err);
@@ -169,6 +283,8 @@ function wireCloudButtons() {
           return;
         }
 
+        rememberAutosaveEnabled(true);
+
         const loadedTime = new Date(loaded.updated_at).toLocaleString();
 
         setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
@@ -187,6 +303,14 @@ async function initCloudUi() {
   console.log("[Cloud UI] init");
 
   wireCloudButtons();
+
+  autosaveEnabled = readRememberedAutosaveEnabled();
+
+  if (autosaveEnabled) {
+    lastLocalKeysHash = getLocalKeysHash();
+    startAutosave();
+  }
+
   await refreshCloudStatus();
 }
 
