@@ -8,7 +8,11 @@ import "./tool-dice-roller.js";
 import "./tool-encounter.js";
 import "./tool-statblock-importer.js";
 import "./tool-map-measurer.js";
-import "./cloud-ui.js";
+
+// Optional cloud save module.
+// If this fails, the normal tools still load.
+import("./cloud-ui.js").catch((err) => {
+  console.warn("Cloud UI disabled or failed to load:", err);
 
 // In the future:
 // 1) Create "tool-my-new-thing.js"
