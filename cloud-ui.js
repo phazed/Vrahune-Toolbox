@@ -9,6 +9,8 @@ import {
 
 console.log("[Cloud UI] file loaded");
 
+let cloudUiWired = false;
+
 function getEl(id) {
   const el = document.getElementById(id);
 
@@ -43,16 +45,26 @@ function getCredentials() {
 }
 
 async function refreshCloudStatus() {
-  const user = await getCurrentUser();
+  try {
+    const user = await getCurrentUser();
 
-  if (user) {
-    setStatus("Signed in as " + user.email);
-  } else {
-    setStatus("Not signed in");
+    if (user) {
+      setStatus("Signed in as " + user.email);
+    } else {
+      setStatus("Not signed in");
+    }
+  } catch (err) {
+    setStatus("Could not check sign-in status.");
+    console.error("[Cloud UI] Status check failed:", err);
   }
 }
 
 function wireCloudButtons() {
+  if (cloudUiWired) {
+    console.log("[Cloud UI] buttons already wired");
+    return;
+  }
+
   console.log("[Cloud UI] wiring buttons");
 
   const signUpBtn = getEl("cloudSignUpBtn");
@@ -67,8 +79,10 @@ function wireCloudButtons() {
 
       try {
         const creds = getCredentials();
+
         setStatus("Creating account...");
         await signUp(creds.email, creds.password);
+
         setStatus("Account created. Check your email if confirmation is required.");
         await refreshCloudStatus();
       } catch (err) {
@@ -84,8 +98,10 @@ function wireCloudButtons() {
 
       try {
         const creds = getCredentials();
+
         setStatus("Signing in...");
         await signIn(creds.email, creds.password);
+
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign in failed: " + err.message);
@@ -101,6 +117,7 @@ function wireCloudButtons() {
       try {
         setStatus("Signing out...");
         await signOut();
+
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign out failed: " + err.message);
@@ -115,8 +132,10 @@ function wireCloudButtons() {
 
       try {
         setStatus("Saving toolbox to cloud...");
+
         const saved = await saveToolboxToCloud();
         const savedTime = new Date(saved.updated_at).toLocaleString();
+
         setStatus("Saved to cloud at " + savedTime);
       } catch (err) {
         setStatus("Save failed: " + err.message);
@@ -139,6 +158,7 @@ function wireCloudButtons() {
         }
 
         setStatus("Loading toolbox from cloud...");
+
         const loaded = await loadToolboxFromCloud();
 
         if (!loaded) {
@@ -147,6 +167,7 @@ function wireCloudButtons() {
         }
 
         const loadedTime = new Date(loaded.updated_at).toLocaleString();
+
         setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
         window.location.reload();
       } catch (err) {
@@ -155,6 +176,8 @@ function wireCloudButtons() {
       }
     });
   }
+
+  cloudUiWired = true;
 }
 
 async function initCloudUi() {
