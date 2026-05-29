@@ -1,11 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-02-18T17:38:17.103Z",
+  "generatedAt": "2026-05-29T19:05:30.929Z",
   "keys": {
     "vrahuneGeneratorsV4": [
       {
         "id": "gen-lex-valathi",
-        "folder": "Lexicons",
         "name": "Valathi Lexicon",
         "type": "lexicon",
         "items": [
@@ -2161,349 +2160,92 @@
             "english": "quiet, be silent",
             "valathi": "sersyl"
           }
-        ]
+        ],
+        "folder": "Lexicons"
       },
       {
         "id": "gen-1771355024137-8779",
-        "folder": "General",
-        "name": "test",
+        "name": "Town Places",
         "type": "list",
         "items": [
-          "testy"
-        ]
+          "Armory",
+          "Inn",
+          "Tavern",
+          "Townhall"
+        ],
+        "folder": "General"
       },
       {
         "id": "gen-1771435910910-4468",
-        "folder": "Names",
-        "name": "Human Names",
+        "name": "Male Human",
         "type": "list",
         "items": [
-          "Dave Keeper"
+          "Dave",
+          "Jonny",
+          "Charles"
+        ],
+        "folder": "Names"
+      },
+      {
+        "id": "gen-1780079850980-5047",
+        "name": "Elf",
+        "type": "list",
+        "items": [
+          "Vesper",
+          "Vax",
+          "Vex"
+        ],
+        "folder": "Names"
+      },
+      {
+        "id": "gen-1780081369480-9890",
+        "folder": "General",
+        "name": "Tavern Names",
+        "type": "list",
+        "items": [
+          "Leaky Tap",
+          "The Full Mug",
+          "The Flying Raven"
         ]
+      },
+      {
+        "id": "gen-1780081405472-4238",
+        "folder": "Complex Gens",
+        "name": "Tavern",
+        "type": "advanced",
+        "items": {
+          "patterns": [
+            "{Male Human} is a bar keep at the {tavern names}"
+          ],
+          "tokenMap": {
+            "Male Human": "gen-1771435910910-4468",
+            "tavern names": "gen-1780081369480-9890"
+          },
+          "multiTokenMap": {},
+          "advancedMode": "simple"
+        }
       }
     ],
     "vrahuneEncounterToolStateV7": {
       "tab": "library",
       "round": 1,
-      "turnIndex": 1,
-      "activeEncounterName": "Bandits on the Old Road",
-      "activeLibraryId": "enc_7tafsc4_mlph2yoz",
-      "activeCombatants": [
-        {
-          "id": "c_h80j0yo_mlphk5zz",
-          "name": "Basilisk",
-          "type": "Enemy",
-          "initiative": 9,
-          "ac": 15,
-          "speed": 20,
-          "hpCurrent": 52,
-          "hpMax": 52,
-          "level": 1,
-          "cr": "3",
-          "conditions": [
-            {
-              "name": "Prone",
-              "duration": null
-            }
-          ],
-          "exhaustionLevel": 0,
-          "portrait": "",
-          "sourceMonsterId": "srd521-basilisk",
-          "sourceMonsterName": "Basilisk",
-          "source": "SRD 5.2.1",
-          "xp": 700,
-          "sizeType": "Medium Monstrosity, Unaligned",
-          "details": {
-            "proficiencyBonus": 2,
-            "abilityScores": {
-              "str": 16,
-              "dex": 8,
-              "con": 15,
-              "int": 2,
-              "wis": 8,
-              "cha": 7
-            },
-            "savingThrows": "",
-            "skills": "",
-            "damageVulnerabilities": "",
-            "damageResistances": "",
-            "damageImmunities": "",
-            "conditionImmunities": "",
-            "senses": "darkvision: 60 ft., passive perception: 9",
-            "languages": "",
-            "challengeNote": "3",
-            "traits": [
-              {
-                "name": "Petrifying Gaze",
-                "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze.",
-                "attackBonus": null
-              }
-            ],
-            "actions": [
-              {
-                "name": "Bite",
-                "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage.",
-                "attackBonus": 5
-              }
-            ],
-            "bonusActions": [],
-            "reactions": [],
-            "legendaryActions": []
-          },
-          "traits": [
-            {
-              "name": "Petrifying Gaze",
-              "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze."
-            }
-          ],
-          "actions": [
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage."
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [],
-          "showMonsterDetails": false,
-          "showMonsterStatBlock": false
-        },
-        {
-          "id": "c_mzq42wh_mlphk5zz",
-          "name": "Vesper",
-          "type": "PC",
-          "initiative": 10,
-          "ac": 16,
-          "speed": 30,
-          "hpCurrent": 27,
-          "hpMax": 35,
-          "level": 5,
-          "cr": "0",
-          "conditions": [],
-          "exhaustionLevel": 0,
-          "portrait": "",
-          "sourceMonsterId": "",
-          "sourceMonsterName": "",
-          "source": "",
-          "xp": 0,
-          "sizeType": "",
-          "details": null,
-          "traits": [],
-          "actions": [],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [],
-          "showMonsterDetails": false,
-          "showMonsterStatBlock": false
-        },
-        {
-          "id": "c_gqyeiuu_mlphk5zz",
-          "name": "Arelix",
-          "type": "PC",
-          "initiative": 10,
-          "ac": 15,
-          "speed": 30,
-          "hpCurrent": 31,
-          "hpMax": 31,
-          "level": 5,
-          "cr": "0",
-          "conditions": [],
-          "exhaustionLevel": 0,
-          "portrait": "",
-          "sourceMonsterId": "",
-          "sourceMonsterName": "",
-          "source": "",
-          "xp": 0,
-          "sizeType": "",
-          "details": null,
-          "traits": [],
-          "actions": [],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [],
-          "showMonsterDetails": false,
-          "showMonsterStatBlock": false
-        },
-        {
-          "id": "c_ya0a50a_mlpkgzm8",
-          "name": "test monster",
-          "type": "Enemy",
-          "initiative": 10,
-          "ac": 15,
-          "speed": 30,
-          "hpCurrent": 12,
-          "hpMax": 12,
-          "level": 3,
+      "editor": {
+        "name": "",
+        "tags": "",
+        "addDraft": {
+          "ac": 13,
           "cr": "1",
-          "conditions": [],
-          "exhaustionLevel": 0,
-          "portrait": "",
-          "sourceMonsterId": "",
-          "sourceMonsterName": "",
-          "source": "",
-          "xp": 200,
-          "sizeType": "",
-          "details": null,
-          "traits": [],
-          "actions": [],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [],
-          "showMonsterDetails": false,
-          "showMonsterStatBlock": false
-        },
-        {
-          "id": "c_g8pv0fw_mlpkhn64",
-          "name": "gobly guy",
+          "name": "",
           "type": "Enemy",
-          "initiative": 10,
-          "ac": 15,
-          "speed": 30,
-          "hpCurrent": 12,
-          "hpMax": 12,
+          "hpMax": 10,
           "level": 3,
-          "cr": "1",
-          "conditions": [],
-          "exhaustionLevel": 0,
-          "portrait": "",
-          "sourceMonsterId": "",
-          "sourceMonsterName": "",
-          "source": "",
-          "xp": 200,
-          "sizeType": "",
-          "details": null,
-          "traits": [],
-          "actions": [],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [],
-          "showMonsterDetails": false,
-          "showMonsterStatBlock": false
-        }
-      ],
-      "addExpanded": false,
-      "partyManagerOpen": false,
-      "selectedPartyId": "party_a038du5_mlph2yoz",
-      "parties": [
-        {
-          "id": "party_a038du5_mlph2yoz",
-          "name": "Frostclaw Cell",
-          "members": [
-            {
-              "id": "m_a67n499_mlph2yoz",
-              "name": "Vesper",
-              "type": "PC",
-              "initiative": 10,
-              "ac": 16,
-              "speed": 30,
-              "hpCurrent": 27,
-              "hpMax": 35,
-              "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
-              "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
-              "traits": [],
-              "actions": [],
-              "bonusActions": [],
-              "reactions": [],
-              "legendaryActions": [],
-              "showMonsterDetails": false,
-              "showMonsterStatBlock": false
-            },
-            {
-              "id": "m_0hpzpf5_mlph2yoz",
-              "name": "Arelix",
-              "type": "PC",
-              "initiative": 10,
-              "ac": 15,
-              "speed": 30,
-              "hpCurrent": 31,
-              "hpMax": 31,
-              "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
-              "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
-              "traits": [],
-              "actions": [],
-              "bonusActions": [],
-              "reactions": [],
-              "legendaryActions": [],
-              "showMonsterDetails": false,
-              "showMonsterStatBlock": false
-            },
-            {
-              "id": "m_m91lb9k_mlph2yoz",
-              "name": "Lirael",
-              "type": "PC",
-              "initiative": 10,
-              "ac": 14,
-              "speed": 30,
-              "hpCurrent": 24,
-              "hpMax": 24,
-              "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
-              "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
-              "traits": [],
-              "actions": [],
-              "bonusActions": [],
-              "reactions": [],
-              "legendaryActions": [],
-              "showMonsterDetails": false,
-              "showMonsterStatBlock": false
-            },
-            {
-              "id": "m_ayjnh0h_mlph2yoz",
-              "name": "Thamar",
-              "type": "PC",
-              "initiative": 10,
-              "ac": 18,
-              "speed": 25,
-              "hpCurrent": 39,
-              "hpMax": 39,
-              "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
-              "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
-              "traits": [],
-              "actions": [],
-              "bonusActions": [],
-              "reactions": [],
-              "legendaryActions": [],
-              "showMonsterDetails": false,
-              "showMonsterStatBlock": false
-            }
-          ]
-        }
-      ],
+          "speed": 30,
+          "hpCurrent": 10,
+          "initiative": 10
+        },
+        "location": "",
+        "combatants": []
+      },
       "library": [
         {
           "id": "enc_7tafsc4_mlph2yoz",
@@ -2512,99 +2254,87 @@
           "location": "Verdant Veil · Old trade route",
           "combatants": [
             {
+              "ac": 16,
+              "cr": "0",
               "id": "c_dofiuqk_mlphjzt0",
+              "xp": 0,
               "name": "Vesper",
               "type": "PC",
-              "initiative": 10,
-              "ac": 16,
-              "speed": 30,
-              "hpCurrent": 27,
               "hpMax": 35,
               "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
+              "speed": 30,
               "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
               "traits": [],
               "actions": [],
-              "bonusActions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 27,
               "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
               "legendaryActions": [],
+              "sourceMonsterName": "",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             },
             {
+              "ac": 15,
+              "cr": "0",
               "id": "c_mezn0ql_mlphk0kx",
+              "xp": 0,
               "name": "Arelix",
               "type": "PC",
-              "initiative": 10,
-              "ac": 15,
-              "speed": 30,
-              "hpCurrent": 31,
               "hpMax": 31,
               "level": 5,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
+              "speed": 30,
               "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
               "traits": [],
               "actions": [],
-              "bonusActions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 31,
               "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
               "legendaryActions": [],
+              "sourceMonsterName": "",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             },
             {
+              "ac": 15,
+              "cr": "3",
               "id": "c_ebgmgpu_mlpjz8fo",
+              "xp": 700,
               "name": "Basilisk",
               "type": "Enemy",
-              "initiative": 9,
-              "ac": 15,
-              "speed": 20,
-              "hpCurrent": 52,
               "hpMax": 52,
               "level": 1,
-              "cr": "3",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "srd521-basilisk",
-              "sourceMonsterName": "Basilisk",
+              "speed": 20,
               "source": "SRD 5.2.1",
-              "xp": 700,
-              "sizeType": "Medium Monstrosity, Unaligned",
+              "traits": [
+                {
+                  "name": "Petrifying Gaze",
+                  "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze."
+                }
+              ],
+              "actions": [
+                {
+                  "name": "Bite",
+                  "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage."
+                }
+              ],
               "details": {
-                "proficiencyBonus": 2,
-                "abilityScores": {
-                  "str": 16,
-                  "dex": 8,
-                  "con": 15,
-                  "int": 2,
-                  "wis": 8,
-                  "cha": 7
-                },
-                "savingThrows": "",
-                "skills": "",
-                "damageVulnerabilities": "",
-                "damageResistances": "",
-                "damageImmunities": "",
-                "conditionImmunities": "",
                 "senses": "darkvision: 60 ft., passive perception: 9",
-                "languages": "",
-                "challengeNote": "3",
+                "skills": "",
                 "traits": [
                   {
                     "name": "Petrifying Gaze",
@@ -2619,25 +2349,37 @@
                     "attackBonus": 5
                   }
                 ],
-                "bonusActions": [],
+                "languages": "",
                 "reactions": [],
-                "legendaryActions": []
+                "bonusActions": [],
+                "savingThrows": "",
+                "abilityScores": {
+                  "cha": 7,
+                  "con": 15,
+                  "dex": 8,
+                  "int": 2,
+                  "str": 16,
+                  "wis": 8
+                },
+                "challengeNote": "3",
+                "damageImmunities": "",
+                "legendaryActions": [],
+                "proficiencyBonus": 2,
+                "damageResistances": "",
+                "conditionImmunities": "",
+                "damageVulnerabilities": ""
               },
-              "traits": [
-                {
-                  "name": "Petrifying Gaze",
-                  "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze."
-                }
-              ],
-              "actions": [
-                {
-                  "name": "Bite",
-                  "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage."
-                }
-              ],
-              "bonusActions": [],
+              "portrait": "",
+              "sizeType": "Medium Monstrosity, Unaligned",
+              "hpCurrent": 52,
               "reactions": [],
+              "conditions": [],
+              "initiative": 9,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "srd521-basilisk",
               "legendaryActions": [],
+              "sourceMonsterName": "Basilisk",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             }
@@ -2650,140 +2392,442 @@
           "location": "Frostclaw Wilds · Coastal ice",
           "combatants": [
             {
+              "ac": 13,
+              "cr": "3",
               "id": "c_z6qubdz_mlph2yoz",
+              "xp": 700,
               "name": "Frostclaw Wolf",
               "type": "Enemy",
-              "initiative": 10,
-              "ac": 13,
-              "speed": 40,
-              "hpCurrent": 55,
               "hpMax": 55,
               "level": 1,
-              "cr": "3",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
+              "speed": 40,
               "source": "",
-              "xp": 700,
-              "sizeType": "",
-              "details": null,
               "traits": [],
               "actions": [],
-              "bonusActions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 55,
               "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
               "legendaryActions": [],
+              "sourceMonsterName": "",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             },
             {
+              "ac": 13,
+              "cr": "3",
               "id": "c_n93ttka_mlph2yoz",
+              "xp": 700,
               "name": "Frostclaw Wolf",
               "type": "Enemy",
-              "initiative": 10,
-              "ac": 13,
-              "speed": 40,
-              "hpCurrent": 55,
               "hpMax": 55,
               "level": 1,
-              "cr": "3",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
+              "speed": 40,
               "source": "",
-              "xp": 700,
-              "sizeType": "",
-              "details": null,
               "traits": [],
               "actions": [],
-              "bonusActions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 55,
               "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
               "legendaryActions": [],
+              "sourceMonsterName": "",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             },
             {
+              "ac": 14,
+              "cr": "0",
               "id": "c_o5n7zf7_mlph2yoz",
+              "xp": 0,
               "name": "Clan Hunter",
               "type": "NPC",
-              "initiative": 10,
-              "ac": 14,
-              "speed": 30,
-              "hpCurrent": 32,
               "hpMax": 32,
               "level": 3,
-              "cr": "0",
-              "conditions": [],
-              "exhaustionLevel": 0,
-              "portrait": "",
-              "sourceMonsterId": "",
-              "sourceMonsterName": "",
+              "speed": 30,
               "source": "",
-              "xp": 0,
-              "sizeType": "",
-              "details": null,
               "traits": [],
               "actions": [],
-              "bonusActions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 32,
               "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
               "legendaryActions": [],
+              "sourceMonsterName": "",
               "showMonsterDetails": false,
               "showMonsterStatBlock": false
             }
           ]
         }
       ],
-      "createName": "asd=",
-      "createTags": "",
-      "createLocation": "",
-      "libraryEditId": "enc_7tafsc4_mlph2yoz",
+      "parties": [
+        {
+          "id": "party_a038du5_mlph2yoz",
+          "name": "Frostclaw Cell",
+          "members": [
+            {
+              "ac": 16,
+              "cr": "0",
+              "id": "m_a67n499_mlph2yoz",
+              "xp": 0,
+              "name": "Vesper",
+              "type": "PC",
+              "hpMax": 35,
+              "level": 5,
+              "speed": 30,
+              "source": "",
+              "traits": [],
+              "actions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 27,
+              "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
+              "legendaryActions": [],
+              "sourceMonsterName": "",
+              "showMonsterDetails": false,
+              "showMonsterStatBlock": false
+            },
+            {
+              "ac": 15,
+              "cr": "0",
+              "id": "m_0hpzpf5_mlph2yoz",
+              "xp": 0,
+              "name": "Arelix",
+              "type": "PC",
+              "hpMax": 31,
+              "level": 5,
+              "speed": 30,
+              "source": "",
+              "traits": [],
+              "actions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 31,
+              "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
+              "legendaryActions": [],
+              "sourceMonsterName": "",
+              "showMonsterDetails": false,
+              "showMonsterStatBlock": false
+            },
+            {
+              "ac": 14,
+              "cr": "0",
+              "id": "m_m91lb9k_mlph2yoz",
+              "xp": 0,
+              "name": "Lirael",
+              "type": "PC",
+              "hpMax": 24,
+              "level": 5,
+              "speed": 30,
+              "source": "",
+              "traits": [],
+              "actions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 24,
+              "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
+              "legendaryActions": [],
+              "sourceMonsterName": "",
+              "showMonsterDetails": false,
+              "showMonsterStatBlock": false
+            },
+            {
+              "ac": 18,
+              "cr": "0",
+              "id": "m_ayjnh0h_mlph2yoz",
+              "xp": 0,
+              "name": "Thamar",
+              "type": "PC",
+              "hpMax": 39,
+              "level": 5,
+              "speed": 25,
+              "source": "",
+              "traits": [],
+              "actions": [],
+              "details": null,
+              "portrait": "",
+              "sizeType": "",
+              "hpCurrent": 39,
+              "reactions": [],
+              "conditions": [],
+              "initiative": 10,
+              "bonusActions": [],
+              "exhaustionLevel": 0,
+              "sourceMonsterId": "",
+              "legendaryActions": [],
+              "sourceMonsterName": "",
+              "showMonsterDetails": false,
+              "showMonsterStatBlock": false
+            }
+          ]
+        }
+      ],
       "addDraft": {
+        "ac": 15,
+        "cr": "1",
         "name": "gobly guy",
         "type": "Enemy",
-        "initiative": 10,
-        "ac": 15,
-        "speed": 30,
-        "hpCurrent": 12,
         "hpMax": 12,
         "level": 3,
-        "cr": "1"
+        "speed": 30,
+        "hpCurrent": 12,
+        "initiative": 10
       },
+      "turnIndex": 1,
+      "createName": "asd=",
+      "createTags": "",
+      "editorOpen": false,
+      "addExpanded": false,
+      "libraryEditId": "enc_7tafsc4_mlph2yoz",
+      "createLocation": "",
+      "activeLibraryId": "enc_7tafsc4_mlph2yoz",
       "libraryAddDraft": {
+        "ac": 13,
+        "cr": "1",
         "name": "",
         "type": "Enemy",
-        "initiative": 10,
-        "ac": 13,
-        "speed": 30,
-        "hpCurrent": 10,
         "hpMax": 10,
         "level": 3,
-        "cr": "1"
+        "speed": 30,
+        "hpCurrent": 10,
+        "initiative": 10
       },
-      "editorOpen": false,
-      "editorEncounterId": null,
-      "editor": {
-        "name": "",
-        "tags": "",
-        "location": "",
-        "combatants": [],
-        "addDraft": {
-          "name": "",
+      "selectedPartyId": "party_a038du5_mlph2yoz",
+      "activeCombatants": [
+        {
+          "ac": 15,
+          "cr": "3",
+          "id": "c_h80j0yo_mlphk5zz",
+          "xp": 700,
+          "name": "Basilisk",
           "type": "Enemy",
-          "initiative": 10,
-          "ac": 13,
+          "hpMax": 52,
+          "level": 1,
+          "speed": 20,
+          "source": "SRD 5.2.1",
+          "traits": [
+            {
+              "name": "Petrifying Gaze",
+              "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze."
+            }
+          ],
+          "actions": [
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage."
+            }
+          ],
+          "details": {
+            "senses": "darkvision: 60 ft., passive perception: 9",
+            "skills": "",
+            "traits": [
+              {
+                "name": "Petrifying Gaze",
+                "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze.",
+                "attackBonus": null
+              }
+            ],
+            "actions": [
+              {
+                "name": "Bite",
+                "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage.",
+                "attackBonus": 5
+              }
+            ],
+            "languages": "",
+            "reactions": [],
+            "bonusActions": [],
+            "savingThrows": "",
+            "abilityScores": {
+              "cha": 7,
+              "con": 15,
+              "dex": 8,
+              "int": 2,
+              "str": 16,
+              "wis": 8
+            },
+            "challengeNote": "3",
+            "damageImmunities": "",
+            "legendaryActions": [],
+            "proficiencyBonus": 2,
+            "damageResistances": "",
+            "conditionImmunities": "",
+            "damageVulnerabilities": ""
+          },
+          "portrait": "",
+          "sizeType": "Medium Monstrosity, Unaligned",
+          "hpCurrent": 52,
+          "reactions": [],
+          "conditions": [
+            {
+              "name": "Prone",
+              "duration": null
+            }
+          ],
+          "initiative": 9,
+          "bonusActions": [],
+          "exhaustionLevel": 0,
+          "sourceMonsterId": "srd521-basilisk",
+          "legendaryActions": [],
+          "sourceMonsterName": "Basilisk",
+          "showMonsterDetails": false,
+          "showMonsterStatBlock": false
+        },
+        {
+          "ac": 16,
+          "cr": "0",
+          "id": "c_mzq42wh_mlphk5zz",
+          "xp": 0,
+          "name": "Vesper",
+          "type": "PC",
+          "hpMax": 35,
+          "level": 5,
           "speed": 30,
-          "hpCurrent": 10,
-          "hpMax": 10,
+          "source": "",
+          "traits": [],
+          "actions": [],
+          "details": null,
+          "portrait": "",
+          "sizeType": "",
+          "hpCurrent": 27,
+          "reactions": [],
+          "conditions": [],
+          "initiative": 10,
+          "bonusActions": [],
+          "exhaustionLevel": 0,
+          "sourceMonsterId": "",
+          "legendaryActions": [],
+          "sourceMonsterName": "",
+          "showMonsterDetails": false,
+          "showMonsterStatBlock": false
+        },
+        {
+          "ac": 15,
+          "cr": "0",
+          "id": "c_gqyeiuu_mlphk5zz",
+          "xp": 0,
+          "name": "Arelix",
+          "type": "PC",
+          "hpMax": 31,
+          "level": 5,
+          "speed": 30,
+          "source": "",
+          "traits": [],
+          "actions": [],
+          "details": null,
+          "portrait": "",
+          "sizeType": "",
+          "hpCurrent": 31,
+          "reactions": [],
+          "conditions": [],
+          "initiative": 10,
+          "bonusActions": [],
+          "exhaustionLevel": 0,
+          "sourceMonsterId": "",
+          "legendaryActions": [],
+          "sourceMonsterName": "",
+          "showMonsterDetails": false,
+          "showMonsterStatBlock": false
+        },
+        {
+          "ac": 15,
+          "cr": "1",
+          "id": "c_ya0a50a_mlpkgzm8",
+          "xp": 200,
+          "name": "test monster",
+          "type": "Enemy",
+          "hpMax": 12,
           "level": 3,
-          "cr": "1"
+          "speed": 30,
+          "source": "",
+          "traits": [],
+          "actions": [],
+          "details": null,
+          "portrait": "",
+          "sizeType": "",
+          "hpCurrent": 12,
+          "reactions": [],
+          "conditions": [],
+          "initiative": 10,
+          "bonusActions": [],
+          "exhaustionLevel": 0,
+          "sourceMonsterId": "",
+          "legendaryActions": [],
+          "sourceMonsterName": "",
+          "showMonsterDetails": false,
+          "showMonsterStatBlock": false
+        },
+        {
+          "ac": 15,
+          "cr": "1",
+          "id": "c_g8pv0fw_mlpkhn64",
+          "xp": 200,
+          "name": "gobly guy",
+          "type": "Enemy",
+          "hpMax": 12,
+          "level": 3,
+          "speed": 30,
+          "source": "",
+          "traits": [],
+          "actions": [],
+          "details": null,
+          "portrait": "",
+          "sizeType": "",
+          "hpCurrent": 12,
+          "reactions": [],
+          "conditions": [],
+          "initiative": 10,
+          "bonusActions": [],
+          "exhaustionLevel": 0,
+          "sourceMonsterId": "",
+          "legendaryActions": [],
+          "sourceMonsterName": "",
+          "showMonsterDetails": false,
+          "showMonsterStatBlock": false
         }
-      }
+      ],
+      "partyManagerOpen": false,
+      "editorEncounterId": null,
+      "activeEncounterName": "Bandits on the Old Road"
     },
     "vrahuneMonsterVaultStateV2": {
-      "search": "dasd",
+      "search": "",
       "sourceFilter": "homebrew",
       "crFilter": "all",
       "homebrew": [
@@ -3043,9 +3087,324 @@
             "wis": 15,
             "cha": 17
           }
+        },
+        {
+          "id": "hbm_7s9pjlzc",
+          "name": "Autosave test",
+          "sizeType": "Medium Creature, Unaligned",
+          "cr": "1/2",
+          "xp": 100,
+          "ac": 13,
+          "hp": 10,
+          "speed": 30,
+          "speedText": "30 ft.",
+          "initiative": 10,
+          "type": "Enemy",
+          "source": "Homebrew",
+          "isHomebrew": true,
+          "details": {
+            "proficiencyBonus": 2,
+            "abilityScores": {
+              "str": 10,
+              "dex": 10,
+              "con": 10,
+              "int": 10,
+              "wis": 10,
+              "cha": 10
+            },
+            "savingThrows": "",
+            "skills": "",
+            "damageVulnerabilities": "",
+            "damageResistances": "",
+            "damageImmunities": "",
+            "conditionImmunities": "",
+            "senses": "",
+            "languages": "",
+            "challengeNote": "",
+            "traits": [],
+            "actions": [],
+            "bonusActions": [],
+            "reactions": [],
+            "legendaryActions": []
+          },
+          "traits": [],
+          "actions": [],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": [],
+          "abilityScores": {
+            "str": 10,
+            "dex": 10,
+            "con": 10,
+            "int": 10,
+            "wis": 10,
+            "cha": 10
+          }
         }
       ],
       "srdDetailsById": {
+        "srd521-knight": {
+          "proficiencyBonus": 2,
+          "abilityScores": {
+            "str": 16,
+            "dex": 11,
+            "con": 14,
+            "int": 11,
+            "wis": 11,
+            "cha": 15
+          },
+          "savingThrows": "4, 2",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "",
+          "conditionImmunities": "",
+          "senses": "passive perception: 10",
+          "languages": "any one language (usually Common)",
+          "challengeNote": "3",
+          "traits": [
+            {
+              "name": "Brave",
+              "text": "The knight has advantage on saving throws against being frightened.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The knight makes two melee attacks.",
+              "attackBonus": null
+            },
+            {
+              "name": "Greatsword",
+              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.",
+              "attackBonus": 5
+            },
+            {
+              "name": "Heavy Crossbow",
+              "text": "Ranged Weapon Attack: +2 to hit, range 100/400 ft., one target. Hit: 5 (1d10) piercing damage.",
+              "attackBonus": 2
+            },
+            {
+              "name": "Leadership",
+              "text": "For 1 minute, the knight can utter a special command or warning whenever a nonhostile creature that it can see within 30 ft. of it makes an attack roll or a saving throw. The creature can add a d4 to its roll provided it can hear and understand the knight. A creature can benefit from only one Leadership die at a time. This effect ends if the knight is incapacitated.",
+              "attackBonus": null
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [
+            {
+              "name": "Parry",
+              "text": "The knight adds 2 to its AC against one melee attack that would hit it. To do so, the knight must see the attacker and be wielding a melee weapon.",
+              "attackBonus": null
+            }
+          ],
+          "legendaryActions": []
+        },
+        "srd521-archmage": {
+          "proficiencyBonus": 4,
+          "abilityScores": {
+            "str": 10,
+            "dex": 14,
+            "con": 12,
+            "int": 20,
+            "wis": 15,
+            "cha": 16
+          },
+          "savingThrows": "9, 6, 13, 13",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "damage from spells, bludgeoning, piercing, and slashing from nonmagical attacks (from stoneskin)",
+          "damageImmunities": "",
+          "conditionImmunities": "",
+          "senses": "passive perception: 12",
+          "languages": "any six languages",
+          "challengeNote": "12",
+          "traits": [
+            {
+              "name": "Magic Resistance",
+              "text": "The archmage has advantage on saving throws against spells and other magical effects.",
+              "attackBonus": null
+            },
+            {
+              "name": "Spellcasting",
+              "text": "The archmage is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared:\n\n- Cantrips (at will): fire bolt, light, mage hand, prestidigitation, shocking grasp\n- 1st level (4 slots): detect magic, identify, mage armor*, magic missile\n- 2nd level (3 slots): detect thoughts, mirror image, misty step\n- 3rd level (3 slots): counterspell, fly, lightning bolt\n- 4th level (3 slots): banishment, fire shield, stoneskin*\n- 5th level (3 slots): cone of cold, scrying, wall of force\n- 6th level (1 slot): globe of invulnerability\n- 7th level (1 slot): teleport\n- 8th level (1 slot): mind blank*\n- 9th level (1 slot): time stop\n* The archmage casts these spells on itself before combat.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Dagger",
+              "text": "Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 20/60 ft., one target. Hit: 4 (1d4 + 2) piercing damage.",
+              "attackBonus": 6
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": []
+        },
+        "srd521-basilisk": {
+          "proficiencyBonus": 2,
+          "abilityScores": {
+            "str": 16,
+            "dex": 8,
+            "con": 15,
+            "int": 2,
+            "wis": 8,
+            "cha": 7
+          },
+          "savingThrows": "",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "",
+          "conditionImmunities": "",
+          "senses": "darkvision: 60 ft., passive perception: 9",
+          "languages": "",
+          "challengeNote": "3",
+          "traits": [
+            {
+              "name": "Petrifying Gaze",
+              "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage.",
+              "attackBonus": 5
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": []
+        },
+        "srd521-animated-armor": {
+          "proficiencyBonus": 2,
+          "abilityScores": {
+            "str": 14,
+            "dex": 11,
+            "con": 13,
+            "int": 1,
+            "wis": 3,
+            "cha": 1
+          },
+          "savingThrows": "",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "poison, psychic",
+          "conditionImmunities": "blinded Blinded /api/2014/conditions/blinded, charmed Charmed /api/2014/conditions/charmed, deafened Deafened /api/2014/conditions/deafened, exhaustion Exhaustion /api/2014/conditions/exhaustion, frightened Frightened /api/2014/conditions/frightened, paralyzed Paralyzed /api/2014/conditions/paralyzed, petrified Petrified /api/2014/conditions/petrified, poisoned Poisoned /api/2014/conditions/poisoned",
+          "senses": "blindsight: 60 ft. (blind beyond this radius), passive perception: 6",
+          "languages": "",
+          "challengeNote": "1",
+          "traits": [
+            {
+              "name": "Antimagic Susceptibility",
+              "text": "The armor is incapacitated while in the area of an antimagic field. If targeted by dispel magic, the armor must succeed on a Constitution saving throw against the caster's spell save DC or fall unconscious for 1 minute.",
+              "attackBonus": null
+            },
+            {
+              "name": "False Appearance",
+              "text": "While the armor remains motionless, it is indistinguishable from a normal suit of armor.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The armor makes two melee attacks.",
+              "attackBonus": null
+            },
+            {
+              "name": "Slam",
+              "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) bludgeoning damage.",
+              "attackBonus": 4
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": []
+        },
+        "srd521-adult-blue-dragon": {
+          "proficiencyBonus": 5,
+          "abilityScores": {
+            "str": 25,
+            "dex": 10,
+            "con": 23,
+            "int": 16,
+            "wis": 15,
+            "cha": 19
+          },
+          "savingThrows": "5, 11, 7, 9, 12, 5",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "lightning",
+          "conditionImmunities": "",
+          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 22",
+          "languages": "Common, Draconic",
+          "challengeNote": "16",
+          "traits": [
+            {
+              "name": "Legendary Resistance",
+              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
+              "attackBonus": null
+            },
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack: +12 to hit, reach 10 ft., one target. Hit: 18 (2d10 + 7) piercing damage plus 5 (1d10) lightning damage.",
+              "attackBonus": 12
+            },
+            {
+              "name": "Claw",
+              "text": "Melee Weapon Attack: +12 to hit, reach 5 ft., one target. Hit: 14 (2d6 + 7) slashing damage.",
+              "attackBonus": 12
+            },
+            {
+              "name": "Tail",
+              "text": "Melee Weapon Attack: +12 to hit, reach 15 ft., one target. Hit: 16 (2d8 + 7) bludgeoning damage.",
+              "attackBonus": 12
+            },
+            {
+              "name": "Frightful Presence",
+              "text": "Each creature of the dragon's choice that is within 120 ft. of the dragon and aware of it must succeed on a DC 17 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
+              "attackBonus": null
+            },
+            {
+              "name": "Lightning Breath",
+              "text": "The dragon exhales lightning in a 90-foot line that is 5 ft. wide. Each creature in that line must make a DC 19 Dexterity saving throw, taking 66 (12d10) lightning damage on a failed save, or half as much damage on a successful one.",
+              "attackBonus": null
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": [
+            {
+              "name": "Detect",
+              "text": "The dragon makes a Wisdom (Perception) check.",
+              "attackBonus": null
+            },
+            {
+              "name": "Tail Attack",
+              "text": "The dragon makes a tail attack.",
+              "attackBonus": null
+            },
+            {
+              "name": "Wing Attack (Costs 2 Actions)",
+              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 20 Dexterity saving throw or take 14 (2d6 + 7) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
+              "attackBonus": null
+            }
+          ]
+        },
         "srd521-adult-black-dragon": {
           "proficiencyBonus": 5,
           "abilityScores": {
@@ -3106,6 +3465,167 @@
             {
               "name": "Acid Breath",
               "text": "The dragon exhales acid in a 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 54 (12d8) acid damage on a failed save, or half as much damage on a successful one.",
+              "attackBonus": null
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": [
+            {
+              "name": "Detect",
+              "text": "The dragon makes a Wisdom (Perception) check.",
+              "attackBonus": null
+            },
+            {
+              "name": "Tail Attack",
+              "text": "The dragon makes a tail attack.",
+              "attackBonus": null
+            },
+            {
+              "name": "Wing Attack (Costs 2 Actions)",
+              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
+              "attackBonus": null
+            }
+          ]
+        },
+        "srd521-adult-brass-dragon": {
+          "proficiencyBonus": 5,
+          "abilityScores": {
+            "str": 23,
+            "dex": 10,
+            "con": 21,
+            "int": 14,
+            "wis": 13,
+            "cha": 17
+          },
+          "savingThrows": "5, 10, 6, 8, 7, 11, 8, 5",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "fire",
+          "conditionImmunities": "",
+          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 21",
+          "languages": "Common, Draconic",
+          "challengeNote": "13",
+          "traits": [
+            {
+              "name": "Legendary Resistance",
+              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
+              "attackBonus": null
+            },
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Claw",
+              "text": "Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Tail",
+              "text": "Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Frightful Presence",
+              "text": "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours .",
+              "attackBonus": null
+            },
+            {
+              "name": "Breath Weapons",
+              "text": "The dragon uses one of the following breath weapons.\nFire Breath. The dragon exhales fire in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one.\nSleep Breath. The dragon exhales sleep gas in a 60-foot cone. Each creature in that area must succeed on a DC 18 Constitution saving throw or fall unconscious for 10 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.",
+              "attackBonus": null
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": [
+            {
+              "name": "Detect",
+              "text": "The dragon makes a Wisdom (Perception) check.",
+              "attackBonus": null
+            },
+            {
+              "name": "Tail Attack",
+              "text": "The dragon makes a tail attack.",
+              "attackBonus": null
+            },
+            {
+              "name": "Wing Attack (Costs 2 Actions)",
+              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
+              "attackBonus": null
+            }
+          ]
+        },
+        "srd521-adult-white-dragon": {
+          "proficiencyBonus": 5,
+          "abilityScores": {
+            "str": 22,
+            "dex": 10,
+            "con": 22,
+            "int": 8,
+            "wis": 12,
+            "cha": 12
+          },
+          "savingThrows": "5, 11, 6, 6, 11, 5",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "cold",
+          "conditionImmunities": "",
+          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 21",
+          "languages": "Common, Draconic",
+          "challengeNote": "13",
+          "traits": [
+            {
+              "name": "Ice Walk",
+              "text": "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra moment.",
+              "attackBonus": null
+            },
+            {
+              "name": "Legendary Resistance",
+              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
+              "attackBonus": null
+            },
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage plus 4 (1d8) cold damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Claw",
+              "text": "Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Tail",
+              "text": "Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.",
+              "attackBonus": 11
+            },
+            {
+              "name": "Frightful Presence",
+              "text": "Each creature of the dragon's choice that is within 120 ft. of the dragon and aware of it must succeed on a DC 14 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
+              "attackBonus": null
+            },
+            {
+              "name": "Cold Breath",
+              "text": "The dragon exhales an icy blast in a 60-foot cone. Each creature in that area must make a DC 19 Constitution saving throw, taking 54 (12d8) cold damage on a failed save, or half as much damage on a successful one.",
               "attackBonus": null
             }
           ],
@@ -3203,6 +3723,89 @@
             {
               "name": "Wing Attack (Costs 2 Actions)",
               "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
+              "attackBonus": null
+            }
+          ]
+        },
+        "srd521-ancient-black-dragon": {
+          "proficiencyBonus": 7,
+          "abilityScores": {
+            "str": 27,
+            "dex": 14,
+            "con": 25,
+            "int": 16,
+            "wis": 15,
+            "cha": 19
+          },
+          "savingThrows": "9, 14, 9, 11, 16, 9",
+          "skills": "",
+          "damageVulnerabilities": "",
+          "damageResistances": "",
+          "damageImmunities": "acid",
+          "conditionImmunities": "",
+          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 26",
+          "languages": "Common, Draconic",
+          "challengeNote": "21",
+          "traits": [
+            {
+              "name": "Amphibious",
+              "text": "The dragon can breathe air and water.",
+              "attackBonus": null
+            },
+            {
+              "name": "Legendary Resistance",
+              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
+              "attackBonus": null
+            }
+          ],
+          "actions": [
+            {
+              "name": "Multiattack",
+              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
+              "attackBonus": null
+            },
+            {
+              "name": "Bite",
+              "text": "Melee Weapon Attack:+ 15 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus 9 (2d8) acid damage.",
+              "attackBonus": 15
+            },
+            {
+              "name": "Claw",
+              "text": "Melee Weapon Attack: +15 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 8) slashing damage.",
+              "attackBonus": 15
+            },
+            {
+              "name": "Tail",
+              "text": "Melee Weapon Attack: +15 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 8) bludgeoning damage.",
+              "attackBonus": 15
+            },
+            {
+              "name": "Frightful Presence",
+              "text": "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 19 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
+              "attackBonus": null
+            },
+            {
+              "name": "Acid Breath",
+              "text": "The dragon exhales acid in a 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 67 (15d8) acid damage on a failed save, or half as much damage on a successful one.",
+              "attackBonus": null
+            }
+          ],
+          "bonusActions": [],
+          "reactions": [],
+          "legendaryActions": [
+            {
+              "name": "Detect",
+              "text": "The dragon makes a Wisdom (Perception) check.",
+              "attackBonus": null
+            },
+            {
+              "name": "Tail Attack",
+              "text": "The dragon makes a tail attack.",
+              "attackBonus": null
+            },
+            {
+              "name": "Wing Attack (Costs 2 Actions)",
+              "text": "The dragon beats its wings. Each creature within 15 ft. of the dragon must succeed on a DC 23 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
               "attackBonus": null
             }
           ]
@@ -3377,512 +3980,6 @@
               "attackBonus": null
             }
           ]
-        },
-        "srd521-basilisk": {
-          "proficiencyBonus": 2,
-          "abilityScores": {
-            "str": 16,
-            "dex": 8,
-            "con": 15,
-            "int": 2,
-            "wis": 8,
-            "cha": 7
-          },
-          "savingThrows": "",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "",
-          "conditionImmunities": "",
-          "senses": "darkvision: 60 ft., passive perception: 9",
-          "languages": "",
-          "challengeNote": "3",
-          "traits": [
-            {
-              "name": "Petrifying Gaze",
-              "text": "If a creature starts its turn within 30 ft. of the basilisk and the two of them can see each other, the basilisk can force the creature to make a DC 12 Constitution saving throw if the basilisk isn't incapacitated. On a failed save, the creature magically begins to turn to stone and is restrained. It must repeat the saving throw at the end of its next turn. On a success, the effect ends. On a failure, the creature is petrified until freed by the greater restoration spell or other magic.\nA creature that isn't surprised can avert its eyes to avoid the saving throw at the start of its turn. If it does so, it can't see the basilisk until the start of its next turn, when it can avert its eyes again. If it looks at the basilisk in the meantime, it must immediately make the save.\nIf the basilisk sees its reflection within 30 ft. of it in bright light, it mistakes itself for a rival and targets itself with its gaze.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage plus 7 (2d6) poison damage.",
-              "attackBonus": 5
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": []
-        },
-        "srd521-ancient-black-dragon": {
-          "proficiencyBonus": 7,
-          "abilityScores": {
-            "str": 27,
-            "dex": 14,
-            "con": 25,
-            "int": 16,
-            "wis": 15,
-            "cha": 19
-          },
-          "savingThrows": "9, 14, 9, 11, 16, 9",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "acid",
-          "conditionImmunities": "",
-          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 26",
-          "languages": "Common, Draconic",
-          "challengeNote": "21",
-          "traits": [
-            {
-              "name": "Amphibious",
-              "text": "The dragon can breathe air and water.",
-              "attackBonus": null
-            },
-            {
-              "name": "Legendary Resistance",
-              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
-              "attackBonus": null
-            },
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack:+ 15 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus 9 (2d8) acid damage.",
-              "attackBonus": 15
-            },
-            {
-              "name": "Claw",
-              "text": "Melee Weapon Attack: +15 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 8) slashing damage.",
-              "attackBonus": 15
-            },
-            {
-              "name": "Tail",
-              "text": "Melee Weapon Attack: +15 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 8) bludgeoning damage.",
-              "attackBonus": 15
-            },
-            {
-              "name": "Frightful Presence",
-              "text": "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 19 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
-              "attackBonus": null
-            },
-            {
-              "name": "Acid Breath",
-              "text": "The dragon exhales acid in a 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 67 (15d8) acid damage on a failed save, or half as much damage on a successful one.",
-              "attackBonus": null
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [
-            {
-              "name": "Detect",
-              "text": "The dragon makes a Wisdom (Perception) check.",
-              "attackBonus": null
-            },
-            {
-              "name": "Tail Attack",
-              "text": "The dragon makes a tail attack.",
-              "attackBonus": null
-            },
-            {
-              "name": "Wing Attack (Costs 2 Actions)",
-              "text": "The dragon beats its wings. Each creature within 15 ft. of the dragon must succeed on a DC 23 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
-              "attackBonus": null
-            }
-          ]
-        },
-        "srd521-adult-white-dragon": {
-          "proficiencyBonus": 5,
-          "abilityScores": {
-            "str": 22,
-            "dex": 10,
-            "con": 22,
-            "int": 8,
-            "wis": 12,
-            "cha": 12
-          },
-          "savingThrows": "5, 11, 6, 6, 11, 5",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "cold",
-          "conditionImmunities": "",
-          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 21",
-          "languages": "Common, Draconic",
-          "challengeNote": "13",
-          "traits": [
-            {
-              "name": "Ice Walk",
-              "text": "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra moment.",
-              "attackBonus": null
-            },
-            {
-              "name": "Legendary Resistance",
-              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
-              "attackBonus": null
-            },
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage plus 4 (1d8) cold damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Claw",
-              "text": "Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Tail",
-              "text": "Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Frightful Presence",
-              "text": "Each creature of the dragon's choice that is within 120 ft. of the dragon and aware of it must succeed on a DC 14 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
-              "attackBonus": null
-            },
-            {
-              "name": "Cold Breath",
-              "text": "The dragon exhales an icy blast in a 60-foot cone. Each creature in that area must make a DC 19 Constitution saving throw, taking 54 (12d8) cold damage on a failed save, or half as much damage on a successful one.",
-              "attackBonus": null
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [
-            {
-              "name": "Detect",
-              "text": "The dragon makes a Wisdom (Perception) check.",
-              "attackBonus": null
-            },
-            {
-              "name": "Tail Attack",
-              "text": "The dragon makes a tail attack.",
-              "attackBonus": null
-            },
-            {
-              "name": "Wing Attack (Costs 2 Actions)",
-              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
-              "attackBonus": null
-            }
-          ]
-        },
-        "srd521-adult-brass-dragon": {
-          "proficiencyBonus": 5,
-          "abilityScores": {
-            "str": 23,
-            "dex": 10,
-            "con": 21,
-            "int": 14,
-            "wis": 13,
-            "cha": 17
-          },
-          "savingThrows": "5, 10, 6, 8, 7, 11, 8, 5",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "fire",
-          "conditionImmunities": "",
-          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 21",
-          "languages": "Common, Draconic",
-          "challengeNote": "13",
-          "traits": [
-            {
-              "name": "Legendary Resistance",
-              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
-              "attackBonus": null
-            },
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Claw",
-              "text": "Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Tail",
-              "text": "Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.",
-              "attackBonus": 11
-            },
-            {
-              "name": "Frightful Presence",
-              "text": "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours .",
-              "attackBonus": null
-            },
-            {
-              "name": "Breath Weapons",
-              "text": "The dragon uses one of the following breath weapons.\nFire Breath. The dragon exhales fire in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one.\nSleep Breath. The dragon exhales sleep gas in a 60-foot cone. Each creature in that area must succeed on a DC 18 Constitution saving throw or fall unconscious for 10 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.",
-              "attackBonus": null
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [
-            {
-              "name": "Detect",
-              "text": "The dragon makes a Wisdom (Perception) check.",
-              "attackBonus": null
-            },
-            {
-              "name": "Tail Attack",
-              "text": "The dragon makes a tail attack.",
-              "attackBonus": null
-            },
-            {
-              "name": "Wing Attack (Costs 2 Actions)",
-              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
-              "attackBonus": null
-            }
-          ]
-        },
-        "srd521-adult-blue-dragon": {
-          "proficiencyBonus": 5,
-          "abilityScores": {
-            "str": 25,
-            "dex": 10,
-            "con": 23,
-            "int": 16,
-            "wis": 15,
-            "cha": 19
-          },
-          "savingThrows": "5, 11, 7, 9, 12, 5",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "lightning",
-          "conditionImmunities": "",
-          "senses": "blindsight: 60 ft., darkvision: 120 ft., passive perception: 22",
-          "languages": "Common, Draconic",
-          "challengeNote": "16",
-          "traits": [
-            {
-              "name": "Legendary Resistance",
-              "text": "If the dragon fails a saving throw, it can choose to succeed instead.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.",
-              "attackBonus": null
-            },
-            {
-              "name": "Bite",
-              "text": "Melee Weapon Attack: +12 to hit, reach 10 ft., one target. Hit: 18 (2d10 + 7) piercing damage plus 5 (1d10) lightning damage.",
-              "attackBonus": 12
-            },
-            {
-              "name": "Claw",
-              "text": "Melee Weapon Attack: +12 to hit, reach 5 ft., one target. Hit: 14 (2d6 + 7) slashing damage.",
-              "attackBonus": 12
-            },
-            {
-              "name": "Tail",
-              "text": "Melee Weapon Attack: +12 to hit, reach 15 ft., one target. Hit: 16 (2d8 + 7) bludgeoning damage.",
-              "attackBonus": 12
-            },
-            {
-              "name": "Frightful Presence",
-              "text": "Each creature of the dragon's choice that is within 120 ft. of the dragon and aware of it must succeed on a DC 17 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
-              "attackBonus": null
-            },
-            {
-              "name": "Lightning Breath",
-              "text": "The dragon exhales lightning in a 90-foot line that is 5 ft. wide. Each creature in that line must make a DC 19 Dexterity saving throw, taking 66 (12d10) lightning damage on a failed save, or half as much damage on a successful one.",
-              "attackBonus": null
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": [
-            {
-              "name": "Detect",
-              "text": "The dragon makes a Wisdom (Perception) check.",
-              "attackBonus": null
-            },
-            {
-              "name": "Tail Attack",
-              "text": "The dragon makes a tail attack.",
-              "attackBonus": null
-            },
-            {
-              "name": "Wing Attack (Costs 2 Actions)",
-              "text": "The dragon beats its wings. Each creature within 10 ft. of the dragon must succeed on a DC 20 Dexterity saving throw or take 14 (2d6 + 7) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.",
-              "attackBonus": null
-            }
-          ]
-        },
-        "srd521-animated-armor": {
-          "proficiencyBonus": 2,
-          "abilityScores": {
-            "str": 14,
-            "dex": 11,
-            "con": 13,
-            "int": 1,
-            "wis": 3,
-            "cha": 1
-          },
-          "savingThrows": "",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "poison, psychic",
-          "conditionImmunities": "blinded Blinded /api/2014/conditions/blinded, charmed Charmed /api/2014/conditions/charmed, deafened Deafened /api/2014/conditions/deafened, exhaustion Exhaustion /api/2014/conditions/exhaustion, frightened Frightened /api/2014/conditions/frightened, paralyzed Paralyzed /api/2014/conditions/paralyzed, petrified Petrified /api/2014/conditions/petrified, poisoned Poisoned /api/2014/conditions/poisoned",
-          "senses": "blindsight: 60 ft. (blind beyond this radius), passive perception: 6",
-          "languages": "",
-          "challengeNote": "1",
-          "traits": [
-            {
-              "name": "Antimagic Susceptibility",
-              "text": "The armor is incapacitated while in the area of an antimagic field. If targeted by dispel magic, the armor must succeed on a Constitution saving throw against the caster's spell save DC or fall unconscious for 1 minute.",
-              "attackBonus": null
-            },
-            {
-              "name": "False Appearance",
-              "text": "While the armor remains motionless, it is indistinguishable from a normal suit of armor.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The armor makes two melee attacks.",
-              "attackBonus": null
-            },
-            {
-              "name": "Slam",
-              "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) bludgeoning damage.",
-              "attackBonus": 4
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": []
-        },
-        "srd521-archmage": {
-          "proficiencyBonus": 4,
-          "abilityScores": {
-            "str": 10,
-            "dex": 14,
-            "con": 12,
-            "int": 20,
-            "wis": 15,
-            "cha": 16
-          },
-          "savingThrows": "9, 6, 13, 13",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "damage from spells, bludgeoning, piercing, and slashing from nonmagical attacks (from stoneskin)",
-          "damageImmunities": "",
-          "conditionImmunities": "",
-          "senses": "passive perception: 12",
-          "languages": "any six languages",
-          "challengeNote": "12",
-          "traits": [
-            {
-              "name": "Magic Resistance",
-              "text": "The archmage has advantage on saving throws against spells and other magical effects.",
-              "attackBonus": null
-            },
-            {
-              "name": "Spellcasting",
-              "text": "The archmage is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared:\n\n- Cantrips (at will): fire bolt, light, mage hand, prestidigitation, shocking grasp\n- 1st level (4 slots): detect magic, identify, mage armor*, magic missile\n- 2nd level (3 slots): detect thoughts, mirror image, misty step\n- 3rd level (3 slots): counterspell, fly, lightning bolt\n- 4th level (3 slots): banishment, fire shield, stoneskin*\n- 5th level (3 slots): cone of cold, scrying, wall of force\n- 6th level (1 slot): globe of invulnerability\n- 7th level (1 slot): teleport\n- 8th level (1 slot): mind blank*\n- 9th level (1 slot): time stop\n* The archmage casts these spells on itself before combat.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Dagger",
-              "text": "Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 20/60 ft., one target. Hit: 4 (1d4 + 2) piercing damage.",
-              "attackBonus": 6
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [],
-          "legendaryActions": []
-        },
-        "srd521-knight": {
-          "proficiencyBonus": 2,
-          "abilityScores": {
-            "str": 16,
-            "dex": 11,
-            "con": 14,
-            "int": 11,
-            "wis": 11,
-            "cha": 15
-          },
-          "savingThrows": "4, 2",
-          "skills": "",
-          "damageVulnerabilities": "",
-          "damageResistances": "",
-          "damageImmunities": "",
-          "conditionImmunities": "",
-          "senses": "passive perception: 10",
-          "languages": "any one language (usually Common)",
-          "challengeNote": "3",
-          "traits": [
-            {
-              "name": "Brave",
-              "text": "The knight has advantage on saving throws against being frightened.",
-              "attackBonus": null
-            }
-          ],
-          "actions": [
-            {
-              "name": "Multiattack",
-              "text": "The knight makes two melee attacks.",
-              "attackBonus": null
-            },
-            {
-              "name": "Greatsword",
-              "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.",
-              "attackBonus": 5
-            },
-            {
-              "name": "Heavy Crossbow",
-              "text": "Ranged Weapon Attack: +2 to hit, range 100/400 ft., one target. Hit: 5 (1d10) piercing damage.",
-              "attackBonus": 2
-            },
-            {
-              "name": "Leadership",
-              "text": "For 1 minute, the knight can utter a special command or warning whenever a nonhostile creature that it can see within 30 ft. of it makes an attack roll or a saving throw. The creature can add a d4 to its roll provided it can hear and understand the knight. A creature can benefit from only one Leadership die at a time. This effect ends if the knight is incapacitated.",
-              "attackBonus": null
-            }
-          ],
-          "bonusActions": [],
-          "reactions": [
-            {
-              "name": "Parry",
-              "text": "The knight adds 2 to its AC against one melee attack that would hit it. To do so, the knight must see the attacker and be wielding a melee weapon.",
-              "attackBonus": null
-            }
-          ],
-          "legendaryActions": []
         }
       },
       "srdDetailLookupFailures": {
@@ -3890,7 +3987,8 @@
       },
       "editingId": null,
       "expandedIds": [
-        "srd521-knight"
+        "srd521-knight",
+        "hbm_7s9pjlzc"
       ],
       "activeTab": "vault",
       "draft": {
