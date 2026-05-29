@@ -8,7 +8,8 @@ const TOOL_MODULES = [
   "./tool-dice-roller.js",
   "./tool-encounter.js",
   "./tool-statblock-importer.js",
-  "./tool-map-measurer.js"
+  "./tool-map-measurer.js",
+  "./tool-hex-stocker.js"
 ];
 
 async function loadToolModule(path) {
