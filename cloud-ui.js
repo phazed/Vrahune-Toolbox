@@ -163,6 +163,48 @@ function enableAutosaveFromCurrentState() {
   startAutosave();
 }
 
+function wirePasswordToggle() {
+  const passwordInput = getEl("cloudPassword");
+  const toggleBtn = getEl("cloudTogglePasswordBtn");
+
+  if (!passwordInput || !toggleBtn) {
+    return;
+  }
+
+  toggleBtn.addEventListener("click", function () {
+    const isHidden = passwordInput.type === "password";
+
+    passwordInput.type = isHidden ? "text" : "password";
+    toggleBtn.textContent = isHidden ? "Hide" : "Show";
+  });
+}
+
+async function promptLoadFromCloudAfterSignIn() {
+  const shouldLoad = window.confirm(
+    "Signed in. Do you want to load your cloud save now? This will replace the current browser data."
+  );
+
+  if (!shouldLoad) {
+    setStatus("Signed in. Local data kept. Click Save to Cloud when ready.");
+    return;
+  }
+
+  setStatus("Loading toolbox from cloud...");
+
+  const loaded = await loadToolboxFromCloud();
+
+  if (!loaded) {
+    setStatus("No cloud save found yet.");
+    return;
+  }
+
+  rememberAutosaveEnabled(true);
+
+  const loadedTime = new Date(loaded.updated_at).toLocaleString();
+  setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
+  window.location.reload();
+}
+
 function wireCloudButtons() {
   if (cloudUiWired) {
     console.log("[Cloud UI] buttons already wired");
@@ -187,8 +229,10 @@ function wireCloudButtons() {
         setStatus("Creating account...");
         await signUp(creds.email, creds.password);
 
-        setStatus("Account created. Check your email if confirmation is required.");
-        alert("Account created. Check your email to confirm your account, then come back and sign in.");
+        const message = "Account created. Check your email to confirm your account, then come back and sign in.";
+        setStatus(message);
+        alert(message);
+
         await refreshCloudStatus();
       } catch (err) {
         setStatus("Sign up failed: " + err.message);
@@ -205,32 +249,21 @@ function wireCloudButtons() {
         const creds = getCredentials();
 
         setStatus("Signing in...");
-       await signIn(creds.email, creds.password);
+        await signIn(creds.email, creds.password);
 
-await refreshCloudStatus();
+        autosaveEnabled = readRememberedAutosaveEnabled();
 
-const shouldLoad = window.confirm(
-  "Signed in. Do you want to load your cloud save now? This will replace the current browser data."
-);
+        if (autosaveEnabled) {
+          lastLocalKeysHash = getLocalKeysHash();
+          startAutosave();
+        }
 
-if (shouldLoad) {
-  setStatus("Loading toolbox from cloud...");
-
-  const loaded = await loadToolboxFromCloud();
-
-  if (!loaded) {
-    setStatus("No cloud save found yet.");
-    return;
-  }
-
-  rememberAutosaveEnabled(true);
-
-  const loadedTime = new Date(loaded.updated_at).toLocaleString();
-  setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
-  window.location.reload();
-} else {
-  setStatus("Signed in. Local data kept. Click Save to Cloud when ready.");
-}
+        await refreshCloudStatus();
+        await promptLoadFromCloudAfterSignIn();
+      } catch (err) {
+        setStatus("Sign in failed: " + err.message);
+        console.error("[Cloud UI] Sign in failed:", err);
+      }
     });
   }
 
@@ -298,7 +331,6 @@ if (shouldLoad) {
         rememberAutosaveEnabled(true);
 
         const loadedTime = new Date(loaded.updated_at).toLocaleString();
-
         setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
         window.location.reload();
       } catch (err) {
@@ -315,6 +347,7 @@ async function initCloudUi() {
   console.log("[Cloud UI] init");
 
   wireCloudButtons();
+  wirePasswordToggle();
 
   autosaveEnabled = readRememberedAutosaveEnabled();
 
