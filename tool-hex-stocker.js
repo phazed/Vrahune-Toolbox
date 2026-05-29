@@ -1,7 +1,8 @@
 // tool-hex-stocker.js
-// Hex Stocker v3
-// Drop this file in your repo root and load it from main.js.
-// Cloud save: make sure "daggerCraftHexStockerStateV1" is listed in DB_BUNDLE_KEYS inside cloud-save.js.
+// Hex Stocker v4
+// Adds generation methods: build your own hex generator by choosing which tables are rolled.
+// Install: replace your old tool-hex-stocker.js with this file.
+// Cloud save: keep "daggerCraftHexStockerStateV1" in DB_BUNDLE_KEYS inside cloud-save.js.
 
 (function () {
   if (!window.registerTool) {
@@ -9,11 +10,12 @@
     return;
   }
 
-  if (window.__daggerCraftHexStockerV2Active) return;
-  window.__daggerCraftHexStockerV2Active = true;
+  if (window.__daggerCraftHexStockerV4Active) return;
+  window.__daggerCraftHexStockerV4Active = true;
 
   const STORAGE_KEY = "daggerCraftHexStockerStateV1";
   const ANY_TERRAIN = "__any__";
+  const DEFAULT_METHOD_ID = "default_hex_stocker";
 
   function uid(prefix = "id") {
     return prefix + "_" + Math.random().toString(36).slice(2, 9) + "_" + Date.now().toString(36);
@@ -519,41 +521,36 @@
     "Roll twice and combine": "feature_unique"
   };
 
-  const CORE_ROLL_ORDER = [
-    { key: "density", label: "Density" },
-    { key: "role", label: "Hex Role" },
-    { key: "feature", label: "Specific Feature" },
-    { key: "state", label: "Current State" },
-    { key: "actor", label: "Actor / Occupant" },
-    { key: "activity", label: "Activity" },
-    { key: "twist", label: "Twist" },
-    { key: "hook", label: "Hook" },
-    { key: "connection", label: "Connection" },
-    { key: "history", label: "History Layer" },
-    { key: "danger", label: "Danger Level" },
-    { key: "reward", label: "Reward" }
-  ];
-
-  const DICE_ROWS = [
-    { key: "density", label: "Density", die: 6, tableKey: "density" },
-    { key: "role", label: "Hex Role", die: 20, tableKey: "role" },
-    { key: "feature", label: "Specific Feature", die: 12, tableKey: "feature_dynamic" },
-    { key: "state", label: "Current State", die: 12, tableKey: "state" },
-    { key: "actor", label: "Actor / Occupant", die: 12, tableKey: "actor" },
-    { key: "activity", label: "Activity", die: 12, tableKey: "activity" },
-    { key: "twist", label: "Twist", die: 12, tableKey: "twist" },
-    { key: "hook", label: "Hook", die: 10, tableKey: "hook" },
-    { key: "connection", label: "Connection", die: 8, tableKey: "connection" },
-    { key: "history", label: "History Layer", die: 10, tableKey: "history" },
-    { key: "danger", label: "Danger Level", die: 6, tableKey: "danger" },
-    { key: "reward", label: "Reward", die: 10, tableKey: "reward" }
-  ];
+  function defaultMethod() {
+    return {
+      id: DEFAULT_METHOD_ID,
+      name: "Default Hex Stocker",
+      builtIn: true,
+      steps: [
+        { id: "terrain", label: "Terrain", type: "terrain" },
+        { id: "density", label: "Density", type: "table", tableKey: "density" },
+        { id: "role", label: "Hex Role", type: "role" },
+        { id: "feature", label: "Specific Feature", type: "feature_dynamic" },
+        { id: "state", label: "Current State", type: "table", tableKey: "state" },
+        { id: "actor", label: "Actor / Occupant", type: "table", tableKey: "actor" },
+        { id: "activity", label: "Activity", type: "table", tableKey: "activity" },
+        { id: "twist", label: "Twist", type: "table", tableKey: "twist" },
+        { id: "hook", label: "Hook", type: "table", tableKey: "hook" },
+        { id: "connection", label: "Connection", type: "table", tableKey: "connection" },
+        { id: "history", label: "History Layer", type: "table", tableKey: "history" },
+        { id: "danger", label: "Danger Level", type: "table", tableKey: "danger" },
+        { id: "reward", label: "Reward", type: "table", tableKey: "reward" }
+      ]
+    };
+  }
 
   function defaultState() {
     return {
       customTables: {},
       customTableDefs: [],
       customTerrains: [],
+      generationMethods: [],
+      activeMethodId: DEFAULT_METHOD_ID,
       savedHexes: []
     };
   }
@@ -562,11 +559,14 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
+
       const parsed = JSON.parse(raw);
       return {
         customTables: parsed.customTables && typeof parsed.customTables === "object" ? parsed.customTables : {},
         customTableDefs: Array.isArray(parsed.customTableDefs) ? parsed.customTableDefs : [],
         customTerrains: Array.isArray(parsed.customTerrains) ? parsed.customTerrains : [],
+        generationMethods: Array.isArray(parsed.generationMethods) ? parsed.generationMethods : [],
+        activeMethodId: parsed.activeMethodId || DEFAULT_METHOD_ID,
         savedHexes: Array.isArray(parsed.savedHexes) ? parsed.savedHexes : []
       };
     } catch (err) {
@@ -588,8 +588,7 @@
       key: def.key,
       label: def.label,
       die: def.die || "d20",
-      custom: true,
-      includeInHex: !!def.includeInHex
+      custom: true
     }));
     return CORE_TABLE_DEFS.concat(customs);
   }
@@ -606,6 +605,24 @@
   function randomTerrain(state) {
     const terrains = allTerrains(state);
     return terrains[randInt(terrains.length)] || DEFAULT_TERRAIN[0];
+  }
+
+  function allMethods(state) {
+    const custom = (state.generationMethods || []).map((method) => ({
+      id: method.id,
+      name: method.name,
+      builtIn: false,
+      steps: Array.isArray(method.steps) ? method.steps : []
+    }));
+    return [defaultMethod()].concat(custom);
+  }
+
+  function findMethod(state, id) {
+    return allMethods(state).find((method) => method.id === id) || defaultMethod();
+  }
+
+  function activeMethod(state) {
+    return findMethod(state, state.activeMethodId || DEFAULT_METHOD_ID);
   }
 
   function defaultEntries(tableKey) {
@@ -627,7 +644,7 @@
 
     const customs = customEntries(state, tableKey).map((entry, index) => ({
       ...entry,
-      source: "My Custom",
+      source: DEFAULT_TABLES[tableKey] ? "My Custom" : "Custom Table",
       rollLabel: DEFAULT_TABLES[tableKey] ? "C" + (index + 1) : String(index + 1)
     }));
 
@@ -658,54 +675,180 @@
   }
 
   function featureTableForRole(role) {
-    return ROLE_TO_FEATURE[role] || "feature_empty";
+    const primaryRole = String(role || "").split("+")[0].trim();
+    return ROLE_TO_FEATURE[primaryRole] || "feature_empty";
   }
 
-  function customDefsIncludedInHex(state) {
-    return (state.customTableDefs || []).filter((def) => def.includeInHex);
+  function rollRole(state) {
+    const first = pickEntry(state, "role");
+    if (first !== "Roll twice and combine") return first;
+
+    const a = pickEntry(state, "role");
+    const b = pickEntry(state, "role");
+    const cleanA = a === "Roll twice and combine" ? "Major Unique Feature" : a;
+    const cleanB = b === "Roll twice and combine" ? "Regional Threat" : b;
+    return cleanA + " + " + cleanB;
+  }
+
+  function rollStepValue(state, step, context, terrainChoice) {
+    if (step.type === "terrain") {
+      const terrain = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
+      context.terrain = terrain;
+      return terrain;
+    }
+
+    if (step.type === "role") {
+      const role = rollRole(state);
+      context.role = role;
+      return role;
+    }
+
+    if (step.type === "feature_dynamic") {
+      const feature = pickEntry(state, featureTableForRole(context.role));
+      context.feature = feature;
+      return feature;
+    }
+
+    if (step.type === "table") {
+      const value = pickEntry(state, step.tableKey);
+      if (step.tableKey === "role") context.role = value;
+      return value;
+    }
+
+    return "";
+  }
+
+  function storeCoreField(hex, step, value) {
+    const id = step.id || "";
+    const key = step.tableKey || "";
+
+    if (step.type === "terrain" || id === "terrain") hex.terrain = value;
+    if (step.type === "role" || id === "role" || key === "role") hex.role = value;
+    if (step.type === "feature_dynamic" || id === "feature") hex.feature = value;
+    if (id === "density" || key === "density") hex.density = value;
+    if (id === "state" || key === "state") hex.state = value;
+    if (id === "actor" || key === "actor") hex.actor = value;
+    if (id === "activity" || key === "activity") hex.activity = value;
+    if (id === "twist" || key === "twist") hex.twist = value;
+    if (id === "hook" || key === "hook") hex.hook = value;
+    if (id === "connection" || key === "connection") hex.connection = value;
+    if (id === "history" || key === "history") hex.history = value;
+    if (id === "danger" || key === "danger") hex.danger = value;
+    if (id === "reward" || key === "reward") hex.reward = value;
+  }
+
+  function rollHexWithMethod(state, methodId, terrainChoice) {
+    const method = findMethod(state, methodId);
+    const context = {};
+    const hex = {
+      id: uid("hex"),
+      createdAt: new Date().toISOString(),
+      methodId: method.id,
+      methodName: method.name,
+      terrain: "",
+      density: "",
+      role: "",
+      feature: "",
+      state: "",
+      actor: "",
+      activity: "",
+      twist: "",
+      hook: "",
+      connection: "",
+      history: "",
+      danger: "",
+      reward: "",
+      rolls: []
+    };
+
+    method.steps.forEach((step) => {
+      const value = rollStepValue(state, step, context, terrainChoice);
+      const roll = {
+        id: step.id || uid("roll"),
+        label: step.label || "Roll",
+        type: step.type || "table",
+        tableKey: step.tableKey || "",
+        value
+      };
+      hex.rolls.push(roll);
+      storeCoreField(hex, step, value);
+    });
+
+    if (!hex.terrain) {
+      hex.terrain = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
+      hex.rolls.unshift({
+        id: "terrain_auto",
+        label: "Terrain",
+        type: "terrain",
+        value: hex.terrain
+      });
+    }
+
+    return hex;
+  }
+
+  function rerollHexStep(state, hex, rollIndex, terrainChoice) {
+    const method = findMethod(state, hex.methodId || state.activeMethodId);
+    const step = method.steps[rollIndex];
+
+    if (!step || !hex.rolls[rollIndex]) return hex;
+
+    const context = {};
+    hex.rolls.forEach((roll, index) => {
+      if (index < rollIndex) {
+        if (roll.type === "terrain") context.terrain = roll.value;
+        if (roll.type === "role" || roll.tableKey === "role") context.role = roll.value;
+        if (roll.type === "feature_dynamic") context.feature = roll.value;
+      }
+    });
+
+    const value = rollStepValue(state, step, context, terrainChoice);
+    hex.rolls[rollIndex].value = value;
+    storeCoreField(hex, step, value);
+
+    if (step.type === "role") {
+      const featureIndex = method.steps.findIndex((item) => item.type === "feature_dynamic");
+      if (featureIndex >= 0 && hex.rolls[featureIndex]) {
+        const featureValue = pickEntry(state, featureTableForRole(value));
+        hex.rolls[featureIndex].value = featureValue;
+        storeCoreField(hex, method.steps[featureIndex], featureValue);
+      }
+    }
+
+    return hex;
   }
 
   function buildDescription(hex) {
-    const terrain = String(hex.terrain || "the wilderness").toLowerCase();
-    const feature = String(hex.feature || "notable feature").toLowerCase();
-    const state = String(hex.state || "present").toLowerCase();
-    const actor = String(hex.actor || "someone");
-    const activity = String(hex.activity || "active here").toLowerCase();
-    const twist = String(hex.twist || "something is complicated").toLowerCase();
-    const hook = String(hex.hook || "it may matter").toLowerCase();
-    const connection = String(hex.connection || "it connects to the wider area").toLowerCase();
+    if (hex.feature && hex.state && hex.actor && hex.activity && hex.twist && hex.hook && hex.connection) {
+      const terrain = String(hex.terrain || "the wilderness").toLowerCase();
+      const feature = String(hex.feature || "notable feature").toLowerCase();
+      const state = String(hex.state || "present").toLowerCase();
+      const actor = String(hex.actor || "someone");
+      const activity = String(hex.activity || "active here").toLowerCase();
+      const twist = String(hex.twist || "something is complicated").toLowerCase();
+      const hook = String(hex.hook || "it may matter").toLowerCase();
+      const connection = String(hex.connection || "it connects to the wider area").toLowerCase();
 
-    return "In the " + terrain + ", there is a " + feature + ". It is currently " + state +
-      ". " + actor + " are " + activity + ". The complication is that " + twist +
-      ". The players may care because " + hook + ". It connects to the wider region because " +
-      connection + ".";
+      return "In the " + terrain + ", there is a " + feature + ". It is currently " + state +
+        ". " + actor + " are " + activity + ". The complication is that " + twist +
+        ". The players may care because " + hook + ". It connects to the wider region because " +
+        connection + ".";
+    }
+
+    const pieces = (hex.rolls || []).map((roll) => roll.label + ": " + roll.value).join("; ");
+    return "Generated with " + (hex.methodName || "Custom Method") + ". " + pieces;
   }
 
   function buildNotes(hex) {
     const lines = [
       "Hex Notes",
       "",
-      "Terrain: " + (hex.terrain || ""),
-      "Density: " + (hex.density || ""),
-      "Main Role: " + (hex.role || ""),
-      "Specific Feature: " + (hex.feature || ""),
-      "Current State: " + (hex.state || ""),
-      "Actor / Occupant: " + (hex.actor || ""),
-      "Activity: " + (hex.activity || ""),
-      "Twist: " + (hex.twist || ""),
-      "Hook: " + (hex.hook || ""),
-      "Connection: " + (hex.connection || ""),
-      "History Layer: " + (hex.history || ""),
-      "Danger Level: " + (hex.danger || ""),
-      "Reward: " + (hex.reward || "")
+      "Generation Method: " + (hex.methodName || "Default Hex Stocker")
     ];
 
-    if (Array.isArray(hex.extraRolls) && hex.extraRolls.length) {
-      lines.push("", "Custom Table Rolls:");
-      hex.extraRolls.forEach((roll) => {
-        lines.push((roll.label || roll.tableKey) + ": " + (roll.value || ""));
-      });
-    }
+    (hex.rolls || []).forEach((roll) => {
+      lines.push((roll.label || "Roll") + ": " + (roll.value || ""));
+    });
 
     lines.push(
       "",
@@ -732,81 +875,12 @@
     const tags = ["#hex"];
 
     if (hex.terrain) tags.push("#" + slug(hex.terrain));
+    if (hex.methodName) tags.push("#" + slug(hex.methodName));
     if (hex.role && hex.role !== "Roll twice and combine") tags.push("#" + slug(hex.role));
-    if (hex.feature && hex.feature !== "—") tags.push("#" + slug(hex.feature));
-    if (hex.danger && hex.danger !== "—") tags.push("#" + slug(hex.danger));
+    if (hex.feature) tags.push("#" + slug(hex.feature));
+    if (hex.danger) tags.push("#" + slug(hex.danger));
 
-    return tags.filter(Boolean).filter((tag) => tag !== "#").slice(0, 6);
-  }
-
-  function emptyHex(state) {
-    return {
-      id: "",
-      createdAt: "",
-      terrain: ANY_TERRAIN,
-      density: "—",
-      role: "—",
-      feature: "—",
-      state: "—",
-      actor: "—",
-      activity: "—",
-      twist: "—",
-      hook: "—",
-      connection: "—",
-      history: "—",
-      danger: "—",
-      reward: "—",
-      extraRolls: []
-    };
-  }
-
-  function rollRole(state) {
-    const first = pickEntry(state, "role");
-    if (first !== "Roll twice and combine") return first;
-
-    const a = pickEntry(state, "role");
-    const b = pickEntry(state, "role");
-    const cleanA = a === "Roll twice and combine" ? "Major Unique Feature" : a;
-    const cleanB = b === "Roll twice and combine" ? "Regional Threat" : b;
-    return cleanA + " + " + cleanB;
-  }
-
-  function featureForRolledRole(state, role) {
-    const primaryRole = String(role || "").split("+")[0].trim();
-    const featureKey = featureTableForRole(primaryRole);
-    return pickEntry(state, featureKey);
-  }
-
-  function rollExtraTables(state) {
-    return customDefsIncludedInHex(state).map((def) => ({
-      tableKey: def.key,
-      label: def.label,
-      value: pickEntry(state, def.key)
-    })).filter((x) => x.value);
-  }
-
-  function rollHex(state, terrainChoice) {
-    const terrain = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
-    const role = rollRole(state);
-
-    return {
-      id: uid("hex"),
-      createdAt: new Date().toISOString(),
-      terrain,
-      density: pickEntry(state, "density"),
-      role,
-      feature: featureForRolledRole(state, role),
-      state: pickEntry(state, "state"),
-      actor: pickEntry(state, "actor"),
-      activity: pickEntry(state, "activity"),
-      twist: pickEntry(state, "twist"),
-      hook: pickEntry(state, "hook"),
-      connection: pickEntry(state, "connection"),
-      history: pickEntry(state, "history"),
-      danger: pickEntry(state, "danger"),
-      reward: pickEntry(state, "reward"),
-      extraRolls: rollExtraTables(state)
-    };
+    return tags.filter(Boolean).filter((tag) => tag !== "#").slice(0, 7);
   }
 
   function copyText(text, panelEl, message = "Copied.") {
@@ -815,7 +889,7 @@
       if (status) {
         status.textContent = message;
         setTimeout(() => {
-          if (status.isConnected) status.textContent = "Default tables are built in. Custom tables, custom terrain, and saved hexes are saved with your toolbox data.";
+          if (status.isConnected) status.textContent = "Default tables are built in. Custom tables, methods, terrain, and saved hexes are saved with your toolbox data.";
         }, 2200);
       }
     }
@@ -827,16 +901,28 @@
     }
   }
 
+  function renderTerrainOptions(state) {
+    const defaultOpts = DEFAULT_TERRAIN.map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)}</option>`).join("");
+    const customOpts = (state.customTerrains || []).map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)} · Custom</option>`).join("");
+    return `<option value="${ANY_TERRAIN}">Any (roll terrain)</option>` + defaultOpts + customOpts;
+  }
+
+  function renderMethodOptions(state) {
+    return allMethods(state).map((method) => {
+      const suffix = method.builtIn ? "" : " · Custom";
+      return `<option value="${esc(method.id)}">${esc(method.name + suffix)}</option>`;
+    }).join("");
+  }
+
   function renderTableOptions(state) {
     const core = CORE_TABLE_DEFS.map((def) => `<option value="${esc(def.key)}">${esc(def.label)} (${esc(def.die)})</option>`).join("");
     const customs = (state.customTableDefs || []).map((def) => `<option value="${esc(def.key)}">${esc(def.label)} (${esc(def.die || "d20")}) · Custom</option>`).join("");
     return core + customs;
   }
 
-  function renderTerrainOptions(state) {
-    const defaultOpts = DEFAULT_TERRAIN.map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)}</option>`).join("");
-    const customOpts = (state.customTerrains || []).map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)} · Custom</option>`).join("");
-    return `<option value="${ANY_TERRAIN}">Any (roll terrain)</option>` + defaultOpts + customOpts;
+  function renderMethodStepTableOptions(state) {
+    const tableOptions = renderTableOptions(state);
+    return `<option value="">Choose table...</option>` + tableOptions;
   }
 
   function renderTerrainManageOptions(state) {
@@ -850,10 +936,25 @@
     `).join("");
   }
 
+  function updateHostTitle() {
+    const ids = ["activeGeneratorLabel", "activeGeneratorName", "activeToolLabel", "activeToolName"];
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = "Hex Stocker";
+    });
+
+    document.querySelectorAll("*").forEach((el) => {
+      if (el.children.length) return;
+      if ((el.textContent || "").trim() === "No generator or tool selected") {
+        el.textContent = "Hex Stocker";
+      }
+    });
+  }
+
   window.registerTool({
     id: "hexStocker",
     name: "Hex Stocker",
-    description: "Generate fantasy wilderness hexes with auto-rolls, real dice input, custom tables, custom terrain, and saved hexes.",
+    description: "Generate fantasy wilderness hexes with custom generation methods, custom tables, custom terrain, real dice input, and saved hexes.",
     render({ panelEl }) {
       function expandToolHost() {
         panelEl.style.height = "auto";
@@ -872,11 +973,10 @@
         }
       }
 
-      const activeLabel = document.getElementById("activeGeneratorLabel");
-      if (activeLabel) activeLabel.textContent = "Hex Stocker";
+      updateHostTitle();
 
       let state = loadState();
-      let currentHex = emptyHex(state);
+      let currentHex = rollHexWithMethod(state, state.activeMethodId || DEFAULT_METHOD_ID, ANY_TERRAIN);
 
       panelEl.innerHTML = `
         <style>
@@ -913,11 +1013,11 @@
             font-size: 0.78rem;
             line-height: 1.4;
             margin-top: 3px;
-            max-width: 920px;
+            max-width: 940px;
           }
           .hex-tool .hex-controls {
             display: grid;
-            grid-template-columns: minmax(190px, 0.7fr) minmax(430px, 1.3fr);
+            grid-template-columns: minmax(190px, 0.7fr) minmax(190px, 0.7fr) minmax(430px, 1.3fr);
             gap: 8px;
             align-items: end;
           }
@@ -937,16 +1037,6 @@
           }
           .hex-tool details.hex-section[open] {
             display: block;
-          }
-          .hex-tool details.hex-section[open] > .hex-details-body {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            width: 100%;
-          }
-          .hex-tool .hex-details-body {
-            min-height: auto;
-            overflow: visible;
           }
           .hex-tool details.hex-section > summary {
             list-style: none;
@@ -975,10 +1065,13 @@
             content: "Close";
           }
           .hex-tool .hex-details-body {
+            min-height: auto;
+            overflow: visible;
             padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            width: 100%;
           }
           .hex-tool .hex-section-title {
             display: flex;
@@ -1010,7 +1103,7 @@
           }
           .hex-tool .hex-result-row {
             display: grid;
-            grid-template-columns: 120px minmax(0, 1fr) 32px;
+            grid-template-columns: 132px minmax(0, 1fr) 32px;
             gap: 8px;
             align-items: center;
             border: 1px solid #141a22;
@@ -1104,9 +1197,9 @@
             text-overflow: ellipsis;
             white-space: nowrap;
           }
-          .hex-tool .hex-table-grid {
+          .hex-tool .hex-editor-grid {
             display: grid;
-            grid-template-columns: minmax(260px, 0.75fr) minmax(360px, 1.25fr);
+            grid-template-columns: minmax(270px, 0.8fr) minmax(360px, 1.2fr);
             gap: 10px;
           }
           .hex-tool .hex-table {
@@ -1142,12 +1235,14 @@
             border-color: rgba(138, 223, 159, 0.45);
           }
           .hex-tool .hex-saved-list,
-          .hex-tool .hex-terrain-list {
+          .hex-tool .hex-terrain-list,
+          .hex-tool .hex-method-step-list {
             display: grid;
             gap: 5px;
           }
           .hex-tool .hex-saved-item,
-          .hex-tool .hex-terrain-item {
+          .hex-tool .hex-terrain-item,
+          .hex-tool .hex-method-step-item {
             border: 1px solid #141a22;
             border-radius: var(--radius-sm);
             background: #080c12;
@@ -1157,14 +1252,16 @@
             gap: 8px;
             align-items: center;
           }
-          .hex-tool .hex-saved-title {
+          .hex-tool .hex-saved-title,
+          .hex-tool .hex-method-step-title {
             color: var(--accent-strong);
             font-size: 0.8rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
-          .hex-tool .hex-saved-meta {
+          .hex-tool .hex-saved-meta,
+          .hex-tool .hex-method-step-meta {
             color: var(--text-muted);
             font-size: 0.72rem;
             margin-top: 2px;
@@ -1172,7 +1269,7 @@
           @media (max-width: 980px) {
             .hex-tool .hex-controls,
             .hex-tool .hex-grid,
-            .hex-tool .hex-table-grid {
+            .hex-tool .hex-editor-grid {
               grid-template-columns: 1fr;
             }
           }
@@ -1181,10 +1278,11 @@
               grid-template-columns: 1fr;
             }
             .hex-tool .hex-result-row {
-              grid-template-columns: 100px minmax(0, 1fr) 32px;
+              grid-template-columns: 110px minmax(0, 1fr) 32px;
             }
             .hex-tool .hex-saved-item,
-            .hex-tool .hex-terrain-item {
+            .hex-tool .hex-terrain-item,
+            .hex-tool .hex-method-step-item {
               grid-template-columns: 1fr;
             }
           }
@@ -1196,13 +1294,17 @@
               <div>
                 <div class="hex-title">Hex Stocker</div>
                 <div class="hex-help">
-                  Generate fantasy wilderness hexes from modular tables. Start with Any terrain, roll a full hex, then customize tables and terrain as needed.
+                  Choose a generation method, roll a full hex, or build your own method from custom tables. Default tables are starter content; custom tables and methods are saved with your toolbox data.
                 </div>
               </div>
-              <span id="hexStatus" class="copy-tip">Default tables are built in. Custom tables, custom terrain, and saved hexes are saved with your toolbox data.</span>
+              <span id="hexStatus" class="copy-tip">Default tables are built in. Custom tables, methods, terrain, and saved hexes are saved with your toolbox data.</span>
             </div>
 
             <div class="hex-controls">
+              <div>
+                <label for="hexMethodSelect">Generation Method</label>
+                <select id="hexMethodSelect">${renderMethodOptions(state)}</select>
+              </div>
               <div>
                 <label for="hexTerrainSelect">Terrain</label>
                 <select id="hexTerrainSelect">${renderTerrainOptions(state)}</select>
@@ -1240,7 +1342,7 @@
           <details class="hex-section">
             <summary>Real Dice Builder</summary>
             <div class="hex-details-body">
-              <div class="hex-note">Roll physical dice, type the numbers, then build the hex. The Feature roll uses the feature table that matches your Role result.</div>
+              <div class="hex-note">Real dice rows are based on the selected generation method. Terrain is controlled by the Terrain dropdown.</div>
               <div id="hexDiceGrid" class="hex-dice-grid"></div>
               <div class="row" style="margin-bottom:0;">
                 <button id="hexBuildDiceBtn" class="btn-primary btn-small" type="button">Build Hex From Rolls</button>
@@ -1251,10 +1353,11 @@
           </details>
 
           <details class="hex-section">
-            <summary>Table & Terrain Editor</summary>
+            <summary>Table, Terrain, & Method Editor</summary>
             <div class="hex-details-body">
-              <div class="hex-table-grid">
+              <div class="hex-editor-grid">
                 <div>
+                  <div class="section-title"><span>Tables</span></div>
                   <label for="hexTableSelect">Table</label>
                   <select id="hexTableSelect">${renderTableOptions(state)}</select>
 
@@ -1276,29 +1379,18 @@
                   <label for="hexNewTableName">Table Name</label>
                   <input id="hexNewTableName" type="text" placeholder="Weather, Road Details, Fey Crossing Features..." />
 
-                  <div class="row" style="margin-bottom:0;">
-                    <div class="col">
-                      <label for="hexNewTableDie">Die</label>
-                      <select id="hexNewTableDie">
-                        <option value="d4">d4</option>
-                        <option value="d6">d6</option>
-                        <option value="d8">d8</option>
-                        <option value="d10">d10</option>
-                        <option value="d12" selected>d12</option>
-                        <option value="d20">d20</option>
-                        <option value="d100">d100</option>
-                      </select>
-                    </div>
-                    <div class="col">
-                      <label for="hexIncludeCustomTable">Include in generated hex?</label>
-                      <select id="hexIncludeCustomTable">
-                        <option value="false" selected>No, roll only when selected</option>
-                        <option value="true">Yes, add to every generated hex</option>
-                      </select>
-                    </div>
-                  </div>
+                  <label for="hexNewTableDie" style="margin-top:8px;">Die</label>
+                  <select id="hexNewTableDie">
+                    <option value="d4">d4</option>
+                    <option value="d6">d6</option>
+                    <option value="d8">d8</option>
+                    <option value="d10">d10</option>
+                    <option value="d12" selected>d12</option>
+                    <option value="d20">d20</option>
+                    <option value="d100">d100</option>
+                  </select>
 
-                  <div class="row" style="margin-bottom:0;">
+                  <div class="row" style="margin-top:8px; margin-bottom:0;">
                     <button id="hexCreateTableBtn" class="btn-primary btn-small" type="button">Create Custom Table</button>
                     <button id="hexDeleteTableBtn" class="btn-secondary btn-small danger" type="button">Delete Selected Custom Table</button>
                   </div>
@@ -1308,7 +1400,7 @@
                   <div class="section-title"><span>Custom Terrain</span></div>
                   <label for="hexNewTerrain">New Terrain Option</label>
                   <input id="hexNewTerrain" type="text" placeholder="Volcanic Flats, Feywood, Underdark, Floating Isles..." />
-                  <div class="row" style="margin-bottom:0;">
+                  <div class="row" style="margin-top:8px; margin-bottom:0;">
                     <button id="hexAddTerrainBtn" class="btn-primary btn-small" type="button">Add Terrain</button>
                   </div>
                   <div id="hexTerrainList" class="hex-terrain-list"></div>
@@ -1328,6 +1420,58 @@
                   </table>
                 </div>
               </div>
+
+              <hr>
+
+              <div class="hex-editor-grid">
+                <div>
+                  <div class="section-title"><span>Generation Methods</span></div>
+
+                  <label for="hexEditMethodSelect">Method To Edit</label>
+                  <select id="hexEditMethodSelect">${renderMethodOptions(state)}</select>
+
+                  <label for="hexNewMethodName" style="margin-top:8px;">New Method Name</label>
+                  <input id="hexNewMethodName" type="text" placeholder="Fey Forest Hexes, Underdark Stocker, Coastal Travel..." />
+
+                  <div class="row" style="margin-top:8px; margin-bottom:0;">
+                    <button id="hexCreateMethodBtn" class="btn-primary btn-small" type="button">Create Method</button>
+                    <button id="hexDuplicateMethodBtn" class="btn-secondary btn-small" type="button">Duplicate Selected</button>
+                    <button id="hexDeleteMethodBtn" class="btn-secondary btn-small danger" type="button">Delete Method</button>
+                  </div>
+
+                  <hr>
+
+                  <label for="hexStepLabel">Step Label</label>
+                  <input id="hexStepLabel" type="text" placeholder="Weather, Strange Rule, Road Condition..." />
+
+                  <label for="hexStepType" style="margin-top:8px;">Step Type</label>
+                  <select id="hexStepType">
+                    <option value="terrain">Terrain</option>
+                    <option value="role">Hex Role</option>
+                    <option value="feature_dynamic">Feature based on Role</option>
+                    <option value="table" selected>Roll Table</option>
+                  </select>
+
+                  <label for="hexStepTable" style="margin-top:8px;">Table For Step</label>
+                  <select id="hexStepTable">${renderMethodStepTableOptions(state)}</select>
+
+                  <div class="row" style="margin-top:8px; margin-bottom:0;">
+                    <button id="hexAddStepBtn" class="btn-primary btn-small" type="button">Add Step To Method</button>
+                  </div>
+
+                  <div class="hex-note" style="margin-top:8px;">
+                    The selected Generation Method controls what Roll Full Hex uses. Default Hex Stocker cannot be edited directly; duplicate it first.
+                  </div>
+                </div>
+
+                <div>
+                  <div class="hex-section-title">
+                    <span>Method Steps</span>
+                    <span class="hex-note">Roll order</span>
+                  </div>
+                  <div id="hexMethodStepList" class="hex-method-step-list"></div>
+                </div>
+              </div>
             </div>
           </details>
 
@@ -1342,6 +1486,7 @@
 
       expandToolHost();
 
+      const methodSelect = panelEl.querySelector("#hexMethodSelect");
       const terrainSelect = panelEl.querySelector("#hexTerrainSelect");
       const resultList = panelEl.querySelector("#hexResultList");
       const descriptionEl = panelEl.querySelector("#hexDescription");
@@ -1350,15 +1495,41 @@
       const diceGrid = panelEl.querySelector("#hexDiceGrid");
       const tableSelect = panelEl.querySelector("#hexTableSelect");
       const tablePreview = panelEl.querySelector("#hexTablePreview");
-      const savedList = panelEl.querySelector("#hexSavedList");
       const terrainList = panelEl.querySelector("#hexTerrainList");
+      const savedList = panelEl.querySelector("#hexSavedList");
+      const editMethodSelect = panelEl.querySelector("#hexEditMethodSelect");
+      const methodStepList = panelEl.querySelector("#hexMethodStepList");
+
+      methodSelect.value = state.activeMethodId || DEFAULT_METHOD_ID;
+      editMethodSelect.value = state.activeMethodId || DEFAULT_METHOD_ID;
 
       function selectedTerrainChoice() {
         return terrainSelect.value || ANY_TERRAIN;
       }
 
+      function selectedMethodId() {
+        return methodSelect.value || DEFAULT_METHOD_ID;
+      }
+
+      function selectedEditMethod() {
+        return findMethod(state, editMethodSelect.value || DEFAULT_METHOD_ID);
+      }
+
       function saveAndRefreshState() {
         saveState(state);
+      }
+
+      function refreshMethodSelects(keepValue) {
+        const value = keepValue || state.activeMethodId || DEFAULT_METHOD_ID;
+        methodSelect.innerHTML = renderMethodOptions(state);
+        editMethodSelect.innerHTML = renderMethodOptions(state);
+
+        const ids = allMethods(state).map((m) => m.id);
+        const next = ids.includes(value) ? value : DEFAULT_METHOD_ID;
+
+        methodSelect.value = next;
+        editMethodSelect.value = next;
+        state.activeMethodId = next;
       }
 
       function refreshTerrainSelect(keepValue) {
@@ -1370,6 +1541,8 @@
       function refreshTableSelect(keepValue) {
         const old = keepValue || tableSelect.value;
         tableSelect.innerHTML = renderTableOptions(state);
+        panelEl.querySelector("#hexStepTable").innerHTML = renderMethodStepTableOptions(state);
+
         const keys = allTableDefs(state).map((def) => def.key);
         tableSelect.value = keys.includes(old) ? old : "twist";
       }
@@ -1377,57 +1550,26 @@
       function setCurrentHex(hex, options = {}) {
         currentHex = { ...hex };
 
-        if (options.syncTerrainSelect && currentHex.terrain && currentHex.terrain !== ANY_TERRAIN && allTerrains(state).includes(currentHex.terrain)) {
+        if (options.syncTerrainSelect && currentHex.terrain && allTerrains(state).includes(currentHex.terrain)) {
           terrainSelect.value = currentHex.terrain;
         }
 
+        if (currentHex.methodId && allMethods(state).some((m) => m.id === currentHex.methodId)) {
+          methodSelect.value = currentHex.methodId;
+          state.activeMethodId = currentHex.methodId;
+        }
+
         renderCurrentHex();
-      }
-
-      function rollSinglePart(partKey) {
-        if (partKey === "terrain") {
-          currentHex.terrain = randomTerrain(state);
-          terrainSelect.value = currentHex.terrain;
-        } else if (partKey === "feature") {
-          currentHex.feature = featureForRolledRole(state, currentHex.role);
-        } else if (partKey === "role") {
-          currentHex.role = rollRole(state);
-          currentHex.feature = featureForRolledRole(state, currentHex.role);
-        } else if (partKey === "extraRolls") {
-          currentHex.extraRolls = rollExtraTables(state);
-        } else {
-          currentHex[partKey] = pickEntry(state, partKey);
-        }
-        renderCurrentHex();
-      }
-
-      function displayedRollRows() {
-        const rows = [{ key: "terrain", label: "Terrain" }].concat(CORE_ROLL_ORDER);
-        if (Array.isArray(currentHex.extraRolls) && currentHex.extraRolls.length) {
-          rows.push({ key: "extraRolls", label: "Custom Rolls" });
-        }
-        return rows;
-      }
-
-      function valueForRow(row) {
-        if (row.key === "extraRolls") {
-          return currentHex.extraRolls.map((x) => x.label + ": " + x.value).join(" | ");
-        }
-        return currentHex[row.key] || "—";
       }
 
       function renderCurrentHex() {
-        if (terrainSelect.value !== ANY_TERRAIN && terrainSelect.value) {
-          currentHex.terrain = terrainSelect.value;
-        }
-
-        resultList.innerHTML = displayedRollRows().map((row) => {
-          const value = valueForRow(row);
+        resultList.innerHTML = (currentHex.rolls || []).map((roll, index) => {
+          const value = roll.value || "—";
           return `
             <div class="hex-result-row">
-              <div class="hex-key">${esc(row.label)}</div>
+              <div class="hex-key">${esc(roll.label || "Roll")}</div>
               <div class="hex-value" title="${esc(value)}">${esc(value)}</div>
-              <button class="hex-reroll" type="button" data-part="${esc(row.key)}" title="Reroll ${esc(row.label)}">↻</button>
+              <button class="hex-reroll" type="button" data-index="${index}" title="Reroll ${esc(roll.label || "Roll")}">↻</button>
             </div>
           `;
         }).join("");
@@ -1438,43 +1580,83 @@
       }
 
       function renderDiceGrid() {
-        diceGrid.innerHTML = DICE_ROWS.map((row) => `
-          <div class="hex-dice-row">
-            <div class="hex-die">d${row.die}</div>
-            <input type="number" min="1" max="${row.die}" data-key="${esc(row.key)}" data-table="${esc(row.tableKey)}" data-die="${row.die}" placeholder="Roll">
-            <div class="hex-dice-out">— ${esc(row.label)}</div>
-          </div>
-        `).join("");
-        updateAllDiceOutputs();
-      }
+        const method = findMethod(state, selectedMethodId());
+        const rows = method.steps.filter((step) => step.type !== "terrain");
 
-      function currentDiceRoleText() {
-        const roleInput = diceGrid.querySelector('input[data-key="role"]');
-        const raw = roleInput ? Number(roleInput.value) : 0;
-        if (!raw) return currentHex.role && currentHex.role !== "—" ? currentHex.role : "Empty / Travel Space";
-        return getEntryByRoll(state, "role", raw);
-      }
-
-      function tableForDiceRow(rowTableKey) {
-        if (rowTableKey !== "feature_dynamic") return rowTableKey;
-        return featureTableForRole(currentDiceRoleText());
-      }
-
-      function updateDiceOutput(input) {
-        const die = Number(input.dataset.die || 0);
-        const value = Number(input.value || 0);
-        const tableKey = tableForDiceRow(input.dataset.table);
-        const output = input.parentElement.querySelector(".hex-dice-out");
-        const key = input.dataset.key;
-        const row = DICE_ROWS.find((x) => x.key === key);
-        const label = row ? row.label : key;
-
-        if (!value || value < 1 || value > die) {
-          output.textContent = "— " + label;
+        if (!rows.length) {
+          diceGrid.innerHTML = `<div class="muted">This method only has Terrain steps. Add table steps to use real dice input.</div>`;
           return;
         }
 
-        output.textContent = getEntryByRoll(state, tableKey, value);
+        diceGrid.innerHTML = rows.map((step, index) => {
+          let die = 20;
+          let label = step.label || "Roll";
+
+          if (step.type === "role") die = 20;
+          if (step.type === "feature_dynamic") die = 12;
+          if (step.type === "table") {
+            const def = findTableDef(state, step.tableKey);
+            die = dieMax(def ? def.die : "d20");
+          }
+
+          return `
+            <div class="hex-dice-row">
+              <div class="hex-die">d${die}</div>
+              <input type="number" min="1" max="${die}" data-step-index="${index}" data-die="${die}" placeholder="Roll">
+              <div class="hex-dice-out">— ${esc(label)}</div>
+            </div>
+          `;
+        }).join("");
+
+        updateAllDiceOutputs();
+      }
+
+      function diceSteps() {
+        return findMethod(state, selectedMethodId()).steps.filter((step) => step.type !== "terrain");
+      }
+
+      function roleFromDiceInputs() {
+        const steps = diceSteps();
+        const inputs = Array.from(diceGrid.querySelectorAll("input"));
+        for (let i = 0; i < steps.length; i++) {
+          const step = steps[i];
+          if (step.type === "role") {
+            const value = Number(inputs[i] ? inputs[i].value : 0);
+            if (value) return getEntryByRoll(state, "role", value);
+          }
+        }
+        return currentHex.role || "Empty / Travel Space";
+      }
+
+      function updateDiceOutput(input) {
+        const steps = diceSteps();
+        const index = Number(input.dataset.stepIndex);
+        const step = steps[index];
+        const output = input.parentElement.querySelector(".hex-dice-out");
+        const die = Number(input.dataset.die || 0);
+        const value = Number(input.value || 0);
+
+        if (!step || !value || value < 1 || value > die) {
+          output.textContent = "— " + (step ? step.label : "Roll");
+          return;
+        }
+
+        if (step.type === "role") {
+          output.textContent = getEntryByRoll(state, "role", value);
+          return;
+        }
+
+        if (step.type === "feature_dynamic") {
+          output.textContent = getEntryByRoll(state, featureTableForRole(roleFromDiceInputs()), value);
+          return;
+        }
+
+        if (step.type === "table") {
+          output.textContent = getEntryByRoll(state, step.tableKey, value);
+          return;
+        }
+
+        output.textContent = "— " + (step.label || "Roll");
       }
 
       function updateAllDiceOutputs() {
@@ -1482,30 +1664,92 @@
       }
 
       function buildHexFromDice() {
+        const method = findMethod(state, selectedMethodId());
         const terrainChoice = selectedTerrainChoice();
+        const context = {};
+        const inputs = Array.from(diceGrid.querySelectorAll("input"));
+        let inputIndex = 0;
+
         const next = {
           id: uid("hex"),
           createdAt: new Date().toISOString(),
-          terrain: terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice
+          methodId: method.id,
+          methodName: method.name,
+          terrain: "",
+          density: "",
+          role: "",
+          feature: "",
+          state: "",
+          actor: "",
+          activity: "",
+          twist: "",
+          hook: "",
+          connection: "",
+          history: "",
+          danger: "",
+          reward: "",
+          rolls: []
         };
 
-        const roleInput = diceGrid.querySelector('input[data-key="role"]');
-        const roleRoll = roleInput ? Number(roleInput.value || 0) : 0;
-        next.role = roleRoll ? getEntryByRoll(state, "role", roleRoll) : rollRole(state);
+        method.steps.forEach((step) => {
+          let value = "";
 
-        diceGrid.querySelectorAll("input").forEach((input) => {
-          const key = input.dataset.key;
-          if (key === "role") return;
+          if (step.type === "terrain") {
+            value = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
+            context.terrain = value;
+          } else {
+            const input = inputs[inputIndex];
+            const rollNumber = input ? Number(input.value || 0) : 0;
+            inputIndex += 1;
 
-          const value = Number(input.value || 0);
-          const tableKey = key === "feature" ? featureTableForRole(next.role) : input.dataset.table;
+            if (step.type === "role") {
+              value = rollNumber ? getEntryByRoll(state, "role", rollNumber) : rollRole(state);
+              context.role = value;
+            } else if (step.type === "feature_dynamic") {
+              const tableKey = featureTableForRole(context.role);
+              value = rollNumber ? getEntryByRoll(state, tableKey, rollNumber) : pickEntry(state, tableKey);
+              context.feature = value;
+            } else if (step.type === "table") {
+              value = rollNumber ? getEntryByRoll(state, step.tableKey, rollNumber) : pickEntry(state, step.tableKey);
+              if (step.tableKey === "role") context.role = value;
+            }
+          }
 
-          next[key] = value ? getEntryByRoll(state, tableKey, value) : pickEntry(state, tableKey);
+          next.rolls.push({
+            id: step.id || uid("roll"),
+            label: step.label || "Roll",
+            type: step.type || "table",
+            tableKey: step.tableKey || "",
+            value
+          });
+          storeCoreField(next, step, value);
         });
 
-        next.extraRolls = rollExtraTables(state);
-        currentHex = next;
-        renderCurrentHex();
+        if (!next.terrain) {
+          next.terrain = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
+        }
+
+        setCurrentHex(next, { syncTerrainSelect: false });
+        if (terrainChoice === ANY_TERRAIN) terrainSelect.value = ANY_TERRAIN;
+      }
+
+      function storeCoreField(hex, step, value) {
+        const id = step.id || "";
+        const key = step.tableKey || "";
+
+        if (step.type === "terrain" || id === "terrain") hex.terrain = value;
+        if (step.type === "role" || id === "role" || key === "role") hex.role = value;
+        if (step.type === "feature_dynamic" || id === "feature") hex.feature = value;
+        if (id === "density" || key === "density") hex.density = value;
+        if (id === "state" || key === "state") hex.state = value;
+        if (id === "actor" || key === "actor") hex.actor = value;
+        if (id === "activity" || key === "activity") hex.activity = value;
+        if (id === "twist" || key === "twist") hex.twist = value;
+        if (id === "hook" || key === "hook") hex.hook = value;
+        if (id === "connection" || key === "connection") hex.connection = value;
+        if (id === "history" || key === "history") hex.history = value;
+        if (id === "danger" || key === "danger") hex.danger = value;
+        if (id === "reward" || key === "reward") hex.reward = value;
       }
 
       function renderTablePreview() {
@@ -1551,6 +1795,10 @@
         if (deleteTableBtn) deleteTableBtn.disabled = !(def && def.custom);
       }
 
+      function renderTerrainList() {
+        terrainList.innerHTML = renderTerrainManageOptions(state);
+      }
+
       function renderSavedHexes() {
         const saved = state.savedHexes || [];
         if (!saved.length) {
@@ -1559,13 +1807,13 @@
         }
 
         savedList.innerHTML = saved.map((hex) => {
-          const title = (hex.terrain || "Hex") + " · " + (hex.role || "Unknown Role") + " · " + (hex.feature || "Feature");
+          const title = (hex.terrain || "Hex") + " · " + (hex.methodName || "Method");
           const date = hex.createdAt ? new Date(hex.createdAt).toLocaleString() : "Unknown date";
           return `
             <div class="hex-saved-item">
               <div>
                 <div class="hex-saved-title" title="${esc(title)}">${esc(title)}</div>
-                <div class="hex-saved-meta">${esc(date)} · ${esc(hex.danger || "")}</div>
+                <div class="hex-saved-meta">${esc(date)}</div>
               </div>
               <div class="row" style="margin-bottom:0; justify-content:flex-end;">
                 <button class="btn-secondary btn-small hex-open-saved" type="button" data-id="${esc(hex.id)}">Open</button>
@@ -1577,23 +1825,61 @@
         }).join("");
       }
 
-      function renderTerrainList() {
-        terrainList.innerHTML = renderTerrainManageOptions(state);
+      function renderMethodSteps() {
+        const method = selectedEditMethod();
+
+        if (method.builtIn) {
+          methodStepList.innerHTML = `
+            <div class="muted">Default Hex Stocker is built in and cannot be edited. Duplicate it to make your own version.</div>
+          ` + method.steps.map((step, index) => `
+            <div class="hex-method-step-item">
+              <div>
+                <div class="hex-method-step-title">${index + 1}. ${esc(step.label)}</div>
+                <div class="hex-method-step-meta">${esc(step.type)}${step.tableKey ? " · " + esc(step.tableKey) : ""}</div>
+              </div>
+            </div>
+          `).join("");
+          return;
+        }
+
+        if (!method.steps.length) {
+          methodStepList.innerHTML = `<div class="muted">No steps yet. Add Terrain and any tables you want this method to roll.</div>`;
+          return;
+        }
+
+        methodStepList.innerHTML = method.steps.map((step, index) => `
+          <div class="hex-method-step-item">
+            <div>
+              <div class="hex-method-step-title">${index + 1}. ${esc(step.label)}</div>
+              <div class="hex-method-step-meta">${esc(step.type)}${step.tableKey ? " · " + esc(step.tableKey) : ""}</div>
+            </div>
+            <div class="row" style="margin-bottom:0; justify-content:flex-end;">
+              <button class="btn-secondary btn-small hex-step-up" type="button" data-index="${index}">Up</button>
+              <button class="btn-secondary btn-small hex-step-down" type="button" data-index="${index}">Down</button>
+              <button class="btn-secondary btn-small hex-step-delete danger" type="button" data-index="${index}">Delete</button>
+            </div>
+          </div>
+        `).join("");
       }
 
       function refreshAll() {
+        refreshMethodSelects(state.activeMethodId || DEFAULT_METHOD_ID);
         refreshTerrainSelect(terrainSelect.value || ANY_TERRAIN);
         refreshTableSelect(tableSelect.value || "twist");
         renderCurrentHex();
         renderDiceGrid();
         renderTablePreview();
-        renderSavedHexes();
         renderTerrainList();
+        renderSavedHexes();
+        renderMethodSteps();
       }
 
       panelEl.querySelector("#hexRollBtn").addEventListener("click", () => {
         const terrainChoice = selectedTerrainChoice();
-        setCurrentHex(rollHex(state, terrainChoice), { syncTerrainSelect: false });
+        state.activeMethodId = selectedMethodId();
+        saveAndRefreshState();
+
+        setCurrentHex(rollHexWithMethod(state, state.activeMethodId, terrainChoice), { syncTerrainSelect: false });
 
         if (terrainChoice === ANY_TERRAIN) {
           terrainSelect.value = ANY_TERRAIN;
@@ -1603,12 +1889,16 @@
       panelEl.querySelector("#hexRollTerrainBtn").addEventListener("click", () => {
         const terrain = randomTerrain(state);
         terrainSelect.value = terrain;
+
+        const terrainRoll = (currentHex.rolls || []).find((roll) => roll.type === "terrain");
+        if (terrainRoll) terrainRoll.value = terrain;
+
         currentHex.terrain = terrain;
         renderCurrentHex();
       });
 
       panelEl.querySelector("#hexClearBtn").addEventListener("click", () => {
-        currentHex = emptyHex(state);
+        currentHex = rollHexWithMethod(state, selectedMethodId(), ANY_TERRAIN);
         terrainSelect.value = ANY_TERRAIN;
         renderCurrentHex();
       });
@@ -1631,31 +1921,49 @@
         copyText("Saved hex.", panelEl, "Hex saved.");
       });
 
-      resultList.addEventListener("click", (event) => {
-        const btn = event.target.closest(".hex-reroll");
-        if (!btn) return;
-        rollSinglePart(btn.dataset.part);
+      methodSelect.addEventListener("change", () => {
+        state.activeMethodId = selectedMethodId();
+        editMethodSelect.value = state.activeMethodId;
+        saveAndRefreshState();
+        renderDiceGrid();
+        renderMethodSteps();
       });
 
       terrainSelect.addEventListener("change", () => {
         if (terrainSelect.value !== ANY_TERRAIN) {
+          const terrainRoll = (currentHex.rolls || []).find((roll) => roll.type === "terrain");
+          if (terrainRoll) terrainRoll.value = terrainSelect.value;
           currentHex.terrain = terrainSelect.value;
         }
         renderCurrentHex();
       });
 
+      resultList.addEventListener("click", (event) => {
+        const btn = event.target.closest(".hex-reroll");
+        if (!btn) return;
+
+        const index = Number(btn.dataset.index);
+        const terrainChoice = selectedTerrainChoice();
+        currentHex = rerollHexStep(state, currentHex, index, terrainChoice);
+
+        if (terrainChoice === ANY_TERRAIN) {
+          terrainSelect.value = ANY_TERRAIN;
+        }
+
+        renderCurrentHex();
+      });
+
       diceGrid.addEventListener("input", (event) => {
         if (!event.target.matches("input")) return;
-        if (event.target.dataset.key === "role") updateAllDiceOutputs();
-        else updateDiceOutput(event.target);
+        updateAllDiceOutputs();
       });
 
       panelEl.querySelector("#hexBuildDiceBtn").addEventListener("click", buildHexFromDice);
 
       panelEl.querySelector("#hexFillDiceExampleBtn").addEventListener("click", () => {
-        const example = [5, 9, 2, 3, 4, 1, 2, 1, 1, 3, 3, 7];
         diceGrid.querySelectorAll("input").forEach((input, index) => {
-          input.value = example[index] || "";
+          const die = Number(input.dataset.die || 20);
+          input.value = String(((index + 2) % die) + 1);
         });
         updateAllDiceOutputs();
       });
@@ -1692,6 +2000,7 @@
         tagsEl.value = "";
         saveAndRefreshState();
         renderTablePreview();
+        updateAllDiceOutputs();
         copyText("Added entry.", panelEl, "Entry added.");
       });
 
@@ -1710,7 +2019,6 @@
       panelEl.querySelector("#hexCreateTableBtn").addEventListener("click", () => {
         const nameEl = panelEl.querySelector("#hexNewTableName");
         const dieEl = panelEl.querySelector("#hexNewTableDie");
-        const includeEl = panelEl.querySelector("#hexIncludeCustomTable");
         const label = (nameEl.value || "").trim();
 
         if (!label) {
@@ -1722,8 +2030,7 @@
         state.customTableDefs.push({
           key,
           label,
-          die: dieEl.value || "d12",
-          includeInHex: includeEl.value === "true"
+          die: dieEl.value || "d12"
         });
         state.customTables[key] = [];
 
@@ -1731,6 +2038,7 @@
         saveAndRefreshState();
         refreshTableSelect(key);
         renderTablePreview();
+        renderDiceGrid();
         copyText("Created custom table.", panelEl, "Custom table created.");
       });
 
@@ -1739,6 +2047,12 @@
         const def = findTableDef(state, key);
         if (!def || !def.custom) {
           copyText("Default tables cannot be deleted.", panelEl, "Only custom tables can be deleted.");
+          return;
+        }
+
+        const inUse = (state.generationMethods || []).some((method) => method.steps.some((step) => step.tableKey === key));
+        if (inUse) {
+          copyText("Table is used by a method.", panelEl, "Remove this table from generation methods before deleting it.");
           return;
         }
 
@@ -1751,7 +2065,18 @@
         saveAndRefreshState();
         refreshTableSelect("twist");
         renderTablePreview();
-        renderCurrentHex();
+        renderDiceGrid();
+      });
+
+      tablePreview.addEventListener("click", (event) => {
+        const btn = event.target.closest(".hex-delete-entry");
+        if (!btn) return;
+
+        const key = tableSelect.value;
+        const id = btn.dataset.id;
+        state.customTables[key] = customEntries(state, key).filter((entry) => entry.id !== id);
+        saveAndRefreshState();
+        renderTablePreview();
       });
 
       panelEl.querySelector("#hexAddTerrainBtn").addEventListener("click", () => {
@@ -1788,15 +2113,161 @@
         renderCurrentHex();
       });
 
-      tablePreview.addEventListener("click", (event) => {
-        const btn = event.target.closest(".hex-delete-entry");
-        if (!btn) return;
+      editMethodSelect.addEventListener("change", renderMethodSteps);
 
-        const key = tableSelect.value;
-        const id = btn.dataset.id;
-        state.customTables[key] = customEntries(state, key).filter((entry) => entry.id !== id);
+      panelEl.querySelector("#hexCreateMethodBtn").addEventListener("click", () => {
+        const nameEl = panelEl.querySelector("#hexNewMethodName");
+        const name = (nameEl.value || "").trim();
+
+        if (!name) {
+          copyText("No method created.", panelEl, "Type a method name first.");
+          return;
+        }
+
+        const method = {
+          id: "method_" + slug(name) + "_" + Date.now().toString(36),
+          name,
+          steps: [
+            { id: uid("step"), label: "Terrain", type: "terrain" }
+          ]
+        };
+
+        state.generationMethods.push(method);
+        state.activeMethodId = method.id;
+        nameEl.value = "";
+
         saveAndRefreshState();
-        renderTablePreview();
+        refreshMethodSelects(method.id);
+        renderMethodSteps();
+        renderDiceGrid();
+        copyText("Created method.", panelEl, "Generation method created.");
+      });
+
+      panelEl.querySelector("#hexDuplicateMethodBtn").addEventListener("click", () => {
+        const method = selectedEditMethod();
+        const copy = {
+          id: "method_" + slug(method.name) + "_copy_" + Date.now().toString(36),
+          name: method.name + " Copy",
+          steps: JSON.parse(JSON.stringify(method.steps || [])).map((step) => ({
+            ...step,
+            id: uid("step")
+          }))
+        };
+
+        state.generationMethods.push(copy);
+        state.activeMethodId = copy.id;
+        saveAndRefreshState();
+        refreshMethodSelects(copy.id);
+        renderMethodSteps();
+        renderDiceGrid();
+        copyText("Duplicated method.", panelEl, "Method duplicated.");
+      });
+
+      panelEl.querySelector("#hexDeleteMethodBtn").addEventListener("click", () => {
+        const method = selectedEditMethod();
+        if (method.builtIn) {
+          copyText("Default method cannot be deleted.", panelEl, "Duplicate it if you want to customize it.");
+          return;
+        }
+
+        const ok = confirm("Delete generation method '" + method.name + "'?");
+        if (!ok) return;
+
+        state.generationMethods = state.generationMethods.filter((item) => item.id !== method.id);
+        state.activeMethodId = DEFAULT_METHOD_ID;
+        saveAndRefreshState();
+        refreshMethodSelects(DEFAULT_METHOD_ID);
+        renderMethodSteps();
+        renderDiceGrid();
+      });
+
+      panelEl.querySelector("#hexAddStepBtn").addEventListener("click", () => {
+        const method = selectedEditMethod();
+        if (method.builtIn) {
+          copyText("Default method cannot be edited.", panelEl, "Duplicate Default Hex Stocker first.");
+          return;
+        }
+
+        const stored = state.generationMethods.find((item) => item.id === method.id);
+        if (!stored) return;
+
+        const labelEl = panelEl.querySelector("#hexStepLabel");
+        const typeEl = panelEl.querySelector("#hexStepType");
+        const tableEl = panelEl.querySelector("#hexStepTable");
+
+        const type = typeEl.value;
+        const tableKey = tableEl.value;
+        let label = (labelEl.value || "").trim();
+
+        if (type === "table" && !tableKey) {
+          copyText("Choose a table.", panelEl, "Choose a table for this step.");
+          return;
+        }
+
+        if (!label) {
+          if (type === "terrain") label = "Terrain";
+          if (type === "role") label = "Hex Role";
+          if (type === "feature_dynamic") label = "Specific Feature";
+          if (type === "table") {
+            const def = findTableDef(state, tableKey);
+            label = def ? def.label : "Table Roll";
+          }
+        }
+
+        const step = {
+          id: uid("step"),
+          label,
+          type
+        };
+
+        if (type === "table") step.tableKey = tableKey;
+
+        stored.steps.push(step);
+        labelEl.value = "";
+
+        saveAndRefreshState();
+        renderMethodSteps();
+        renderDiceGrid();
+        copyText("Added step.", panelEl, "Method step added.");
+      });
+
+      methodStepList.addEventListener("click", (event) => {
+        const method = selectedEditMethod();
+        if (method.builtIn) return;
+
+        const stored = state.generationMethods.find((item) => item.id === method.id);
+        if (!stored) return;
+
+        const up = event.target.closest(".hex-step-up");
+        const down = event.target.closest(".hex-step-down");
+        const del = event.target.closest(".hex-step-delete");
+
+        if (up) {
+          const index = Number(up.dataset.index);
+          if (index > 0) {
+            const temp = stored.steps[index - 1];
+            stored.steps[index - 1] = stored.steps[index];
+            stored.steps[index] = temp;
+          }
+        }
+
+        if (down) {
+          const index = Number(down.dataset.index);
+          if (index < stored.steps.length - 1) {
+            const temp = stored.steps[index + 1];
+            stored.steps[index + 1] = stored.steps[index];
+            stored.steps[index] = temp;
+          }
+        }
+
+        if (del) {
+          const index = Number(del.dataset.index);
+          stored.steps.splice(index, 1);
+        }
+
+        saveAndRefreshState();
+        renderMethodSteps();
+        renderDiceGrid();
       });
 
       savedList.addEventListener("click", (event) => {
@@ -1825,10 +2296,8 @@
       });
 
       refreshAll();
-      setCurrentHex(rollHex(state, selectedTerrainChoice()), { syncTerrainSelect: false });
-      if (terrainSelect.value !== ANY_TERRAIN && currentHex.terrain && allTerrains(state).includes(currentHex.terrain)) {
-        terrainSelect.value = currentHex.terrain;
-      }
+      setCurrentHex(rollHexWithMethod(state, state.activeMethodId || DEFAULT_METHOD_ID, selectedTerrainChoice()), { syncTerrainSelect: false });
+      terrainSelect.value = ANY_TERRAIN;
     }
   });
 })();
