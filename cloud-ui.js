@@ -205,20 +205,32 @@ function wireCloudButtons() {
         const creds = getCredentials();
 
         setStatus("Signing in...");
-        await signIn(creds.email, creds.password);
+       await signIn(creds.email, creds.password);
 
-        autosaveEnabled = readRememberedAutosaveEnabled();
+await refreshCloudStatus();
 
-        if (autosaveEnabled) {
-          lastLocalKeysHash = getLocalKeysHash();
-          startAutosave();
-        }
+const shouldLoad = window.confirm(
+  "Signed in. Do you want to load your cloud save now? This will replace the current browser data."
+);
 
-        await refreshCloudStatus();
-      } catch (err) {
-        setStatus("Sign in failed: " + err.message);
-        console.error("[Cloud UI] Sign in failed:", err);
-      }
+if (shouldLoad) {
+  setStatus("Loading toolbox from cloud...");
+
+  const loaded = await loadToolboxFromCloud();
+
+  if (!loaded) {
+    setStatus("No cloud save found yet.");
+    return;
+  }
+
+  rememberAutosaveEnabled(true);
+
+  const loadedTime = new Date(loaded.updated_at).toLocaleString();
+  setStatus("Loaded cloud save from " + loadedTime + ". Reloading...");
+  window.location.reload();
+} else {
+  setStatus("Signed in. Local data kept. Click Save to Cloud when ready.");
+}
     });
   }
 
