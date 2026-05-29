@@ -1,5 +1,5 @@
 // tool-hex-stocker.js
-// Hex Stocker v2
+// Hex Stocker v3
 // Drop this file in your repo root and load it from main.js.
 // Cloud save: make sure "daggerCraftHexStockerStateV1" is listed in DB_BUNDLE_KEYS inside cloud-save.js.
 
@@ -855,6 +855,23 @@
     name: "Hex Stocker",
     description: "Generate fantasy wilderness hexes with auto-rolls, real dice input, custom tables, custom terrain, and saved hexes.",
     render({ panelEl }) {
+      function expandToolHost() {
+        panelEl.style.height = "auto";
+        panelEl.style.maxHeight = "none";
+        panelEl.style.overflow = "visible";
+
+        let node = panelEl.parentElement;
+        let depth = 0;
+
+        while (node && depth < 8) {
+          node.style.height = "auto";
+          node.style.maxHeight = "none";
+          node.style.overflow = "visible";
+          node = node.parentElement;
+          depth += 1;
+        }
+      }
+
       const activeLabel = document.getElementById("activeGeneratorLabel");
       if (activeLabel) activeLabel.textContent = "Hex Stocker";
 
@@ -915,7 +932,21 @@
           }
           .hex-tool details.hex-section {
             padding: 0;
-            overflow: hidden;
+            overflow: visible;
+            width: 100%;
+          }
+          .hex-tool details.hex-section[open] {
+            display: block;
+          }
+          .hex-tool details.hex-section[open] > .hex-details-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+          }
+          .hex-tool .hex-details-body {
+            min-height: auto;
+            overflow: visible;
           }
           .hex-tool details.hex-section > summary {
             list-style: none;
@@ -1309,6 +1340,8 @@
         </div>
       `;
 
+      expandToolHost();
+
       const terrainSelect = panelEl.querySelector("#hexTerrainSelect");
       const resultList = panelEl.querySelector("#hexResultList");
       const descriptionEl = panelEl.querySelector("#hexDescription");
@@ -1341,11 +1374,13 @@
         tableSelect.value = keys.includes(old) ? old : "twist";
       }
 
-      function setCurrentHex(hex) {
+      function setCurrentHex(hex, options = {}) {
         currentHex = { ...hex };
-        if (currentHex.terrain && currentHex.terrain !== ANY_TERRAIN && allTerrains(state).includes(currentHex.terrain)) {
+
+        if (options.syncTerrainSelect && currentHex.terrain && currentHex.terrain !== ANY_TERRAIN && allTerrains(state).includes(currentHex.terrain)) {
           terrainSelect.value = currentHex.terrain;
         }
+
         renderCurrentHex();
       }
 
@@ -1557,7 +1592,12 @@
       }
 
       panelEl.querySelector("#hexRollBtn").addEventListener("click", () => {
-        setCurrentHex(rollHex(state, selectedTerrainChoice()));
+        const terrainChoice = selectedTerrainChoice();
+        setCurrentHex(rollHex(state, terrainChoice), { syncTerrainSelect: false });
+
+        if (terrainChoice === ANY_TERRAIN) {
+          terrainSelect.value = ANY_TERRAIN;
+        }
       });
 
       panelEl.querySelector("#hexRollTerrainBtn").addEventListener("click", () => {
@@ -1766,7 +1806,7 @@
 
         if (openBtn) {
           const hit = (state.savedHexes || []).find((hex) => hex.id === openBtn.dataset.id);
-          if (hit) setCurrentHex(hit);
+          if (hit) setCurrentHex(hit, { syncTerrainSelect: true });
           return;
         }
 
@@ -1785,7 +1825,10 @@
       });
 
       refreshAll();
-      setCurrentHex(rollHex(state, selectedTerrainChoice()));
+      setCurrentHex(rollHex(state, selectedTerrainChoice()), { syncTerrainSelect: false });
+      if (terrainSelect.value !== ANY_TERRAIN && currentHex.terrain && allTerrains(state).includes(currentHex.terrain)) {
+        terrainSelect.value = currentHex.terrain;
+      }
     }
   });
 })();
