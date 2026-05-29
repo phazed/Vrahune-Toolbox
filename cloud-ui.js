@@ -157,9 +157,15 @@ function wireCloudButtons() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", async function () {
-  console.log("[Cloud UI] DOMContentLoaded");
+async function initCloudUi() {
+  console.log("[Cloud UI] init");
 
   wireCloudButtons();
   await refreshCloudStatus();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initCloudUi);
+} else {
+  initCloudUi();
+}
