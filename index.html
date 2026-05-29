@@ -106,8 +106,48 @@
     .header-right {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
       gap: 8px;
       font-size: 0.8rem;
+    }
+
+    .cloud-panel {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 5px 7px;
+      border-radius: var(--radius-md);
+      border: 1px solid #28313d;
+      background: rgba(5, 9, 15, 0.92);
+      max-width: 100%;
+    }
+
+    .cloud-panel-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-soft);
+      white-space: nowrap;
+    }
+
+    .cloud-panel input {
+      width: 135px;
+      min-width: 110px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+    }
+
+    #cloudStatus {
+      max-width: 220px;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .badge {
@@ -421,6 +461,8 @@
 
     input[type="number"],
     input[type="text"],
+    input[type="email"],
+    input[type="password"],
     select,
     textarea {
       width: 100%;
@@ -716,6 +758,30 @@
     }
 
     @media (max-width: 960px) {
+      header.app-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .header-right {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .cloud-panel {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .cloud-panel input {
+        flex: 1 1 140px;
+      }
+
+      #cloudStatus {
+        max-width: 100%;
+        white-space: normal;
+      }
+
       .layout-main {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto;
@@ -768,6 +834,35 @@
 <button id="uploadDbHelpBtn" class="btn-secondary btn-small" type="button" title="What does upload do?">
           ?
         </button>
+
+        <section id="cloudPanel" class="cloud-panel" aria-label="Cloud save controls">
+          <span class="cloud-panel-title">Cloud Save</span>
+
+          <input id="cloudEmail" type="email" placeholder="Email" autocomplete="email" />
+          <input id="cloudPassword" type="password" placeholder="Password" autocomplete="current-password" />
+
+          <button id="cloudSignUpBtn" class="btn-secondary btn-small" type="button">
+            Sign Up
+          </button>
+
+          <button id="cloudSignInBtn" class="btn-primary btn-small" type="button">
+            Sign In
+          </button>
+
+          <button id="cloudSignOutBtn" class="btn-secondary btn-small" type="button">
+            Sign Out
+          </button>
+
+          <button id="cloudSaveBtn" class="btn-secondary btn-small" type="button" title="Save your current browser database to Supabase">
+            ☁ Save
+          </button>
+
+          <button id="cloudLoadBtn" class="btn-secondary btn-small" type="button" title="Load your Supabase cloud save into this browser">
+            ☁ Load
+          </button>
+
+          <span id="cloudStatus">Not signed in</span>
+        </section>
       </div>
     </header>
 
@@ -930,6 +1025,5 @@
  
 </body>
 </html>
-
 
 
