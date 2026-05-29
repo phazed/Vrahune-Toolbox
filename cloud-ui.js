@@ -41,7 +41,10 @@ function getCredentials() {
     throw new Error("Enter email and password first.");
   }
 
-  return { email, password };
+  return {
+    email: email,
+    password: password
+  };
 }
 
 async function refreshCloudStatus() {
