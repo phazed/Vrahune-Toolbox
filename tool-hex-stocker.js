@@ -1,7 +1,7 @@
 // tool-hex-stocker.js
-// Registers the Hex Stocker tool for DaggerCraft / Vrahune Toolbox.
-// Add this file to your repo root, then add "./tool-hex-stocker.js" to TOOL_MODULES in main.js.
-// To include this tool in Supabase cloud save, add STORAGE_KEY to DB_BUNDLE_KEYS in cloud-save.js.
+// Hex Stocker v2
+// Drop this file in your repo root and load it from main.js.
+// Cloud save: make sure "daggerCraftHexStockerStateV1" is listed in DB_BUNDLE_KEYS inside cloud-save.js.
 
 (function () {
   if (!window.registerTool) {
@@ -9,10 +9,11 @@
     return;
   }
 
-  if (window.__daggerCraftHexStockerActive) return;
-  window.__daggerCraftHexStockerActive = true;
+  if (window.__daggerCraftHexStockerV2Active) return;
+  window.__daggerCraftHexStockerV2Active = true;
 
   const STORAGE_KEY = "daggerCraftHexStockerStateV1";
+  const ANY_TERRAIN = "__any__";
 
   function uid(prefix = "id") {
     return prefix + "_" + Math.random().toString(36).slice(2, 9) + "_" + Date.now().toString(36);
@@ -49,7 +50,12 @@
       .filter(Boolean);
   }
 
-  const TERRAIN = [
+  function dieMax(die) {
+    const match = String(die || "").match(/d(\d+)/i);
+    return match ? Number(match[1]) : 20;
+  }
+
+  const DEFAULT_TERRAIN = [
     "Plains / Grassland",
     "Farmland / Settled Countryside",
     "Light Forest",
@@ -64,39 +70,37 @@
     "Magical / Cursed / Warped Terrain"
   ];
 
-  const TABLE_DEFS = [
-    { key: "density", label: "Hex Density", die: "d6" },
-    { key: "role", label: "Hex Role", die: "d20" },
-    { key: "feature_empty", label: "Feature: Empty / Travel Space", die: "d12" },
-    { key: "feature_landmark", label: "Feature: Natural Landmark", die: "d12" },
-    { key: "feature_resource", label: "Feature: Resource", die: "d12" },
-    { key: "feature_hazard", label: "Feature: Hazard", die: "d12" },
-    { key: "feature_shelter", label: "Feature: Shelter / Waystation", die: "d12" },
-    { key: "feature_settlement", label: "Feature: Settlement", die: "d12" },
-    { key: "feature_fort", label: "Feature: Fort / Watchpost", die: "d12" },
-    { key: "feature_ruin", label: "Feature: Ruin", die: "d12" },
-    { key: "feature_dungeon", label: "Feature: Dungeon Entrance", die: "d12" },
-    { key: "feature_lair", label: "Feature: Monster Lair", die: "d12" },
-    { key: "feature_faction", label: "Feature: Faction Activity", die: "d12" },
-    { key: "feature_sacred", label: "Feature: Sacred / Religious Site", die: "d12" },
-    { key: "feature_magical", label: "Feature: Magical Site", die: "d12" },
-    { key: "feature_battlefield", label: "Feature: Battlefield / Grave / Memorial", die: "d12" },
-    { key: "feature_traveler", label: "Feature: Traveler / Social Encounter", die: "d12" },
-    { key: "feature_mystery", label: "Feature: Mystery / Strange Sign", die: "d12" },
-    { key: "feature_threat", label: "Feature: Regional Threat", die: "d12" },
-    { key: "feature_unique", label: "Feature: Major Unique Feature", die: "d12" },
-    { key: "state", label: "Current State", die: "d12" },
-    { key: "actor", label: "Actor / Occupant", die: "d12" },
-    { key: "activity", label: "Activity", die: "d12" },
-    { key: "twist", label: "Twist", die: "d12" },
-    { key: "hook", label: "Hook", die: "d10" },
-    { key: "connection", label: "Connection", die: "d8" },
-    { key: "history", label: "History Layer", die: "d10" },
-    { key: "danger", label: "Danger Level", die: "d6" },
-    { key: "reward", label: "Reward", die: "d10" }
+  const CORE_TABLE_DEFS = [
+    { key: "density", label: "Hex Density", die: "d6", core: true },
+    { key: "role", label: "Hex Role", die: "d20", core: true },
+    { key: "feature_empty", label: "Feature: Empty / Travel Space", die: "d12", core: true },
+    { key: "feature_landmark", label: "Feature: Natural Landmark", die: "d12", core: true },
+    { key: "feature_resource", label: "Feature: Resource", die: "d12", core: true },
+    { key: "feature_hazard", label: "Feature: Hazard", die: "d12", core: true },
+    { key: "feature_shelter", label: "Feature: Shelter / Waystation", die: "d12", core: true },
+    { key: "feature_settlement", label: "Feature: Settlement", die: "d12", core: true },
+    { key: "feature_fort", label: "Feature: Fort / Watchpost", die: "d12", core: true },
+    { key: "feature_ruin", label: "Feature: Ruin", die: "d12", core: true },
+    { key: "feature_dungeon", label: "Feature: Dungeon Entrance", die: "d12", core: true },
+    { key: "feature_lair", label: "Feature: Monster Lair", die: "d12", core: true },
+    { key: "feature_faction", label: "Feature: Faction Activity", die: "d12", core: true },
+    { key: "feature_sacred", label: "Feature: Sacred / Religious Site", die: "d12", core: true },
+    { key: "feature_magical", label: "Feature: Magical Site", die: "d12", core: true },
+    { key: "feature_battlefield", label: "Feature: Battlefield / Grave / Memorial", die: "d12", core: true },
+    { key: "feature_traveler", label: "Feature: Traveler / Social Encounter", die: "d12", core: true },
+    { key: "feature_mystery", label: "Feature: Mystery / Strange Sign", die: "d12", core: true },
+    { key: "feature_threat", label: "Feature: Regional Threat", die: "d12", core: true },
+    { key: "feature_unique", label: "Feature: Major Unique Feature", die: "d12", core: true },
+    { key: "state", label: "Current State", die: "d12", core: true },
+    { key: "actor", label: "Actor / Occupant", die: "d12", core: true },
+    { key: "activity", label: "Activity", die: "d12", core: true },
+    { key: "twist", label: "Twist", die: "d12", core: true },
+    { key: "hook", label: "Hook", die: "d10", core: true },
+    { key: "connection", label: "Connection", die: "d8", core: true },
+    { key: "history", label: "History Layer", die: "d10", core: true },
+    { key: "danger", label: "Danger Level", die: "d6", core: true },
+    { key: "reward", label: "Reward", die: "d10", core: true }
   ];
-
-  const TABLE_DEF_BY_KEY = Object.fromEntries(TABLE_DEFS.map((x) => [x.key, x]));
 
   const DEFAULT_TABLES = {
     density: [
@@ -187,7 +191,7 @@
     ],
     feature_shelter: [
       "Abandoned campsite",
-      "Hunter’s shelter",
+      "Hunter's shelter",
       "Roadside inn or wayhouse",
       "Caravan camp",
       "Shrine for travelers",
@@ -290,7 +294,7 @@
       "Holy spring",
       "Sacred grove",
       "Burial mound",
-      "Saint’s tomb or hero’s grave",
+      "Saint's tomb or hero's grave",
       "Abandoned temple",
       "Desecrated holy site",
       "Place of sacrifice, oath, or judgment",
@@ -379,7 +383,7 @@
       "Major trade hub",
       "Active warfront",
       "Region-defining natural wonder",
-      "Something tied directly to the campaign’s main mystery"
+      "Something tied directly to the campaign's main mystery"
     ],
     state: [
       "Abandoned long ago",
@@ -407,7 +411,7 @@
       "Undead or spirits",
       "Fey, elementals, fiends, celestials, or planar beings",
       "Regional faction",
-      "Major villain’s agents"
+      "Major villain's agents"
     ],
     activity: [
       "Hiding",
@@ -467,7 +471,7 @@
       "A trade stop",
       "A noble holding",
       "A magical worksite",
-      "A monster’s territory",
+      "A monster's territory",
       "A place of execution, sacrifice, or judgment",
       "Part of something much larger"
     ],
@@ -515,7 +519,7 @@
     "Roll twice and combine": "feature_unique"
   };
 
-  const ROLL_ORDER = [
+  const CORE_ROLL_ORDER = [
     { key: "density", label: "Density" },
     { key: "role", label: "Hex Role" },
     { key: "feature", label: "Specific Feature" },
@@ -545,18 +549,29 @@
     { key: "reward", label: "Reward", die: 10, tableKey: "reward" }
   ];
 
+  function defaultState() {
+    return {
+      customTables: {},
+      customTableDefs: [],
+      customTerrains: [],
+      savedHexes: []
+    };
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { customTables: {}, savedHexes: [] };
+      if (!raw) return defaultState();
       const parsed = JSON.parse(raw);
       return {
         customTables: parsed.customTables && typeof parsed.customTables === "object" ? parsed.customTables : {},
+        customTableDefs: Array.isArray(parsed.customTableDefs) ? parsed.customTableDefs : [],
+        customTerrains: Array.isArray(parsed.customTerrains) ? parsed.customTerrains : [],
         savedHexes: Array.isArray(parsed.savedHexes) ? parsed.savedHexes : []
       };
     } catch (err) {
       console.warn("Hex Stocker: failed to load state.", err);
-      return { customTables: {}, savedHexes: [] };
+      return defaultState();
     }
   }
 
@@ -566,6 +581,31 @@
     } catch (err) {
       console.warn("Hex Stocker: failed to save state.", err);
     }
+  }
+
+  function allTableDefs(state) {
+    const customs = (state.customTableDefs || []).map((def) => ({
+      key: def.key,
+      label: def.label,
+      die: def.die || "d20",
+      custom: true,
+      includeInHex: !!def.includeInHex
+    }));
+    return CORE_TABLE_DEFS.concat(customs);
+  }
+
+  function findTableDef(state, key) {
+    return allTableDefs(state).find((def) => def.key === key);
+  }
+
+  function allTerrains(state) {
+    const customs = (state.customTerrains || []).map((terrain) => String(terrain || "").trim()).filter(Boolean);
+    return DEFAULT_TERRAIN.concat(customs);
+  }
+
+  function randomTerrain(state) {
+    const terrains = allTerrains(state);
+    return terrains[randInt(terrains.length)] || DEFAULT_TERRAIN[0];
   }
 
   function defaultEntries(tableKey) {
@@ -582,12 +622,13 @@
       id: "default_" + tableKey + "_" + index,
       text,
       source: "Default",
-      defaultIndex: index
+      rollLabel: String(index + 1)
     }));
 
-    const customs = customEntries(state, tableKey).map((entry) => ({
+    const customs = customEntries(state, tableKey).map((entry, index) => ({
       ...entry,
-      source: "My Custom"
+      source: "My Custom",
+      rollLabel: DEFAULT_TABLES[tableKey] ? "C" + (index + 1) : String(index + 1)
     }));
 
     return defaults.concat(customs);
@@ -595,9 +636,19 @@
 
   function getEntryByRoll(state, tableKey, rollNumber) {
     const defaults = defaultEntries(tableKey);
-    if (!defaults.length) return "";
-    const defaultIndex = clamp((Number(rollNumber) || 1) - 1, 0, defaults.length - 1);
-    return defaults[defaultIndex] || defaults[0] || "";
+    const customs = customEntries(state, tableKey);
+
+    if (defaults.length) {
+      const defaultIndex = clamp((Number(rollNumber) || 1) - 1, 0, defaults.length - 1);
+      return defaults[defaultIndex] || defaults[0] || "";
+    }
+
+    if (customs.length) {
+      const customIndex = clamp((Number(rollNumber) || 1) - 1, 0, customs.length - 1);
+      return customs[customIndex].text || "";
+    }
+
+    return "";
   }
 
   function pickEntry(state, tableKey) {
@@ -608,6 +659,10 @@
 
   function featureTableForRole(role) {
     return ROLE_TO_FEATURE[role] || "feature_empty";
+  }
+
+  function customDefsIncludedInHex(state) {
+    return (state.customTableDefs || []).filter((def) => def.includeInHex);
   }
 
   function buildDescription(hex) {
@@ -627,7 +682,7 @@
   }
 
   function buildNotes(hex) {
-    return [
+    const lines = [
       "Hex Notes",
       "",
       "Terrain: " + (hex.terrain || ""),
@@ -642,7 +697,17 @@
       "Connection: " + (hex.connection || ""),
       "History Layer: " + (hex.history || ""),
       "Danger Level: " + (hex.danger || ""),
-      "Reward: " + (hex.reward || ""),
+      "Reward: " + (hex.reward || "")
+    ];
+
+    if (Array.isArray(hex.extraRolls) && hex.extraRolls.length) {
+      lines.push("", "Custom Table Rolls:");
+      hex.extraRolls.forEach((roll) => {
+        lines.push((roll.label || roll.tableKey) + ": " + (roll.value || ""));
+      });
+    }
+
+    lines.push(
       "",
       "Final Description:",
       buildDescription(hex),
@@ -658,22 +723,27 @@
       "- ",
       "",
       "Tags: " + buildTags(hex).join(" ")
-    ].join("\n");
+    );
+
+    return lines.join("\n");
   }
 
   function buildTags(hex) {
     const tags = ["#hex"];
+
     if (hex.terrain) tags.push("#" + slug(hex.terrain));
-    if (hex.role) tags.push("#" + slug(hex.role));
-    if (hex.actor) tags.push("#" + slug(hex.actor));
-    return tags.filter(Boolean);
+    if (hex.role && hex.role !== "Roll twice and combine") tags.push("#" + slug(hex.role));
+    if (hex.feature && hex.feature !== "—") tags.push("#" + slug(hex.feature));
+    if (hex.danger && hex.danger !== "—") tags.push("#" + slug(hex.danger));
+
+    return tags.filter(Boolean).filter((tag) => tag !== "#").slice(0, 6);
   }
 
-  function emptyHex() {
+  function emptyHex(state) {
     return {
       id: "",
       createdAt: "",
-      terrain: TERRAIN[0],
+      terrain: ANY_TERRAIN,
       density: "—",
       role: "—",
       feature: "—",
@@ -685,13 +755,39 @@
       connection: "—",
       history: "—",
       danger: "—",
-      reward: "—"
+      reward: "—",
+      extraRolls: []
     };
   }
 
-  function rollHex(state, terrain) {
-    const role = pickEntry(state, "role");
-    const featureKey = featureTableForRole(role);
+  function rollRole(state) {
+    const first = pickEntry(state, "role");
+    if (first !== "Roll twice and combine") return first;
+
+    const a = pickEntry(state, "role");
+    const b = pickEntry(state, "role");
+    const cleanA = a === "Roll twice and combine" ? "Major Unique Feature" : a;
+    const cleanB = b === "Roll twice and combine" ? "Regional Threat" : b;
+    return cleanA + " + " + cleanB;
+  }
+
+  function featureForRolledRole(state, role) {
+    const primaryRole = String(role || "").split("+")[0].trim();
+    const featureKey = featureTableForRole(primaryRole);
+    return pickEntry(state, featureKey);
+  }
+
+  function rollExtraTables(state) {
+    return customDefsIncludedInHex(state).map((def) => ({
+      tableKey: def.key,
+      label: def.label,
+      value: pickEntry(state, def.key)
+    })).filter((x) => x.value);
+  }
+
+  function rollHex(state, terrainChoice) {
+    const terrain = terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice;
+    const role = rollRole(state);
 
     return {
       id: uid("hex"),
@@ -699,7 +795,7 @@
       terrain,
       density: pickEntry(state, "density"),
       role,
-      feature: pickEntry(state, featureKey),
+      feature: featureForRolledRole(state, role),
       state: pickEntry(state, "state"),
       actor: pickEntry(state, "actor"),
       activity: pickEntry(state, "activity"),
@@ -708,7 +804,8 @@
       connection: pickEntry(state, "connection"),
       history: pickEntry(state, "history"),
       danger: pickEntry(state, "danger"),
-      reward: pickEntry(state, "reward")
+      reward: pickEntry(state, "reward"),
+      extraRolls: rollExtraTables(state)
     };
   }
 
@@ -718,7 +815,7 @@
       if (status) {
         status.textContent = message;
         setTimeout(() => {
-          if (status.isConnected) status.textContent = "Custom entries and saved hexes are stored locally and included in cloud save when you add this storage key.";
+          if (status.isConnected) status.textContent = "Default tables are built in. Custom tables, custom terrain, and saved hexes are saved with your toolbox data.";
         }, 2200);
       }
     }
@@ -730,21 +827,39 @@
     }
   }
 
-  function renderTableOptions() {
-    return TABLE_DEFS.map((def) => `<option value="${esc(def.key)}">${esc(def.label)} (${esc(def.die)})</option>`).join("");
+  function renderTableOptions(state) {
+    const core = CORE_TABLE_DEFS.map((def) => `<option value="${esc(def.key)}">${esc(def.label)} (${esc(def.die)})</option>`).join("");
+    const customs = (state.customTableDefs || []).map((def) => `<option value="${esc(def.key)}">${esc(def.label)} (${esc(def.die || "d20")}) · Custom</option>`).join("");
+    return core + customs;
   }
 
-  function renderTerrainOptions() {
-    return TERRAIN.map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)}</option>`).join("");
+  function renderTerrainOptions(state) {
+    const defaultOpts = DEFAULT_TERRAIN.map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)}</option>`).join("");
+    const customOpts = (state.customTerrains || []).map((terrain) => `<option value="${esc(terrain)}">${esc(terrain)} · Custom</option>`).join("");
+    return `<option value="${ANY_TERRAIN}">Any (roll terrain)</option>` + defaultOpts + customOpts;
+  }
+
+  function renderTerrainManageOptions(state) {
+    const customs = state.customTerrains || [];
+    if (!customs.length) return `<div class="muted">No custom terrain options yet.</div>`;
+    return customs.map((terrain, index) => `
+      <div class="hex-terrain-item">
+        <span>${esc(terrain)}</span>
+        <button class="btn-secondary btn-small hex-delete-terrain" type="button" data-index="${index}">Delete</button>
+      </div>
+    `).join("");
   }
 
   window.registerTool({
     id: "hexStocker",
     name: "Hex Stocker",
-    description: "Generate fantasy wilderness hexes with auto-rolls, real dice input, custom tables, and saved hexes.",
+    description: "Generate fantasy wilderness hexes with auto-rolls, real dice input, custom tables, custom terrain, and saved hexes.",
     render({ panelEl }) {
+      const activeLabel = document.getElementById("activeGeneratorLabel");
+      if (activeLabel) activeLabel.textContent = "Hex Stocker";
+
       let state = loadState();
-      let currentHex = emptyHex();
+      let currentHex = emptyHex(state);
 
       panelEl.innerHTML = `
         <style>
@@ -781,11 +896,11 @@
             font-size: 0.78rem;
             line-height: 1.4;
             margin-top: 3px;
-            max-width: 900px;
+            max-width: 920px;
           }
           .hex-tool .hex-controls {
             display: grid;
-            grid-template-columns: minmax(190px, 0.75fr) minmax(360px, 1.25fr);
+            grid-template-columns: minmax(190px, 0.7fr) minmax(430px, 1.3fr);
             gap: 8px;
             align-items: end;
           }
@@ -793,6 +908,42 @@
             border-radius: var(--radius-md);
             border: 1px solid #222832;
             background: #05070c;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .hex-tool details.hex-section {
+            padding: 0;
+            overflow: hidden;
+          }
+          .hex-tool details.hex-section > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 10px;
+            border-bottom: 1px solid #1a2028;
+            color: var(--accent-soft);
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+          }
+          .hex-tool details.hex-section > summary::-webkit-details-marker {
+            display: none;
+          }
+          .hex-tool details.hex-section > summary::after {
+            content: "Open";
+            color: var(--text-muted);
+            letter-spacing: 0;
+            text-transform: none;
+            font-size: 0.74rem;
+          }
+          .hex-tool details.hex-section[open] > summary::after {
+            content: "Close";
+          }
+          .hex-tool .hex-details-body {
             padding: 10px;
             display: flex;
             flex-direction: column;
@@ -861,7 +1012,7 @@
             color: var(--accent-strong);
           }
           .hex-tool .hex-description {
-            min-height: 160px;
+            min-height: 150px;
             border-radius: var(--radius-md);
             border: 1px solid #1c222c;
             background: radial-gradient(circle at top left, #0f141d, #05070c 70%);
@@ -924,7 +1075,7 @@
           }
           .hex-tool .hex-table-grid {
             display: grid;
-            grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
+            grid-template-columns: minmax(260px, 0.75fr) minmax(360px, 1.25fr);
             gap: 10px;
           }
           .hex-tool .hex-table {
@@ -959,18 +1110,13 @@
             color: #8adf9f;
             border-color: rgba(138, 223, 159, 0.45);
           }
-          .hex-tool .hex-delete-entry,
-          .hex-tool .hex-open-saved,
-          .hex-tool .hex-copy-saved,
-          .hex-tool .hex-delete-saved {
-            font-size: 0.72rem;
-            padding: 2px 6px;
-          }
-          .hex-tool .hex-saved-list {
+          .hex-tool .hex-saved-list,
+          .hex-tool .hex-terrain-list {
             display: grid;
             gap: 5px;
           }
-          .hex-tool .hex-saved-item {
+          .hex-tool .hex-saved-item,
+          .hex-tool .hex-terrain-item {
             border: 1px solid #141a22;
             border-radius: var(--radius-sm);
             background: #080c12;
@@ -1006,7 +1152,8 @@
             .hex-tool .hex-result-row {
               grid-template-columns: 100px minmax(0, 1fr) 32px;
             }
-            .hex-tool .hex-saved-item {
+            .hex-tool .hex-saved-item,
+            .hex-tool .hex-terrain-item {
               grid-template-columns: 1fr;
             }
           }
@@ -1018,16 +1165,16 @@
               <div>
                 <div class="hex-title">Hex Stocker</div>
                 <div class="hex-help">
-                  Generate fantasy wilderness hexes from modular tables. Everything is visible by default: generated results, real dice inputs, table editing, and saved hexes.
+                  Generate fantasy wilderness hexes from modular tables. Start with Any terrain, roll a full hex, then customize tables and terrain as needed.
                 </div>
               </div>
-              <span id="hexStatus" class="copy-tip">Custom entries and saved hexes are stored locally and included in cloud save when you add this storage key.</span>
+              <span id="hexStatus" class="copy-tip">Default tables are built in. Custom tables, custom terrain, and saved hexes are saved with your toolbox data.</span>
             </div>
 
             <div class="hex-controls">
               <div>
                 <label for="hexTerrainSelect">Terrain</label>
-                <select id="hexTerrainSelect">${renderTerrainOptions()}</select>
+                <select id="hexTerrainSelect">${renderTerrainOptions(state)}</select>
               </div>
               <div class="row" style="margin-bottom:0;">
                 <button id="hexRollBtn" class="btn-primary btn-small" type="button">Roll Full Hex</button>
@@ -1059,69 +1206,106 @@
             </div>
           </div>
 
-          <div class="hex-section">
-            <div class="hex-section-title">
-              <span>Real Dice Builder</span>
-              <span class="hex-note">Roll physical dice, type the numbers, then build the hex.</span>
-            </div>
-            <div id="hexDiceGrid" class="hex-dice-grid"></div>
-            <div class="row" style="margin-bottom:0;">
-              <button id="hexBuildDiceBtn" class="btn-primary btn-small" type="button">Build Hex From Rolls</button>
-              <button id="hexFillDiceExampleBtn" class="btn-secondary btn-small" type="button">Fill Example Rolls</button>
-              <button id="hexClearDiceBtn" class="btn-secondary btn-small" type="button">Clear Dice</button>
-            </div>
-          </div>
-
-          <div class="hex-section">
-            <div class="hex-section-title">
-              <span>Table Editor</span>
-              <span class="hex-note">Default entries are public. Custom entries are yours.</span>
-            </div>
-
-            <div class="hex-table-grid">
-              <div>
-                <label for="hexTableSelect">Table</label>
-                <select id="hexTableSelect">${renderTableOptions()}</select>
-
-                <label for="hexNewEntryText" style="margin-top:8px;">New Custom Entry</label>
-                <textarea id="hexNewEntryText" placeholder="Example: The ruins rearrange whenever someone sleeps inside them."></textarea>
-
-                <label for="hexNewEntryTags" style="margin-top:8px;">Tags</label>
-                <input id="hexNewEntryTags" type="text" placeholder="magical, ruin, mystery" />
-
-                <div class="row" style="margin-top:8px; margin-bottom:0;">
-                  <button id="hexAddEntryBtn" class="btn-primary btn-small" type="button">Add Custom Entry</button>
-                  <button id="hexClearEntryBtn" class="btn-secondary btn-small" type="button">Clear Entry</button>
-                </div>
-
-                <div class="hex-note" style="margin-top:8px;">
-                  Rolls use Default + My Custom entries together. To make new entries cloud-saved, add <code>${STORAGE_KEY}</code> to <code>DB_BUNDLE_KEYS</code> in <code>cloud-save.js</code>.
-                </div>
-              </div>
-
-              <div>
-                <table class="hex-table">
-                  <thead>
-                    <tr>
-                      <th style="width:56px;">Roll</th>
-                      <th>Entry</th>
-                      <th style="width:95px;">Source</th>
-                      <th style="width:62px;">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="hexTablePreview"></tbody>
-                </table>
+          <details class="hex-section">
+            <summary>Real Dice Builder</summary>
+            <div class="hex-details-body">
+              <div class="hex-note">Roll physical dice, type the numbers, then build the hex. The Feature roll uses the feature table that matches your Role result.</div>
+              <div id="hexDiceGrid" class="hex-dice-grid"></div>
+              <div class="row" style="margin-bottom:0;">
+                <button id="hexBuildDiceBtn" class="btn-primary btn-small" type="button">Build Hex From Rolls</button>
+                <button id="hexFillDiceExampleBtn" class="btn-secondary btn-small" type="button">Fill Example Rolls</button>
+                <button id="hexClearDiceBtn" class="btn-secondary btn-small" type="button">Clear Dice</button>
               </div>
             </div>
-          </div>
+          </details>
 
-          <div class="hex-section">
-            <div class="hex-section-title">
-              <span>Saved Hexes</span>
-              <span class="hex-note">Stored with this tool’s local/cloud-save state.</span>
+          <details class="hex-section">
+            <summary>Table & Terrain Editor</summary>
+            <div class="hex-details-body">
+              <div class="hex-table-grid">
+                <div>
+                  <label for="hexTableSelect">Table</label>
+                  <select id="hexTableSelect">${renderTableOptions(state)}</select>
+
+                  <label for="hexNewEntryText" style="margin-top:8px;">New Entry</label>
+                  <textarea id="hexNewEntryText" placeholder="Example: The ruins rearrange whenever someone sleeps inside them."></textarea>
+
+                  <label for="hexNewEntryTags" style="margin-top:8px;">Tags</label>
+                  <input id="hexNewEntryTags" type="text" placeholder="magical, ruin, mystery" />
+
+                  <div class="row" style="margin-top:8px; margin-bottom:0;">
+                    <button id="hexAddEntryBtn" class="btn-primary btn-small" type="button">Add Entry</button>
+                    <button id="hexRollSelectedTableBtn" class="btn-secondary btn-small" type="button">Roll This Table</button>
+                    <button id="hexClearEntryBtn" class="btn-secondary btn-small" type="button">Clear Entry</button>
+                  </div>
+
+                  <hr>
+
+                  <div class="section-title"><span>Create Custom Table</span></div>
+                  <label for="hexNewTableName">Table Name</label>
+                  <input id="hexNewTableName" type="text" placeholder="Weather, Road Details, Fey Crossing Features..." />
+
+                  <div class="row" style="margin-bottom:0;">
+                    <div class="col">
+                      <label for="hexNewTableDie">Die</label>
+                      <select id="hexNewTableDie">
+                        <option value="d4">d4</option>
+                        <option value="d6">d6</option>
+                        <option value="d8">d8</option>
+                        <option value="d10">d10</option>
+                        <option value="d12" selected>d12</option>
+                        <option value="d20">d20</option>
+                        <option value="d100">d100</option>
+                      </select>
+                    </div>
+                    <div class="col">
+                      <label for="hexIncludeCustomTable">Include in generated hex?</label>
+                      <select id="hexIncludeCustomTable">
+                        <option value="false" selected>No, roll only when selected</option>
+                        <option value="true">Yes, add to every generated hex</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-bottom:0;">
+                    <button id="hexCreateTableBtn" class="btn-primary btn-small" type="button">Create Custom Table</button>
+                    <button id="hexDeleteTableBtn" class="btn-secondary btn-small danger" type="button">Delete Selected Custom Table</button>
+                  </div>
+
+                  <hr>
+
+                  <div class="section-title"><span>Custom Terrain</span></div>
+                  <label for="hexNewTerrain">New Terrain Option</label>
+                  <input id="hexNewTerrain" type="text" placeholder="Volcanic Flats, Feywood, Underdark, Floating Isles..." />
+                  <div class="row" style="margin-bottom:0;">
+                    <button id="hexAddTerrainBtn" class="btn-primary btn-small" type="button">Add Terrain</button>
+                  </div>
+                  <div id="hexTerrainList" class="hex-terrain-list"></div>
+                </div>
+
+                <div>
+                  <table class="hex-table">
+                    <thead>
+                      <tr>
+                        <th style="width:56px;">Roll</th>
+                        <th>Entry</th>
+                        <th style="width:95px;">Source</th>
+                        <th style="width:62px;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hexTablePreview"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div id="hexSavedList" class="hex-saved-list"></div>
-          </div>
+          </details>
+
+          <details class="hex-section">
+            <summary>Saved Hexes</summary>
+            <div class="hex-details-body">
+              <div id="hexSavedList" class="hex-saved-list"></div>
+            </div>
+          </details>
         </div>
       `;
 
@@ -1134,40 +1318,76 @@
       const tableSelect = panelEl.querySelector("#hexTableSelect");
       const tablePreview = panelEl.querySelector("#hexTablePreview");
       const savedList = panelEl.querySelector("#hexSavedList");
+      const terrainList = panelEl.querySelector("#hexTerrainList");
 
-      function selectedTerrain() {
-        return terrainSelect.value || TERRAIN[0];
+      function selectedTerrainChoice() {
+        return terrainSelect.value || ANY_TERRAIN;
       }
 
       function saveAndRefreshState() {
         saveState(state);
       }
 
+      function refreshTerrainSelect(keepValue) {
+        const old = keepValue || terrainSelect.value || ANY_TERRAIN;
+        terrainSelect.innerHTML = renderTerrainOptions(state);
+        terrainSelect.value = allTerrains(state).includes(old) || old === ANY_TERRAIN ? old : ANY_TERRAIN;
+      }
+
+      function refreshTableSelect(keepValue) {
+        const old = keepValue || tableSelect.value;
+        tableSelect.innerHTML = renderTableOptions(state);
+        const keys = allTableDefs(state).map((def) => def.key);
+        tableSelect.value = keys.includes(old) ? old : "twist";
+      }
+
       function setCurrentHex(hex) {
         currentHex = { ...hex };
-        terrainSelect.value = currentHex.terrain || selectedTerrain();
+        if (currentHex.terrain && currentHex.terrain !== ANY_TERRAIN && allTerrains(state).includes(currentHex.terrain)) {
+          terrainSelect.value = currentHex.terrain;
+        }
         renderCurrentHex();
       }
 
       function rollSinglePart(partKey) {
-        if (partKey === "feature") {
-          const featureKey = featureTableForRole(currentHex.role);
-          currentHex.feature = pickEntry(state, featureKey);
+        if (partKey === "terrain") {
+          currentHex.terrain = randomTerrain(state);
+          terrainSelect.value = currentHex.terrain;
+        } else if (partKey === "feature") {
+          currentHex.feature = featureForRolledRole(state, currentHex.role);
         } else if (partKey === "role") {
-          currentHex.role = pickEntry(state, "role");
-          currentHex.feature = pickEntry(state, featureTableForRole(currentHex.role));
+          currentHex.role = rollRole(state);
+          currentHex.feature = featureForRolledRole(state, currentHex.role);
+        } else if (partKey === "extraRolls") {
+          currentHex.extraRolls = rollExtraTables(state);
         } else {
           currentHex[partKey] = pickEntry(state, partKey);
         }
-        currentHex.terrain = selectedTerrain();
         renderCurrentHex();
       }
 
-      function renderCurrentHex() {
-        currentHex.terrain = selectedTerrain();
+      function displayedRollRows() {
+        const rows = [{ key: "terrain", label: "Terrain" }].concat(CORE_ROLL_ORDER);
+        if (Array.isArray(currentHex.extraRolls) && currentHex.extraRolls.length) {
+          rows.push({ key: "extraRolls", label: "Custom Rolls" });
+        }
+        return rows;
+      }
 
-        resultList.innerHTML = ROLL_ORDER.map((row) => {
-          const value = currentHex[row.key] || "—";
+      function valueForRow(row) {
+        if (row.key === "extraRolls") {
+          return currentHex.extraRolls.map((x) => x.label + ": " + x.value).join(" | ");
+        }
+        return currentHex[row.key] || "—";
+      }
+
+      function renderCurrentHex() {
+        if (terrainSelect.value !== ANY_TERRAIN && terrainSelect.value) {
+          currentHex.terrain = terrainSelect.value;
+        }
+
+        resultList.innerHTML = displayedRollRows().map((row) => {
+          const value = valueForRow(row);
           return `
             <div class="hex-result-row">
               <div class="hex-key">${esc(row.label)}</div>
@@ -1227,15 +1447,16 @@
       }
 
       function buildHexFromDice() {
+        const terrainChoice = selectedTerrainChoice();
         const next = {
           id: uid("hex"),
           createdAt: new Date().toISOString(),
-          terrain: selectedTerrain()
+          terrain: terrainChoice === ANY_TERRAIN ? randomTerrain(state) : terrainChoice
         };
 
         const roleInput = diceGrid.querySelector('input[data-key="role"]');
         const roleRoll = roleInput ? Number(roleInput.value || 0) : 0;
-        next.role = roleRoll ? getEntryByRoll(state, "role", roleRoll) : pickEntry(state, "role");
+        next.role = roleRoll ? getEntryByRoll(state, "role", roleRoll) : rollRole(state);
 
         diceGrid.querySelectorAll("input").forEach((input) => {
           const key = input.dataset.key;
@@ -1247,15 +1468,18 @@
           next[key] = value ? getEntryByRoll(state, tableKey, value) : pickEntry(state, tableKey);
         });
 
+        next.extraRolls = rollExtraTables(state);
         currentHex = next;
         renderCurrentHex();
       }
 
       function renderTablePreview() {
         const key = tableSelect.value;
+        const def = findTableDef(state, key);
         const defaults = defaultEntries(key);
         const customs = customEntries(state, key);
         const rows = [];
+        const isCustomTable = def && def.custom;
 
         defaults.forEach((text, index) => {
           rows.push(`
@@ -1268,25 +1492,28 @@
           `);
         });
 
-        customs.forEach((entry) => {
+        customs.forEach((entry, index) => {
           rows.push(`
             <tr>
-              <td>+</td>
+              <td>${isCustomTable ? index + 1 : "C" + (index + 1)}</td>
               <td>
                 ${esc(entry.text)}
                 ${entry.tags && entry.tags.length ? `<div class="hex-note">${entry.tags.map((tag) => "#" + esc(tag)).join(" ")}</div>` : ""}
               </td>
-              <td><span class="hex-source hex-source-custom">My Custom</span></td>
+              <td><span class="hex-source hex-source-custom">${isCustomTable ? "Custom Table" : "My Custom"}</span></td>
               <td><button class="btn-secondary btn-small hex-delete-entry" type="button" data-id="${esc(entry.id)}">Delete</button></td>
             </tr>
           `);
         });
 
         if (!rows.length) {
-          rows.push(`<tr><td colspan="4" class="muted">No entries found.</td></tr>`);
+          rows.push(`<tr><td colspan="4" class="muted">No entries found. Add the first entry on the left.</td></tr>`);
         }
 
         tablePreview.innerHTML = rows.join("");
+
+        const deleteTableBtn = panelEl.querySelector("#hexDeleteTableBtn");
+        if (deleteTableBtn) deleteTableBtn.disabled = !(def && def.custom);
       }
 
       function renderSavedHexes() {
@@ -1315,25 +1542,35 @@
         }).join("");
       }
 
+      function renderTerrainList() {
+        terrainList.innerHTML = renderTerrainManageOptions(state);
+      }
+
       function refreshAll() {
+        refreshTerrainSelect(terrainSelect.value || ANY_TERRAIN);
+        refreshTableSelect(tableSelect.value || "twist");
         renderCurrentHex();
         renderDiceGrid();
         renderTablePreview();
         renderSavedHexes();
+        renderTerrainList();
       }
 
       panelEl.querySelector("#hexRollBtn").addEventListener("click", () => {
-        setCurrentHex(rollHex(state, selectedTerrain()));
+        setCurrentHex(rollHex(state, selectedTerrainChoice()));
       });
 
       panelEl.querySelector("#hexRollTerrainBtn").addEventListener("click", () => {
-        terrainSelect.value = TERRAIN[randInt(TERRAIN.length)];
-        currentHex.terrain = selectedTerrain();
+        const terrain = randomTerrain(state);
+        terrainSelect.value = terrain;
+        currentHex.terrain = terrain;
         renderCurrentHex();
       });
 
       panelEl.querySelector("#hexClearBtn").addEventListener("click", () => {
-        setCurrentHex(emptyHex());
+        currentHex = emptyHex(state);
+        terrainSelect.value = ANY_TERRAIN;
+        renderCurrentHex();
       });
 
       panelEl.querySelector("#hexCopyNotesBtn").addEventListener("click", () => {
@@ -1361,7 +1598,9 @@
       });
 
       terrainSelect.addEventListener("change", () => {
-        currentHex.terrain = selectedTerrain();
+        if (terrainSelect.value !== ANY_TERRAIN) {
+          currentHex.terrain = terrainSelect.value;
+        }
         renderCurrentHex();
       });
 
@@ -1397,7 +1636,7 @@
         const text = (textEl.value || "").trim();
 
         if (!text) {
-          copyText("No entry added.", panelEl, "Type a custom entry first.");
+          copyText("No entry added.", panelEl, "Type an entry first.");
           return;
         }
 
@@ -1413,12 +1652,100 @@
         tagsEl.value = "";
         saveAndRefreshState();
         renderTablePreview();
-        copyText("Added custom entry.", panelEl, "Custom entry added.");
+        copyText("Added entry.", panelEl, "Entry added.");
+      });
+
+      panelEl.querySelector("#hexRollSelectedTableBtn").addEventListener("click", () => {
+        const key = tableSelect.value;
+        const def = findTableDef(state, key);
+        const value = pickEntry(state, key);
+        copyText((def ? def.label : key) + ": " + value, panelEl, "Rolled table: " + value);
       });
 
       panelEl.querySelector("#hexClearEntryBtn").addEventListener("click", () => {
         panelEl.querySelector("#hexNewEntryText").value = "";
         panelEl.querySelector("#hexNewEntryTags").value = "";
+      });
+
+      panelEl.querySelector("#hexCreateTableBtn").addEventListener("click", () => {
+        const nameEl = panelEl.querySelector("#hexNewTableName");
+        const dieEl = panelEl.querySelector("#hexNewTableDie");
+        const includeEl = panelEl.querySelector("#hexIncludeCustomTable");
+        const label = (nameEl.value || "").trim();
+
+        if (!label) {
+          copyText("No table created.", panelEl, "Type a table name first.");
+          return;
+        }
+
+        const key = "custom_" + slug(label) + "_" + Date.now().toString(36);
+        state.customTableDefs.push({
+          key,
+          label,
+          die: dieEl.value || "d12",
+          includeInHex: includeEl.value === "true"
+        });
+        state.customTables[key] = [];
+
+        nameEl.value = "";
+        saveAndRefreshState();
+        refreshTableSelect(key);
+        renderTablePreview();
+        copyText("Created custom table.", panelEl, "Custom table created.");
+      });
+
+      panelEl.querySelector("#hexDeleteTableBtn").addEventListener("click", () => {
+        const key = tableSelect.value;
+        const def = findTableDef(state, key);
+        if (!def || !def.custom) {
+          copyText("Default tables cannot be deleted.", panelEl, "Only custom tables can be deleted.");
+          return;
+        }
+
+        const ok = confirm("Delete custom table '" + def.label + "' and all of its entries?");
+        if (!ok) return;
+
+        state.customTableDefs = state.customTableDefs.filter((item) => item.key !== key);
+        delete state.customTables[key];
+
+        saveAndRefreshState();
+        refreshTableSelect("twist");
+        renderTablePreview();
+        renderCurrentHex();
+      });
+
+      panelEl.querySelector("#hexAddTerrainBtn").addEventListener("click", () => {
+        const terrainEl = panelEl.querySelector("#hexNewTerrain");
+        const terrain = (terrainEl.value || "").trim();
+
+        if (!terrain) {
+          copyText("No terrain added.", panelEl, "Type a terrain name first.");
+          return;
+        }
+
+        const existing = allTerrains(state).map((x) => x.toLowerCase());
+        if (existing.includes(terrain.toLowerCase())) {
+          copyText("Terrain already exists.", panelEl, "That terrain already exists.");
+          return;
+        }
+
+        state.customTerrains.push(terrain);
+        terrainEl.value = "";
+        saveAndRefreshState();
+        refreshTerrainSelect(terrain);
+        renderTerrainList();
+        copyText("Added terrain.", panelEl, "Custom terrain added.");
+      });
+
+      terrainList.addEventListener("click", (event) => {
+        const btn = event.target.closest(".hex-delete-terrain");
+        if (!btn) return;
+        const index = Number(btn.dataset.index);
+        state.customTerrains.splice(index, 1);
+        saveAndRefreshState();
+        refreshTerrainSelect(ANY_TERRAIN);
+        renderTerrainList();
+        renderCurrentHex();
       });
 
       tablePreview.addEventListener("click", (event) => {
@@ -1458,7 +1785,7 @@
       });
 
       refreshAll();
-      setCurrentHex(rollHex(state, selectedTerrain()));
+      setCurrentHex(rollHex(state, selectedTerrainChoice()));
     }
   });
 })();
