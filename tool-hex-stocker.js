@@ -1,5 +1,5 @@
 // tool-hex-stocker.js
-// Hex Stocker v4
+// Hex Stocker v5
 // Adds generation methods: build your own hex generator by choosing which tables are rolled.
 // Install: replace your old tool-hex-stocker.js with this file.
 // Cloud save: keep "daggerCraftHexStockerStateV1" in DB_BUNDLE_KEYS inside cloud-save.js.
@@ -1002,11 +1002,104 @@
             gap: 10px;
             flex-wrap: wrap;
           }
+          .hex-tool .hex-title-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
           .hex-tool .hex-title {
             font-size: 1rem;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: var(--accent-strong);
+          }
+          .hex-tool .hex-help-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            border: 1px solid #545d6b;
+            background: #080c12;
+            color: var(--accent-strong);
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .hex-tool .hex-help-btn:hover {
+            background: #151a22;
+            border-color: #9aa2af;
+          }
+          .hex-tool .hex-help-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+          }
+          .hex-tool .hex-help-modal.open {
+            display: flex;
+          }
+          .hex-tool .hex-help-card {
+            width: min(860px, 96vw);
+            max-height: 88vh;
+            overflow: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid #333b48;
+            background: radial-gradient(circle at top left, #111824, #05070c 72%);
+            box-shadow: 0 0 36px rgba(0, 0, 0, 0.85);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .hex-tool .hex-help-card h3 {
+            margin: 0;
+            color: var(--accent-strong);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-size: 1rem;
+          }
+          .hex-tool .hex-help-card h4 {
+            margin: 8px 0 4px;
+            color: var(--accent-soft);
+            font-size: 0.84rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+          }
+          .hex-tool .hex-help-card p,
+          .hex-tool .hex-help-card li {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+          }
+          .hex-tool .hex-help-card ol,
+          .hex-tool .hex-help-card ul {
+            margin: 4px 0 0 18px;
+            padding: 0;
+          }
+          .hex-tool .hex-help-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(220px, 1fr));
+            gap: 10px;
+          }
+          .hex-tool .hex-help-box {
+            border: 1px solid #232a33;
+            border-radius: var(--radius-md);
+            background: #05070c;
+            padding: 10px;
+          }
+          .hex-tool .hex-help-close-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            border-top: 1px solid #1a2028;
+            padding-top: 10px;
           }
           .hex-tool .hex-help {
             color: var(--text-muted);
@@ -1282,7 +1375,8 @@
             }
             .hex-tool .hex-saved-item,
             .hex-tool .hex-terrain-item,
-            .hex-tool .hex-method-step-item {
+            .hex-tool .hex-method-step-item,
+            .hex-tool .hex-help-grid {
               grid-template-columns: 1fr;
             }
           }
@@ -1292,7 +1386,10 @@
           <div class="hex-top">
             <div class="hex-title-row">
               <div>
-                <div class="hex-title">Hex Stocker</div>
+                <div class="hex-title-line">
+                  <div class="hex-title">Hex Stocker</div>
+                  <button id="hexHelpBtn" class="hex-help-btn" type="button" title="How to build a custom generation method">?</button>
+                </div>
                 <div class="hex-help">
                   Choose a generation method, roll a full hex, or build your own method from custom tables. Default tables are starter content; custom tables and methods are saved with your toolbox data.
                 </div>
@@ -1481,6 +1578,82 @@
               <div id="hexSavedList" class="hex-saved-list"></div>
             </div>
           </details>
+
+          <div id="hexHelpModal" class="hex-help-modal" aria-hidden="true">
+            <div class="hex-help-card" role="dialog" aria-modal="true" aria-labelledby="hexHelpTitle">
+              <div class="hex-title-row">
+                <h3 id="hexHelpTitle">How to Build a Custom Generation Method</h3>
+                <button id="hexHelpCloseBtnTop" class="btn-secondary btn-small" type="button">Close</button>
+              </div>
+
+              <p>
+                A Generation Method is the recipe the Hex Stocker uses when you click Roll Full Hex.
+                The default method rolls the built-in hex tables. Custom methods let you choose your own tables and the order they appear.
+              </p>
+
+              <div class="hex-help-grid">
+                <div class="hex-help-box">
+                  <h4>Fastest Custom Method</h4>
+                  <ol>
+                    <li>Open <strong>Table, Terrain, & Method Editor</strong>.</li>
+                    <li>Under <strong>Generation Methods</strong>, click <strong>Duplicate Selected</strong> while Default Hex Stocker is selected.</li>
+                    <li>Add or remove steps from the copy.</li>
+                    <li>Select your new method at the top of the tool.</li>
+                    <li>Click <strong>Roll Full Hex</strong>.</li>
+                  </ol>
+                </div>
+
+                <div class="hex-help-box">
+                  <h4>Fully Custom Method</h4>
+                  <ol>
+                    <li>Create custom tables under <strong>Create Custom Table</strong>.</li>
+                    <li>Add entries to those tables.</li>
+                    <li>Create a new method under <strong>Generation Methods</strong>.</li>
+                    <li>Add steps to the method using your custom tables.</li>
+                    <li>Select that method and roll.</li>
+                  </ol>
+                </div>
+
+                <div class="hex-help-box">
+                  <h4>What the Step Fields Mean</h4>
+                  <ul>
+                    <li><strong>Step Label</strong>: what the result is called, like Weather, Strange Rule, or Local Problem.</li>
+                    <li><strong>Step Type</strong>: what kind of roll it is.</li>
+                    <li><strong>Table For Step</strong>: the table used when Step Type is Roll Table.</li>
+                  </ul>
+                </div>
+
+                <div class="hex-help-box">
+                  <h4>Step Types</h4>
+                  <ul>
+                    <li><strong>Terrain</strong>: uses the Terrain dropdown. If set to Any, it rolls terrain.</li>
+                    <li><strong>Hex Role</strong>: rolls the built-in Hex Role table.</li>
+                    <li><strong>Feature based on Role</strong>: rolls a feature table based on the previous Hex Role.</li>
+                    <li><strong>Roll Table</strong>: rolls the specific table chosen in Table For Step.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="hex-help-box">
+                <h4>Example: Fey Forest Hexes</h4>
+                <p>Create custom tables named <strong>Fey Presence</strong>, <strong>Strange Rule</strong>, and <strong>Bargain Cost</strong>. Then create a method with these steps:</p>
+                <ol>
+                  <li>Terrain — Step Type: Terrain</li>
+                  <li>Fey Presence — Step Type: Roll Table — Table: Fey Presence</li>
+                  <li>Main Feature — Step Type: Roll Table — Table: Feature: Natural Landmark</li>
+                  <li>Strange Rule — Step Type: Roll Table — Table: Strange Rule</li>
+                  <li>Bargain Cost — Step Type: Roll Table — Table: Bargain Cost</li>
+                  <li>Hook — Step Type: Roll Table — Table: Hook</li>
+                  <li>Danger — Step Type: Roll Table — Table: Danger Level</li>
+                  <li>Reward — Step Type: Roll Table — Table: Reward</li>
+                </ol>
+              </div>
+
+              <div class="hex-help-close-row">
+                <button id="hexHelpCloseBtn" class="btn-primary btn-small" type="button">Got it</button>
+              </div>
+            </div>
+          </div>
         </div>
       `;
 
@@ -1499,9 +1672,25 @@
       const savedList = panelEl.querySelector("#hexSavedList");
       const editMethodSelect = panelEl.querySelector("#hexEditMethodSelect");
       const methodStepList = panelEl.querySelector("#hexMethodStepList");
+      const helpBtn = panelEl.querySelector("#hexHelpBtn");
+      const helpModal = panelEl.querySelector("#hexHelpModal");
+      const helpCloseBtn = panelEl.querySelector("#hexHelpCloseBtn");
+      const helpCloseBtnTop = panelEl.querySelector("#hexHelpCloseBtnTop");
 
       methodSelect.value = state.activeMethodId || DEFAULT_METHOD_ID;
       editMethodSelect.value = state.activeMethodId || DEFAULT_METHOD_ID;
+
+      function openHelpModal() {
+        if (!helpModal) return;
+        helpModal.classList.add("open");
+        helpModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeHelpModal() {
+        if (!helpModal) return;
+        helpModal.classList.remove("open");
+        helpModal.setAttribute("aria-hidden", "true");
+      }
 
       function selectedTerrainChoice() {
         return terrainSelect.value || ANY_TERRAIN;
@@ -1922,9 +2111,21 @@
       });
 
       methodSelect.addEventListener("change", () => {
+        const terrainChoice = selectedTerrainChoice();
+
         state.activeMethodId = selectedMethodId();
         editMethodSelect.value = state.activeMethodId;
         saveAndRefreshState();
+
+        setCurrentHex(
+          rollHexWithMethod(state, state.activeMethodId, terrainChoice),
+          { syncTerrainSelect: false }
+        );
+
+        if (terrainChoice === ANY_TERRAIN) {
+          terrainSelect.value = ANY_TERRAIN;
+        }
+
         renderDiceGrid();
         renderMethodSteps();
       });
@@ -2294,6 +2495,15 @@
           renderSavedHexes();
         }
       });
+
+      if (helpBtn) helpBtn.addEventListener("click", openHelpModal);
+      if (helpCloseBtn) helpCloseBtn.addEventListener("click", closeHelpModal);
+      if (helpCloseBtnTop) helpCloseBtnTop.addEventListener("click", closeHelpModal);
+      if (helpModal) {
+        helpModal.addEventListener("click", (event) => {
+          if (event.target === helpModal) closeHelpModal();
+        });
+      }
 
       refreshAll();
       setCurrentHex(rollHexWithMethod(state, state.activeMethodId || DEFAULT_METHOD_ID, selectedTerrainChoice()), { syncTerrainSelect: false });
